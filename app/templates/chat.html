@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h3>💬 Chat con {{ atleta.nombre }}</h3>
+    
+    <div class="card p-3 mb-3" style="max-height: 400px; overflow-y: auto;">
+        {% for m in mensajes %}
+            <div class="mb-2">
+                <strong>{{ m.autor }}:</strong> {{ m.contenido }} <br>
+                <small class="text-muted">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</small>
+            </div>
+        {% endfor %}
+    </div>
+
+    <form method="POST">
+        <div class="mb-3">
+            <textarea class="form-control" name="mensaje" placeholder="Escribe un mensaje..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Enviar</button>
+        <a href="{{ url_for('main.perfil', id=atleta.id) }}" class="btn btn-secondary">⬅ Volver al perfil</a>
+    </form>
+</div>
+{% endblock %}

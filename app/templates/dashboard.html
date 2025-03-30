@@ -1,0 +1,142 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4 text-center">Urban Athletics - Dashboard Entrenador</h1>
+
+    <div class="card shadow-sm p-4">
+        <h5>🧍 Seleccioná un atleta para ver su calendario</h5>
+        <ul class="list-group mb-4">
+            {% for a in atletas %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                    <a href="?atleta={{ a.nombre }}" class="text-decoration-none fw-bold text-primary">
+                        {{ a.nombre }}
+                    </a>
+                    – {{ a.email }}
+                    <a href="{{ url_for('main.perfil', id=a.id) }}" class="btn btn-sm btn-outline-dark ms-3">Perfil</a>
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+
+        {% if atleta_seleccionado %}
+        <h5 class="mb-3">📅 Planificación mensual de {{ atleta_seleccionado }}</h5>
+        <table class="table table-bordered text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>Lun</th>
+                    <th>Mar</th>
+                    <th>Mié</th>
+                    <th>Jue</th>
+                    <th>Vie</th>
+                    <th>Sáb</th>
+                    <th>Dom</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for semana in calendario_mensual %}
+                <tr>
+                    {% for dia in semana %}
+                    <td style="height: 110px;" class="align-top">
+                        {% if dia != 0 %}
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ dia }}</strong>
+                                <a href="#" class="text-success agregar-entrenamiento" data-bs-toggle="modal"
+                                   data-bs-target="#modalNuevoEntrenamiento"
+                                   data-date="{{ anio }}-{{ '%02d' % mes }}-{{ '%02d' % dia }}">
+                                    ＋
+                                </a>
+                            </div>
+                            <div style="font-size: 1.5em;">
+                                {% set dia_str = "%02d"|format(dia) %}
+                                {% for e in entrenamientos %}
+                                    {% if e.fecha and e.fecha.strftime('%d') == dia_str and e.atleta.nombre == atleta_seleccionado %}
+                                        {% if e.tipo == 'Run' %} 🏃
+                                        {% elif e.tipo == 'Fuerza' %} 🏋️
+                                        {% elif e.tipo == 'Bike' %} 🚴
+                                        {% elif e.tipo == 'Natacion' %} 🏊
+                                        {% elif e.tipo == 'Estiramientos' %} 🤸
+                                        {% elif e.tipo == 'Descanso' %} 😴
+                                        {% elif e.tipo == 'Pista' %} 🏟️
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para nuevo entrenamiento -->
+<div class="modal fade" id="modalNuevoEntrenamiento" tabindex="-1" aria-labelledby="modalNuevoEntrenamientoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('main.nuevo_entrenamiento') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo entrenamiento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Atleta</label>
+                        <select name="atleta" class="form-select" required>
+                            {% for a in atletas %}
+                            <option value="{{ a.nombre }}" {% if a.nombre == atleta_seleccionado %}selected{% endif %}>
+                                {{ a.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fecha</label>
+                        <input type="date" name="fecha" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo</label>
+                        <select name="tipo" class="form-select" required>
+                            <option value="Run">🏃 Run</option>
+                            <option value="Fuerza">🏋️ Fuerza</option>
+                            <option value="Bike">🚴 Bike</option>
+                            <option value="Natacion">🏊 Natación</option>
+                            <option value="Estiramientos">🤸 Estiramientos</option>
+                            <option value="Descanso">😴 Descanso</option>
+                            <option value="Pista">🏟️ Entrenamiento en pista</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Detalle</label>
+                        <textarea name="detalle" class="form-control" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" type="submit">Guardar</button>
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const botones = document.querySelectorAll('.agregar-entrenamiento');
+        const inputFecha = document.querySelector('input[name="fecha"]');
+
+        botones.forEach(boton => {
+            boton.addEventListener('click', function () {
+                const fecha = this.getAttribute('data-date');
+                if (fecha && inputFecha) {
+                    inputFecha.value = fecha;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

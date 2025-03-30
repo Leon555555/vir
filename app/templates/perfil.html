@@ -1,0 +1,114 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-5 bg-white">
+    <!-- Encabezado con foto y logo -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">{{ atleta.nombre }} {{ atleta.apellido }}</h1>
+        <div class="d-flex align-items-center">
+            {% if atleta.foto_url %}
+                <img src="{{ atleta.foto_url }}" class="rounded-circle border" style="width: 100px; height: 100px; object-fit: cover;">
+            {% else %}
+                <img src="https://via.placeholder.com/100" class="rounded-circle border" alt="Foto por defecto">
+            {% endif %}
+            <img src="{{ url_for('static', filename='logo_urban.png') }}" style="height: 60px; margin-left: 15px;">
+        </div>
+    </div>
+
+    <!-- Acordeón: Información del atleta -->
+    <div class="accordion mb-4" id="infoAtleta">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button" style="background-color: rgb(230, 230, 230);" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInfo">
+                    📄 Información del atleta
+                </button>
+            </h2>
+            <div id="collapseInfo" class="accordion-collapse collapse show">
+                <div class="accordion-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nombre:</strong> {{ atleta.nombre }} {{ atleta.apellido }}</p>
+                            <p><strong>Email:</strong> {{ atleta.email }}</p>
+                            <p><strong>Teléfono:</strong> {{ atleta.telefono }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Edad:</strong> {{ atleta.edad }}</p>
+                            <p><strong>Altura:</strong> {{ atleta.altura }} cm</p>
+                            <p><strong>Peso:</strong> {{ atleta.peso }} kg</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acordeón: Tiempos -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button" style="background-color: rgb(230, 230, 230);" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTiempos">
+                    ⏱️ Tiempos
+                </button>
+            </h2>
+            <div id="collapseTiempos" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                    <form method="POST" action="{{ url_for('main.actualizar_tiempos', id=atleta.id) }}">
+                        <div class="row g-3 align-items-center">
+                            <div class="col">
+                                <label class="form-label">PR 1000m</label>
+                                <input type="text" name="pr_1000m" class="form-control" value="{{ atleta.pr_1000m or '' }}">
+                            </div>
+                            <div class="col">
+                                <label class="form-label">PR 10K</label>
+                                <input type="text" name="pr_10k" class="form-control" value="{{ atleta.pr_10k or '' }}">
+                            </div>
+                            <div class="col">
+                                <label class="form-label">PR 21K</label>
+                                <input type="text" name="pr_21k" class="form-control" value="{{ atleta.pr_21k or '' }}">
+                            </div>
+                            <div class="col">
+                                <label class="form-label">PR 42K</label>
+                                <input type="text" name="pr_42k" class="form-control" value="{{ atleta.pr_42k or '' }}">
+                            </div>
+                            <div class="col-auto mt-4">
+                                <button class="btn btn-primary" type="submit">Guardar</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entrenamientos: Próximos y Realizados -->
+    <div class="row">
+        <div class="col-md-6">
+            <h5>📅 Próximos Entrenamientos</h5>
+            <ul class="list-group mb-4">
+                {% for e in atleta.entrenamientos if e.fecha >= hoy %}
+                <li class="list-group-item">
+                    <strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong> – {{ e.tipo }}<br>{{ e.detalle }}
+                </li>
+                {% else %}
+                <li class="list-group-item">No hay próximos entrenamientos.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h5>✅ Entrenamientos Realizados</h5>
+            <ul class="list-group mb-4">
+                {% for e in atleta.entrenamientos if e.fecha < hoy %}
+                <li class="list-group-item">
+                    <strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong> – {{ e.tipo }}<br>{{ e.detalle }}
+                </li>
+                {% else %}
+                <li class="list-group-item">Aún no hay entrenamientos pasados.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Botón volver -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">⬅ Volver al Dashboard</a>
+    </div>
+</div>
+{% endblock %}

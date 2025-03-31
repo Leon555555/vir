@@ -35,3 +35,19 @@ with app.app_context():
         db.session.add(coach)
         db.session.commit()
         print("✅ Coach creado en Render")
+from app.models import Atleta
+
+# ✅ Verificar si hay atletas
+if not Atleta.query.first():
+    nuevo = Atleta(
+        nombre="Leandro",
+        apellido="Videla",
+        edad=30,
+        altura=1.75,
+        peso=70,
+        email="leandro@urban.com",
+        telefono="123456789"
+    )
+    db.session.add(nuevo)
+    db.session.commit()
+    print("✅ Atleta de prueba creado.")

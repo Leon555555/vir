@@ -24,3 +24,14 @@ with app.app_context():
         db.session.add(demo)
         db.session.commit()
         print("✅ Atleta demo creado")
+from app.models import Coach, db
+
+with app.app_context():
+    db.create_all()
+
+    if not Coach.query.filter_by(email="admin@urban.com").first():
+        coach = Coach(email="admin@urban.com")
+        coach.set_password("admin123")
+        db.session.add(coach)
+        db.session.commit()
+        print("✅ Coach creado en Render")

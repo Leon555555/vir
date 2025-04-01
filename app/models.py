@@ -1,7 +1,6 @@
-from flask_sqlalchemy import SQLAlchemy
+# app/models.py
+from app.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
-
-db = SQLAlchemy()
 
 class Atleta(db.Model):
     id = db.Column(db.Integer, primary_key=True)

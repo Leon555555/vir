@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: urban-athletics
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn app:app
+    plan: free

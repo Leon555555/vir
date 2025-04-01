@@ -1,120 +1,96 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Perfil de {{ atleta.nombre }}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        .sidebar {
-            background-color: #f8f9fa;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .progreso {
-            background-color: #ffe5e5;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .entrenos {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0px 0px 5px rgba(0,0,0,0.1);
-        }
-        .foto-atleta {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-        .logo {
-            width: 80px;
-        }
-    </style>
-</head>
-<body>
-<div class="container-fluid">
-    <div class="row">
-        <!-- PANEL IZQUIERDO -->
-        <div class="col-md-3 sidebar">
-            <h4>Información del Atleta</h4>
-            <p><strong>Nombre:</strong> {{ atleta.nombre }}</p>
-            <p><strong>Email:</strong> {{ atleta.email }}</p>
-            <p><strong>Teléfono:</strong> {{ atleta.telefono }}</p>
-            <p><strong>Edad:</strong> {{ atleta.edad }}</p>
-            <p><strong>Altura:</strong> {{ atleta.altura }} cm</p>
-            <p><strong>Peso:</strong> {{ atleta.peso }} kg</p>
+{% extends "layout.html" %}
+{% block title %}Perfil de {{ atleta.nombre }}{% endblock %}
+{% block content %}
 
-            <hr>
-            <h5>Tiempos (P.R)</h5>
-            <form method="POST" action="{{ url_for('main.actualizar_tiempos', id=atleta.id) }}">
-                <div class="mb-2">
-                    <label>1000m</label>
-                    <input type="text" name="pr_1000m" class="form-control" value="{{ atleta.pr_1000m or '' }}">
+<div class="container-fluid">
+    <!-- ENCABEZADO -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename='img/logo_urban.JPG') }}" class="logo" style="width: 60px;">
+            <h2 class="mb-0">Hola, {{ atleta.nombre }}</h2>
+        </div>
+        {% if atleta.foto %}
+            <img src="{{ atleta.foto }}" class="foto-atleta" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+        {% endif %}
+    </div>
+
+    <!-- PROGRESO SEMANAL -->
+    <div class="alert alert-info">
+        <h5 class="mb-1">Tu progreso semanal</h5>
+        <p class="mb-0"><strong>{{ progreso_semana }}%</strong> completado esta semana.</p>
+    </div>
+
+    <div class="row">
+        <!-- INFORMACIÓN DEL ATLETA Y MARCAS -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Información del Atleta</h5>
+                    <p><strong>Email:</strong> {{ atleta.email }}</p>
+                    <p><strong>Teléfono:</strong> {{ atleta.telefono }}</p>
+                    <p><strong>Edad:</strong> {{ atleta.edad }}</p>
+                    <p><strong>Altura:</strong> {{ atleta.altura }} cm</p>
+                    <p><strong>Peso:</strong> {{ atleta.peso }} kg</p>
                 </div>
-                <div class="mb-2">
-                    <label>10K</label>
-                    <input type="text" name="pr_10k" class="form-control" value="{{ atleta.pr_10k or '' }}">
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Tiempos (P.R)</h5>
+                    <form method="POST" action="{{ url_for('main.actualizar_tiempos', id=atleta.id) }}">
+                        <div class="mb-2">
+                            <label class="form-label">1000m</label>
+                            <input type="text" name="pr_1000m" class="form-control" value="{{ atleta.pr_1000m or '' }}">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">10K</label>
+                            <input type="text" name="pr_10k" class="form-control" value="{{ atleta.pr_10k or '' }}">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">21K</label>
+                            <input type="text" name="pr_21k" class="form-control" value="{{ atleta.pr_21k or '' }}">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">42K</label>
+                            <input type="text" name="pr_42k" class="form-control" value="{{ atleta.pr_42k or '' }}">
+                        </div>
+                        <button type="submit" class="btn btn-danger mt-2">Actualizar</button>
+                    </form>
                 </div>
-                <div class="mb-2">
-                    <label>21K</label>
-                    <input type="text" name="pr_21k" class="form-control" value="{{ atleta.pr_21k or '' }}">
-                </div>
-                <div class="mb-2">
-                    <label>42K</label>
-                    <input type="text" name="pr_42k" class="form-control" value="{{ atleta.pr_42k or '' }}">
-                </div>
-                <button type="submit" class="btn btn-primary mt-2">Actualizar</button>
-            </form>
+            </div>
         </div>
 
-        <!-- PANEL DERECHO -->
-        <div class="col-md-9">
-            <!-- ENCABEZADO -->
-            <div class="d-flex align-items-center justify-content-between mt-3">
-                <div class="d-flex align-items-center gap-3">
-                    <img src="{{ url_for('static', filename='img/logo_urban.JPG') }}" class="logo">
-                    <h2>{{ atleta.nombre }}</h2>
-                </div>
-                {% if atleta.foto %}
-                    <img src="{{ atleta.foto }}" class="foto-atleta">
-                {% endif %}
-            </div>
-
-            <!-- PROGRESO SEMANAL -->
-            <div class="progreso mt-3">
-                <h4>Tu progreso semanal</h4>
-                <p class="mb-0"><strong>{{ progreso_semana }}%</strong> completado esta semana.</p>
-            </div>
-
-            <!-- ENTRENOS -->
+        <!-- ENTRENAMIENTOS -->
+        <div class="col-md-8">
             <div class="row">
-                <div class="col-md-6">
-                    <div class="entrenos">
-                        <h5>Próximos Entrenos</h5>
-                        {% for entrenamiento in atleta.entrenamientos if entrenamiento.fecha >= hoy %}
-                            <p>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }} - {{ entrenamiento.tipo }}: {{ entrenamiento.detalle }}</p>
-                        {% else %}
-                            <p>No hay entrenamientos futuros.</p>
-                        {% endfor %}
+                <div class="col-md-12">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Próximos Entrenos</h5>
+                            {% for entrenamiento in atleta.entrenamientos if entrenamiento.fecha >= hoy %}
+                                <p>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }} - {{ entrenamiento.tipo }}: {{ entrenamiento.detalle }}</p>
+                            {% else %}
+                                <p>No hay entrenamientos futuros.</p>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="entrenos">
-                        <h5>Entrenos Realizados</h5>
-                        {% for entrenamiento in atleta.entrenamientos if entrenamiento.fecha < hoy %}
-                            <p>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }} - {{ entrenamiento.tipo }}: {{ entrenamiento.detalle }}</p>
-                        {% else %}
-                            <p>No hay entrenamientos pasados.</p>
-                        {% endfor %}
+
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Entrenos Realizados</h5>
+                            {% for entrenamiento in atleta.entrenamientos if entrenamiento.fecha < hoy %}
+                                <p>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }} - {{ entrenamiento.tipo }}: {{ entrenamiento.detalle }}</p>
+                            {% else %}
+                                <p>No hay entrenamientos pasados.</p>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 </div>
-</body>
-</html>
+
+{% endblock %}

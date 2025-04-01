@@ -13,11 +13,15 @@ def login():
         email = request.form["email"]
         password = request.form["password"]
         atleta = Atleta.query.filter_by(email=email).first()
-        if atleta and password == "1234":  # reemplazá con tu lógica real
+
+        if atleta and (
+            (atleta.email == "lvidelaramos@gmail.com" and password == "lean369") or password == "1234"
+        ):
             session["usuario_id"] = atleta.id
             return redirect(url_for("main.perfil", id=atleta.id))
         else:
             error = "Credenciales inválidas"
+
     return render_template("login.html", error=error)
 
 # LOGOUT
@@ -90,3 +94,15 @@ def perfil(id):
     entrenos_realizados = len([e for e in atleta.entrenamientos if e.fecha < hoy])
     progreso = int((entrenos_realizados / total_entrenamientos) * 100) if total_entrenamientos else 0
 
+    return render_template("perfil.html", atleta=atleta, hoy=hoy, progreso_semana=progreso)
+
+# ACTUALIZAR TIEMPOS
+@main.route('/actualizar_tiempos/<int:id>', methods=['POST'])
+def actualizar_tiempos(id):
+    atleta = Atleta.query.get_or_404(id)
+    atleta.pr_1000m = request.form.get('pr_1000m')
+    atleta.pr_10k = request.form.get('pr_10k')
+    atleta.pr_21k = request.form.get('pr_21k')
+    atleta.pr_42k = request.form.get('pr_42k')
+    db.session.commit()
+    return redirect(url_for('main.perfil', id=id))

@@ -88,4 +88,5 @@ def perfil(id):
 
     total_entrenamientos = len(atleta.entrenamientos)
     entrenos_realizados = len([e for e in atleta.entrenamientos if e.fecha < hoy])
-    progreso = int((entrenos_realizados / total_entrenamientos) * 100) if total_entren_*
+    progreso = int((entrenos_realizados / total_entrenamientos) * 100) if total_entrenamientos else 0
+

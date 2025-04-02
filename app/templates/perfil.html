@@ -1,96 +1,60 @@
 {% extends "layout.html" %}
-{% block title %}Perfil de {{ atleta.nombre }}{% endblock %}
+
+{% block title %}Perfil Atleta - Urban Athletics{% endblock %}
+
 {% block content %}
+<div class="container">
+    <h2 class="mb-4">👤 Perfil de {{ atleta.nombre }}</h2>
 
-<div class="container-fluid">
-    <!-- ENCABEZADO -->
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div class="d-flex align-items-center gap-3">
-            <img src="{{ url_for('static', filename='img/logo_urban.JPG') }}" class="logo" style="width: 60px;">
-            <h2 class="mb-0">Hola, {{ atleta.nombre }}</h2>
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <ul class="list-group">
+                <li class="list-group-item"><strong>Email:</strong> {{ atleta.email }}</li>
+                <li class="list-group-item"><strong>Teléfono:</strong> {{ atleta.telefono }}</li>
+                <li class="list-group-item"><strong>Edad:</strong> {{ atleta.edad }}</li>
+                <li class="list-group-item"><strong>Altura:</strong> {{ atleta.altura }} cm</li>
+                <li class="list-group-item"><strong>Peso:</strong> {{ atleta.peso }} kg</li>
+            </ul>
         </div>
-        {% if atleta.foto %}
-            <img src="{{ atleta.foto }}" class="foto-atleta" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
-        {% endif %}
-    </div>
-
-    <!-- PROGRESO SEMANAL -->
-    <div class="alert alert-info">
-        <h5 class="mb-1">Tu progreso semanal</h5>
-        <p class="mb-0"><strong>{{ progreso_semana }}%</strong> completado esta semana.</p>
-    </div>
-
-    <div class="row">
-        <!-- INFORMACIÓN DEL ATLETA Y MARCAS -->
-        <div class="col-md-4">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Información del Atleta</h5>
-                    <p><strong>Email:</strong> {{ atleta.email }}</p>
-                    <p><strong>Teléfono:</strong> {{ atleta.telefono }}</p>
-                    <p><strong>Edad:</strong> {{ atleta.edad }}</p>
-                    <p><strong>Altura:</strong> {{ atleta.altura }} cm</p>
-                    <p><strong>Peso:</strong> {{ atleta.peso }} kg</p>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Tiempos (P.R)</h5>
-                    <form method="POST" action="{{ url_for('main.actualizar_tiempos', id=atleta.id) }}">
-                        <div class="mb-2">
-                            <label class="form-label">1000m</label>
-                            <input type="text" name="pr_1000m" class="form-control" value="{{ atleta.pr_1000m or '' }}">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">10K</label>
-                            <input type="text" name="pr_10k" class="form-control" value="{{ atleta.pr_10k or '' }}">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">21K</label>
-                            <input type="text" name="pr_21k" class="form-control" value="{{ atleta.pr_21k or '' }}">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">42K</label>
-                            <input type="text" name="pr_42k" class="form-control" value="{{ atleta.pr_42k or '' }}">
-                        </div>
-                        <button type="submit" class="btn btn-danger mt-2">Actualizar</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- ENTRENAMIENTOS -->
-        <div class="col-md-8">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Próximos Entrenos</h5>
-                            {% for entrenamiento in atleta.entrenamientos if entrenamiento.fecha >= hoy %}
-                                <p>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }} - {{ entrenamiento.tipo }}: {{ entrenamiento.detalle }}</p>
-                            {% else %}
-                                <p>No hay entrenamientos futuros.</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Entrenos Realizados</h5>
-                            {% for entrenamiento in atleta.entrenamientos if entrenamiento.fecha < hoy %}
-                                <p>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }} - {{ entrenamiento.tipo }}: {{ entrenamiento.detalle }}</p>
-                            {% else %}
-                                <p>No hay entrenamientos pasados.</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="col-md-6">
+            <ul class="list-group">
+                <li class="list-group-item"><strong>PR 1000m:</strong> {{ atleta.pr_1000m }}</li>
+                <li class="list-group-item"><strong>PR 10k:</strong> {{ atleta.pr_10k }}</li>
+                <li class="list-group-item"><strong>PR 21k:</strong> {{ atleta.pr_21k }}</li>
+                <li class="list-group-item"><strong>PR 42k:</strong> {{ atleta.pr_42k }}</li>
+            </ul>
         </div>
     </div>
+
+    <h4>📊 Progreso semanal</h4>
+    <div class="progress mb-4" style="height: 25px;">
+        <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_semana }}%;">
+            {{ progreso_semana }}%
+        </div>
+    </div>
+
+    <h4>📅 Entrenamientos</h4>
+    {% if atleta.entrenamientos %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Detalle</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in atleta.entrenamientos|sort(attribute='fecha', reverse=True) %}
+                <tr>
+                    <td>{{ e.fecha.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ e.tipo }}</td>
+                    <td>{{ e.detalle }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay entrenamientos registrados aún.</p>
+    {% endif %}
 </div>
-
 {% endblock %}

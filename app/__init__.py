@@ -17,7 +17,7 @@ def create_app():
     app.register_blueprint(main)
 
     # Crear atletas solo si estamos en entorno local (evita errores en Render)
-    if app.config['ENV'] == 'development':
+    if app.config.get('ENV') == 'development':
         with app.app_context():
             from .models import Atleta
             if not Atleta.query.filter_by(email='lvidelaramos@gmail.com').first():

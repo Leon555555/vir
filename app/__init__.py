@@ -17,3 +17,18 @@ def create_app():
     app.register_blueprint(main)
 
     return app
+with app.app_context():
+    from .models import Atleta, db
+
+    # Verificamos si ya existe
+    if not Atleta.query.filter_by(email='lvidelaramos@gmail.com').first():
+        nuevo = Atleta(
+            nombre='Leandro Videla',
+            email='lvidelaramos@gmail.com',
+            telefono='123456789',
+            edad=30,
+            altura=175,
+            peso=70
+        )
+        db.session.add(nuevo)
+        db.session.commit()

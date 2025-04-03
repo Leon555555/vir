@@ -42,20 +42,13 @@
 </head>
 <body>
 
+    {% if session.get('usuario_id') %}
     <div class="sidebar">
         <h4 class="mb-4">🏃 Urban Athletics</h4>
-        <a href="{{ url_for('main.dashboard') }}">📊 Dashboard</a>
-
-        {% if session.get('usuario_id') %}
-            <a href="{{ url_for('main.perfil', id=session.get('usuario_id')) }}">👤 Perfil</a>
-        {% else %}
-            <a href="#">👤 Perfil</a>
-        {% endif %}
-
-        <a href="#">📈 Progreso</a>
-        <a href="#">📅 Entrenos</a>
+        <a href="{{ url_for('main.perfil', id=session['usuario_id']) }}">👤 Perfil</a>
         <a href="{{ url_for('main.logout') }}">🚪 Cerrar sesión</a>
     </div>
+    {% endif %}
 
     <div class="main-content">
         {% block content %}{% endblock %}

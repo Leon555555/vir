@@ -5,23 +5,19 @@ import calendar
 
 main = Blueprint('main', __name__)
 
-# LOGIN (solo para atletas por ahora)
+# LOGIN (solo pide email por ahora)
 @main.route("/login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
+        email = request.form["email"].strip().lower()
         atleta = Atleta.query.filter_by(email=email).first()
-
-        if atleta and password == "lean369":  # TEMPORAL para Leandro
+        if atleta:
             session["usuario_id"] = atleta.id
-            session["usuario_es_entrenador"] = atleta.nombre == "Entrenador"
             return redirect(url_for("main.perfil", id=atleta.id))
         else:
             error = "Credenciales inválidas"
     return render_template("login.html", error=error)
-
 
 # LOGOUT
 @main.route("/logout")
@@ -29,19 +25,14 @@ def logout():
     session.clear()
     return redirect(url_for("main.login"))
 
-
 # HOME REDIRECT
 @main.route('/')
 def index():
-    return redirect(url_for('main.login'))
-
+    return redirect(url_for('main.dashboard'))
 
 # DASHBOARD (solo para el entrenador)
 @main.route('/dashboard')
 def dashboard():
-    if not session.get("usuario_es_entrenador"):
-        return redirect(url_for("main.login"))
-
     atletas = Atleta.query.all()
     entrenamientos = Entrenamiento.query.all()
     hoy = datetime.today()
@@ -60,13 +51,9 @@ def dashboard():
         atleta_seleccionado=atleta_seleccionado
     )
 
-
 # NUEVO ENTRENAMIENTO
 @main.route('/nuevo_entrenamiento', methods=['POST'])
 def nuevo_entrenamiento():
-    if not session.get("usuario_es_entrenador"):
-        return redirect(url_for("main.login"))
-
     nombre_atleta = request.form['atleta']
     atleta = Atleta.query.filter_by(nombre=nombre_atleta).first()
     if atleta:
@@ -81,13 +68,9 @@ def nuevo_entrenamiento():
         return redirect(url_for('main.dashboard', atleta=nombre_atleta))
     return "Atleta no encontrado", 404
 
-
 # BORRAR ENTRENAMIENTO
 @main.route('/borrar_entrenamiento/<int:id>', methods=['POST'])
 def borrar_entrenamiento(id):
-    if not session.get("usuario_es_entrenador"):
-        return redirect(url_for("main.login"))
-
     entrenamiento = Entrenamiento.query.get(id)
     if entrenamiento:
         nombre = entrenamiento.atleta.nombre
@@ -95,7 +78,6 @@ def borrar_entrenamiento(id):
         db.session.commit()
         return redirect(url_for('main.dashboard', atleta=nombre))
     return "Entrenamiento no encontrado", 404
-
 
 # PERFIL DEL ATLETA
 @main.route("/perfil/<int:id>")
@@ -109,7 +91,6 @@ def perfil(id):
 
     return render_template("perfil.html", atleta=atleta, hoy=hoy, progreso_semana=progreso)
 
-
 # ACTUALIZAR TIEMPOS
 @main.route('/actualizar_tiempos/<int:id>', methods=['POST'])
 def actualizar_tiempos(id):
@@ -120,3 +101,36 @@ def actualizar_tiempos(id):
     atleta.pr_42k = request.form.get('pr_42k')
     db.session.commit()
     return redirect(url_for('main.perfil', id=id))
+# CREAR ATLETAS REALES
+@main.route("/crear_atletas")
+def crear_atletas():
+    nombres = [
+        "Leandro Videla",
+        "Lucas Alonso Duró",
+        "Guillaume Dubos",
+        "Federico Civitillo",
+        "Davis Sivilla",
+        "Jordi Marti",
+        "Guido Mure"
+    ]
+    for nombre in nombres:
+        if not Atleta.query.filter_by(nombre=nombre).first():
+            nuevo = Atleta(nombre=nombre)
+            db.session.add(nuevo)
+    db.session.commit()
+    return "Atletas creados correctamente."
+
+
+# CREAR USUARIOS DE ACCESO A LOGIN
+@main.route("/crear_usuarios")
+def crear_usuarios():
+    usuarios = {
+        "Leandro Videla": "lvidelaramos@gmail.com",
+        "Lucas Alonso Duró": "lucasdurorunner@gmail.com"
+    }
+    for nombre, email in usuarios.items():
+        atleta = Atleta.query.filter_by(nombre=nombre).first()
+        if atleta:
+            atleta.email = email
+    db.session.commit()
+    return "Usuarios actualizados con emails para login."

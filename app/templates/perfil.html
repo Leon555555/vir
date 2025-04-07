@@ -1,60 +1,28 @@
 {% extends "layout.html" %}
-
-{% block title %}Perfil Atleta - Urban Athletics{% endblock %}
+{% block title %}Perfil{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2 class="mb-4">👤 Perfil de {{ atleta.nombre }}</h2>
+    <h2>👤 Perfil de {{ atleta.nombre }}</h2>
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <ul class="list-group">
-                <li class="list-group-item"><strong>Email:</strong> {{ atleta.email }}</li>
-                <li class="list-group-item"><strong>Teléfono:</strong> {{ atleta.telefono }}</li>
-                <li class="list-group-item"><strong>Edad:</strong> {{ atleta.edad }}</li>
-                <li class="list-group-item"><strong>Altura:</strong> {{ atleta.altura }} cm</li>
-                <li class="list-group-item"><strong>Peso:</strong> {{ atleta.peso }} kg</li>
-            </ul>
-        </div>
-        <div class="col-md-6">
-            <ul class="list-group">
-                <li class="list-group-item"><strong>PR 1000m:</strong> {{ atleta.pr_1000m }}</li>
-                <li class="list-group-item"><strong>PR 10k:</strong> {{ atleta.pr_10k }}</li>
-                <li class="list-group-item"><strong>PR 21k:</strong> {{ atleta.pr_21k }}</li>
-                <li class="list-group-item"><strong>PR 42k:</strong> {{ atleta.pr_42k }}</li>
-            </ul>
+    <div class="mt-5">
+        <h4>📊 Progreso semanal</h4>
+        <div class="progress mb-4">
+            <div class="progress-bar" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">{{ progreso_semana }}%</div>
         </div>
     </div>
 
-    <h4>📊 Progreso semanal</h4>
-    <div class="progress mb-4" style="height: 25px;">
-        <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_semana }}%;">
-            {{ progreso_semana }}%
-        </div>
-    </div>
-
-    <h4>📅 Entrenamientos</h4>
-    {% if atleta.entrenamientos %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Detalle</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for e in atleta.entrenamientos|sort(attribute='fecha', reverse=True) %}
-                <tr>
-                    <td>{{ e.fecha.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ e.tipo }}</td>
-                    <td>{{ e.detalle }}</td>
-                </tr>
+    <div class="mt-4">
+        <h4>📅 Entrenamientos</h4>
+        {% if atleta.entrenamientos %}
+            <ul class="list-group">
+                {% for entrenamiento in atleta.entrenamientos %}
+                    <li class="list-group-item">
+                        <strong>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }}</strong> - {{ entrenamiento.tipo }}: {{ entrenamiento.detalle }}
+                    </li>
                 {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No hay entrenamientos registrados aún.</p>
-    {% endif %}
-</div>
+            </ul>
+        {% else %}
+            <p class="text-muted">No hay entrenamientos registrados aún.</p>
+        {% endif %}
+    </div>
 {% endblock %}

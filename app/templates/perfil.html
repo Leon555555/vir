@@ -1,34 +1,44 @@
 {% extends "layout.html" %}
-
-{% block title %}Perfil - Urban Athletics{% endblock %}
-
 {% block content %}
-    <div class="d-flex align-items-center mb-4">
-        <span style="font-size: 2rem; margin-right: 10px;">🧑‍🦱</span>
-        <h2 class="m-0">Perfil de {{ atleta.nombre }}</h2>
-    </div>
+<div class="container">
+    <h1 class="text-center mb-4">👨‍🦱 Perfil de {{ atleta.nombre }}</h1>
 
-    <div class="mb-5">
-        <h4>📊 Progreso semanal</h4>
-        <div class="progress" style="height: 20px;">
-            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">
-                {{ progreso_semana }}%
-            </div>
+    <h4><span style="font-size: 24px">📊</span> Progreso semanal</h4>
+    <div class="progress mb-5">
+        <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">
+            {{ progreso_semana }}%
         </div>
     </div>
 
-    <div>
-        <h4>🗓️ Entrenamientos</h4>
-        {% if atleta.entrenamientos %}
-            <ul class="list-group">
-                {% for entrenamiento in atleta.entrenamientos %}
+    <div class="row">
+        <div class="col-md-6">
+            <h4><span style="font-size: 24px">📅</span> Próximos entrenamientos</h4>
+            {% if entrenamientos_futuros %}
+                <ul class="list-group">
+                    {% for e in entrenamientos_futuros %}
                     <li class="list-group-item">
-                        <strong>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }}</strong>: {{ entrenamiento.tipo }} - {{ entrenamiento.detalle }}
+                        <strong>{{ e.fecha.strftime('%d/%m') }}</strong> - {{ e.tipo }}: {{ e.detalle }}
                     </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p class="text-muted">No hay entrenamientos registrados aún.</p>
-        {% endif %}
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No hay entrenamientos planificados aún.</p>
+            {% endif %}
+        </div>
+        <div class="col-md-6">
+            <h4><span style="font-size: 24px">✅</span> Entrenamientos realizados</h4>
+            {% if entrenamientos_pasados %}
+                <ul class="list-group">
+                    {% for e in entrenamientos_pasados %}
+                    <li class="list-group-item">
+                        <strong>{{ e.fecha.strftime('%d/%m') }}</strong> - {{ e.tipo }}: {{ e.detalle }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No hay entrenamientos realizados aún.</p>
+            {% endif %}
+        </div>
     </div>
+</div>
 {% endblock %}

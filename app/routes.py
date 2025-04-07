@@ -1,18 +1,19 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session
 from app.models import db, Atleta, Entrenamiento
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import calendar
 
 main = Blueprint('main', __name__)
 
-# LOGIN (solo pide email por ahora)
+# LOGIN
 @main.route("/login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
-        email = request.form["email"].strip().lower()
+        email = request.form["email"]
+        password = request.form["password"]
         atleta = Atleta.query.filter_by(email=email).first()
-        if atleta:
+        if atleta and password == "1234":  # Contraseña fija por ahora
             session["usuario_id"] = atleta.id
             return redirect(url_for("main.perfil", id=atleta.id))
         else:
@@ -25,73 +26,37 @@ def logout():
     session.clear()
     return redirect(url_for("main.login"))
 
-# HOME REDIRECT
+# HOME
 @main.route('/')
 def index():
-    return redirect(url_for('main.dashboard'))
-
-# DASHBOARD (solo para el entrenador)
-@main.route('/dashboard')
-def dashboard():
-    atletas = Atleta.query.all()
-    entrenamientos = Entrenamiento.query.all()
-    hoy = datetime.today()
-    year = hoy.year
-    month = hoy.month
-    semanas = calendar.Calendar().monthdayscalendar(year, month)
-
-    atleta_seleccionado = request.args.get('atleta')
-    return render_template(
-        'dashboard.html',
-        atletas=atletas,
-        entrenamientos=entrenamientos,
-        calendario_mensual=semanas,
-        mes=month,
-        anio=year,
-        atleta_seleccionado=atleta_seleccionado
-    )
-
-# NUEVO ENTRENAMIENTO
-@main.route('/nuevo_entrenamiento', methods=['POST'])
-def nuevo_entrenamiento():
-    nombre_atleta = request.form['atleta']
-    atleta = Atleta.query.filter_by(nombre=nombre_atleta).first()
-    if atleta:
-        nuevo = Entrenamiento(
-            atleta=atleta,
-            fecha=datetime.strptime(request.form['fecha'], '%Y-%m-%d').date(),
-            tipo=request.form['tipo'],
-            detalle=request.form['detalle']
-        )
-        db.session.add(nuevo)
-        db.session.commit()
-        return redirect(url_for('main.dashboard', atleta=nombre_atleta))
-    return "Atleta no encontrado", 404
-
-# BORRAR ENTRENAMIENTO
-@main.route('/borrar_entrenamiento/<int:id>', methods=['POST'])
-def borrar_entrenamiento(id):
-    entrenamiento = Entrenamiento.query.get(id)
-    if entrenamiento:
-        nombre = entrenamiento.atleta.nombre
-        db.session.delete(entrenamiento)
-        db.session.commit()
-        return redirect(url_for('main.dashboard', atleta=nombre))
-    return "Entrenamiento no encontrado", 404
+    return redirect(url_for('main.login'))
 
 # PERFIL DEL ATLETA
 @main.route("/perfil/<int:id>")
 def perfil(id):
     atleta = Atleta.query.get_or_404(id)
     hoy = date.today()
+    hace_7_dias = hoy - timedelta(days=7)
 
-    total_entrenamientos = len(atleta.entrenamientos)
-    entrenos_realizados = len([e for e in atleta.entrenamientos if e.fecha < hoy])
-    progreso = int((entrenos_realizados / total_entrenamientos) * 100) if total_entrenamientos else 0
+    entrenamientos_futuros = [e for e in atleta.entrenamientos if e.fecha >= hoy]
+    entrenamientos_pasados = [e for e in atleta.entrenamientos if e.fecha < hoy]
+    planificados_7dias = [e for e in atleta.entrenamientos if hoy <= e.fecha <= hoy + timedelta(days=7)]
+    realizados_7dias = [e for e in atleta.entrenamientos if hace_7_dias <= e.fecha < hoy]
 
-    return render_template("perfil.html", atleta=atleta, hoy=hoy, progreso_semana=progreso)
+    total = len(planificados_7dias)
+    realizados = len(realizados_7dias)
+    progreso = int((realizados / total) * 100) if total else 0
 
-# ACTUALIZAR TIEMPOS
+    return render_template(
+        "perfil.html",
+        atleta=atleta,
+        hoy=hoy,
+        entrenamientos_futuros=entrenamientos_futuros,
+        entrenamientos_pasados=entrenamientos_pasados,
+        progreso_semana=progreso
+    )
+
+# ACTUALIZAR MARCAS
 @main.route('/actualizar_tiempos/<int:id>', methods=['POST'])
 def actualizar_tiempos(id):
     atleta = Atleta.query.get_or_404(id)
@@ -101,7 +66,8 @@ def actualizar_tiempos(id):
     atleta.pr_42k = request.form.get('pr_42k')
     db.session.commit()
     return redirect(url_for('main.perfil', id=id))
-# CREAR ATLETAS REALES
+
+# RUTA TEMPORAL PARA CREAR ATLETAS
 @main.route("/crear_atletas")
 def crear_atletas():
     nombres = [
@@ -114,23 +80,9 @@ def crear_atletas():
         "Guido Mure"
     ]
     for nombre in nombres:
+        email = nombre.lower().replace(" ", "_").replace("ó", "o") + "@gmail.com"
         if not Atleta.query.filter_by(nombre=nombre).first():
-            nuevo = Atleta(nombre=nombre)
+            nuevo = Atleta(nombre=nombre, email=email)
             db.session.add(nuevo)
     db.session.commit()
     return "Atletas creados correctamente."
-
-
-# CREAR USUARIOS DE ACCESO A LOGIN
-@main.route("/crear_usuarios")
-def crear_usuarios():
-    usuarios = {
-        "Leandro Videla": "lvidelaramos@gmail.com",
-        "Lucas Alonso Duró": "lucasdurorunner@gmail.com"
-    }
-    for nombre, email in usuarios.items():
-        atleta = Atleta.query.filter_by(nombre=nombre).first()
-        if atleta:
-            atleta.email = email
-    db.session.commit()
-    return "Usuarios actualizados con emails para login."

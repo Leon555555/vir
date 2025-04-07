@@ -1,23 +1,29 @@
 {% extends "layout.html" %}
-{% block title %}Perfil{% endblock %}
+
+{% block title %}Perfil - Urban Athletics{% endblock %}
 
 {% block content %}
-    <h2>👤 Perfil de {{ atleta.nombre }}</h2>
+    <div class="d-flex align-items-center mb-4">
+        <span style="font-size: 2rem; margin-right: 10px;">🧑‍🦱</span>
+        <h2 class="m-0">Perfil de {{ atleta.nombre }}</h2>
+    </div>
 
-    <div class="mt-5">
+    <div class="mb-5">
         <h4>📊 Progreso semanal</h4>
-        <div class="progress mb-4">
-            <div class="progress-bar" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">{{ progreso_semana }}%</div>
+        <div class="progress" style="height: 20px;">
+            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">
+                {{ progreso_semana }}%
+            </div>
         </div>
     </div>
 
-    <div class="mt-4">
-        <h4>📅 Entrenamientos</h4>
+    <div>
+        <h4>🗓️ Entrenamientos</h4>
         {% if atleta.entrenamientos %}
             <ul class="list-group">
                 {% for entrenamiento in atleta.entrenamientos %}
                     <li class="list-group-item">
-                        <strong>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }}</strong> - {{ entrenamiento.tipo }}: {{ entrenamiento.detalle }}
+                        <strong>{{ entrenamiento.fecha.strftime('%d/%m/%Y') }}</strong>: {{ entrenamiento.tipo }} - {{ entrenamiento.detalle }}
                     </li>
                 {% endfor %}
             </ul>

@@ -1,10 +1,11 @@
 {% extends "layout.html" %}
+
 {% block content %}
 <div class="container">
-    <h1 class="text-center mb-4">👨‍🦱 Perfil de {{ atleta.nombre }}</h1>
+    <h2 class="text-center mt-4 mb-4"> Perfil de {{ atleta.nombre }}</h2>
 
-    <h4><span style="font-size: 24px">📊</span> Progreso semanal</h4>
-    <div class="progress mb-5">
+    <h4>📊 Progreso semanal</h4>
+    <div class="progress mb-4" style="height: 20px;">
         <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">
             {{ progreso_semana }}%
         </div>
@@ -12,13 +13,11 @@
 
     <div class="row">
         <div class="col-md-6">
-            <h4><span style="font-size: 24px">📅</span> Próximos entrenamientos</h4>
-            {% if entrenamientos_futuros %}
-                <ul class="list-group">
-                    {% for e in entrenamientos_futuros %}
-                    <li class="list-group-item">
-                        <strong>{{ e.fecha.strftime('%d/%m') }}</strong> - {{ e.tipo }}: {{ e.detalle }}
-                    </li>
+            <h4>🗓️ Próximos entrenamientos</h4>
+            {% if entrenamientos_planificados %}
+                <ul>
+                    {% for entreno in entrenamientos_planificados %}
+                        <li>{{ entreno.fecha.strftime('%d/%m/%Y') }} - {{ entreno.tipo }}: {{ entreno.detalle }}</li>
                     {% endfor %}
                 </ul>
             {% else %}
@@ -26,13 +25,11 @@
             {% endif %}
         </div>
         <div class="col-md-6">
-            <h4><span style="font-size: 24px">✅</span> Entrenamientos realizados</h4>
-            {% if entrenamientos_pasados %}
-                <ul class="list-group">
-                    {% for e in entrenamientos_pasados %}
-                    <li class="list-group-item">
-                        <strong>{{ e.fecha.strftime('%d/%m') }}</strong> - {{ e.tipo }}: {{ e.detalle }}
-                    </li>
+            <h4>✅ Entrenamientos realizados</h4>
+            {% if entrenamientos_realizados %}
+                <ul>
+                    {% for entreno in entrenamientos_realizados %}
+                        <li>{{ entreno.fecha.strftime('%d/%m/%Y') }} - {{ entreno.tipo }}: {{ entreno.detalle }}</li>
                     {% endfor %}
                 </ul>
             {% else %}
@@ -40,5 +37,23 @@
             {% endif %}
         </div>
     </div>
+
+    <h4 class="mt-4">📅 Calendario mensual</h4>
+    <table class="table table-bordered text-center">
+        <thead>
+            <tr>
+                <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for semana in calendario_mensual %}
+            <tr>
+                {% for dia in semana %}
+                    <td>{{ dia if dia != 0 else '' }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

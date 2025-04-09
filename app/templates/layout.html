@@ -1,132 +1,36 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Urban Athletics{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            background-color: #f1f1f1;
-            font-family: Arial, sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Urban Athletics</title>
 
-        .sidebar {
-            width: 250px;
-            background-color: #1c1c1c;
-            color: white;
-            min-height: 100vh;
-            padding: 20px;
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            z-index: 1000;
-        }
+  <!-- Bootstrap (si lo usás) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-        .sidebar.active {
-            transform: translateX(0);
-        }
+  <!-- PWA: Manifest y Apple meta -->
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#ff4444">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
-        .sidebar h4 {
-            color: #ff4d4d;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .sidebar a {
-            color: white;
-            text-decoration: none;
-            display: block;
-            padding: 10px 0;
-        }
-
-        .sidebar a:hover {
-            background-color: #343a40;
-            padding-left: 10px;
-            transition: all 0.2s ease;
-        }
-
-        .main-content {
-            margin-left: 0;
-            padding: 40px;
-            transition: margin-left 0.3s ease;
-        }
-
-        .main-content.shifted {
-            margin-left: 250px;
-        }
-
-        #menu-btn {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1100;
-        }
-
-        .section-title {
-            font-weight: bold;
-            margin-top: 20px;
-            font-size: 1.2rem;
-        }
-
-        .section-item {
-            font-size: 0.95rem;
-            margin-left: 10px;
-        }
-    </style>
+  {% block head %}{% endblock %}
 </head>
-<body>
+<body class="bg-light">
 
-    <button id="menu-btn" class="btn btn-danger">☰ Menú</button>
+  {% block content %}{% endblock %}
 
-    <div id="sidebar" class="sidebar">
-        <h4>
-            <img src="{{ url_for('static', filename='img/logo_urban.JPG') }}" alt="Logo" style="height: 30px;">
-            Urban Athletics
-        </h4>
-        
-        <div class="section-title">👤 Perfil</div>
-        <div class="section-item">Email: {{ atleta.email }}</div>
-        <div class="section-item">Teléfono: {{ atleta.telefono or 'No registrado' }}</div>
-        <div class="section-item">Edad: {{ atleta.edad or 'No registrada' }}</div>
-        <div class="section-item">Altura: {{ atleta.altura or 'No registrada' }} cm</div>
-        <div class="section-item">Peso: {{ atleta.peso or 'No registrado' }} kg</div>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-        <div class="section-title">✏️ Marcas</div>
-        <div class="section-item">1000m: {{ atleta.pr_1000m or 'No registrado' }}</div>
-        <div class="section-item">10k: {{ atleta.pr_10k or 'No registrado' }}</div>
-        <div class="section-item">21k: {{ atleta.pr_21k or 'No registrado' }}</div>
-        <div class="section-item">42k: {{ atleta.pr_42k or 'No registrado' }}</div>
-
-        <div class="section-title">🏠 Entrena en casa</div>
-        <div class="section-item"><a href="#">Ver rutinas</a></div>
-
-        <div class="section-title">🧘 Estiramientos</div>
-        <div class="section-item"><a href="#">Ver ejercicios</a></div>
-
-        <hr>
-        <a href="{{ url_for('main.perfil', id=atleta.id) }}">📄 Editar perfil</a>
-        <a href="{{ url_for('main.logout') }}">👕 Cerrar sesión</a>
-    </div>
-
-    <div id="main-content" class="main-content">
-        {% block content %}{% endblock %}
-    </div>
-
-    <script>
-        const btn = document.getElementById("menu-btn");
-        const sidebar = document.getElementById("sidebar");
-        const mainContent = document.getElementById("main-content");
-
-        btn.addEventListener("click", function () {
-            sidebar.classList.toggle("active");
-            mainContent.classList.toggle("shifted");
-        });
-    </script>
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('{{ url_for('static', filename='service-worker.js') }}')
+        .then(reg => console.log('✅ Service Worker registrado', reg))
+        .catch(err => console.error('❌ Error registrando Service Worker', err));
+    }
+  </script>
 </body>
 </html>

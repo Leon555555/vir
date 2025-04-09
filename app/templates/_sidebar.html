@@ -1,0 +1,31 @@
+<div id="sidebar" class="bg-dark text-white p-3" style="width: 260px; min-height: 100vh;">
+    <div class="mb-4 fs-4 fw-bold text-danger">🏃 Urban Athletics</div>
+  
+    <h5 onclick="toggleSection('perfil')">👤 Perfil <span id="arrow-perfil" class="arrow">▼</span></h5>
+    <div id="perfil" class="section-content ms-3 mb-3">
+      <p>Email: {{ atleta.email }}</p>
+      <p>Teléfono: {{ atleta.telefono or 'No registrado' }}</p>
+      <p>Edad: {{ atleta.edad or 'No registrada' }}</p>
+      <p>Altura: {{ atleta.altura or 'No registrada' }} cm</p>
+      <p>Peso: {{ atleta.peso or 'No registrado' }} kg</p>
+    </div>
+  
+    <h5 onclick="toggleSection('marcas')">✏️ Marcas <span id="arrow-marcas" class="arrow">▼</span></h5>
+    <div id="marcas" class="section-content ms-3 mb-3">
+      <p>1000m: {{ atleta.pr_1000 or 'No registrado' }}</p>
+      <p>10k: {{ atleta.pr_10k or 'No registrado' }}</p>
+      <p>21k: {{ atleta.pr_21k or 'No registrado' }}</p>
+      <p>42k: {{ atleta.pr_42k or 'No registrado' }}</p>
+    </div>
+  
+    <h5 onclick="toggleSection('casa')">🏠 Entrena en casa <span id="arrow-casa" class="arrow">▼</span></h5>
+    <div id="casa" class="section-content ms-3 mb-3">
+      <p><a href="#" class="text-white">Ver rutinas</a></p>
+    </div>
+  
+    <h5 onclick="toggleSection('estiramientos')">🧘 Estiramientos <span id="arrow-estiramientos" class="arrow">▼</span></h5>
+    <div id="estiramientos" class="section-content ms-3 mb-3">
+      <p><a href="#" class="text-white">Ver ejercicios</a></p>
+    </div>
+  </div>
+  

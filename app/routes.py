@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session
-from app.models import db, Atleta
+from app.models import db, Atleta, Entrenamiento
 from datetime import date, timedelta
-import calendar  # <-- Import necesario para el calendario mensual
+import calendar
 
 main = Blueprint('main', __name__)
 

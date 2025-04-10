@@ -12,3 +12,8 @@ class Config:
 
     # Modo debug opcional
     DEBUG = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+class Config:
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'secreto')
+    ENV = os.environ.get('FLASK_ENV', 'production')  # ← esta línea nueva

@@ -1,4 +1,4 @@
-ffrom flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session
 from app.models import db, Atleta
 from datetime import date, timedelta
 

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session
 from app.models import db, Atleta
 from datetime import date, timedelta
+import calendar  # <-- Import necesario para el calendario mensual
 
 main = Blueprint('main', __name__)
 
@@ -46,7 +47,7 @@ def perfil(id):
     realizados = len(realizados_7dias)
     progreso = int((realizados / total) * 100) if total else 0
 
-    # Generar calendario mensual (mes actual)
+    # Generar calendario mensual del mes actual
     primer_dia = hoy.replace(day=1)
     _, dias_en_mes = calendar.monthrange(primer_dia.year, primer_dia.month)
     calendario_mensual = []
@@ -80,7 +81,7 @@ def perfil(id):
         calendario_mensual=calendario_mensual
     )
 
-# FORMULARIO PARA EDITAR PERFIL
+# FORMULARIO PARA EDITAR PERFIL Y MARCAS
 @main.route('/perfil/editar/<int:id>', methods=['GET', 'POST'])
 def editar_perfil(id):
     atleta = Atleta.query.get_or_404(id)

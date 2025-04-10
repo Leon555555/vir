@@ -50,7 +50,13 @@
   {% include "_sidebar.html" %}
 
   <div class="container flex-grow-1">
-    <h2 class="text-center mt-4 mb-4">Perfil de {{ atleta.nombre }}</h2>
+    <h2 class="text-center mt-4 mb-2">Perfil de {{ atleta.nombre }}</h2>
+
+    <div class="text-end mb-3">
+      <a href="{{ url_for('editar_perfil', id=atleta.id) }}" class="btn btn-outline-primary">
+        ✏️ Editar perfil
+      </a>
+    </div>
 
     <h4>📊 Progreso semanal</h4>
     <div class="progress mb-4" style="height: 20px;">

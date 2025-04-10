@@ -1,7 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
-from app.models import db, Atleta, Entrenamiento
-from datetime import datetime, date, timedelta
-import calendar
+ffrom flask import Blueprint, render_template, request, redirect, url_for, session
+from app.models import db, Atleta
+from datetime import date, timedelta
 
 main = Blueprint('main', __name__)
 
@@ -47,27 +46,62 @@ def perfil(id):
     realizados = len(realizados_7dias)
     progreso = int((realizados / total) * 100) if total else 0
 
+    # Generar calendario mensual (mes actual)
+    primer_dia = hoy.replace(day=1)
+    _, dias_en_mes = calendar.monthrange(primer_dia.year, primer_dia.month)
+    calendario_mensual = []
+    semana = []
+    dia_actual = 1
+
+    # Añadir días en blanco al inicio
+    primer_dia_semana = primer_dia.weekday()
+    for _ in range((primer_dia_semana + 1) % 7):
+        semana.append(0)
+
+    while dia_actual <= dias_en_mes:
+        semana.append(dia_actual)
+        if len(semana) == 7:
+            calendario_mensual.append(semana)
+            semana = []
+        dia_actual += 1
+
+    if semana:
+        while len(semana) < 7:
+            semana.append(0)
+        calendario_mensual.append(semana)
+
     return render_template(
         "perfil.html",
         atleta=atleta,
         hoy=hoy,
-        entrenamientos_futuros=entrenamientos_futuros,
-        entrenamientos_pasados=entrenamientos_pasados,
-        progreso_semana=progreso
+        entrenamientos_planificados=entrenamientos_futuros,
+        entrenamientos_realizados=entrenamientos_pasados,
+        progreso_semana=progreso,
+        calendario_mensual=calendario_mensual
     )
 
-# ACTUALIZAR MARCAS
-@main.route('/actualizar_tiempos/<int:id>', methods=['POST'])
-def actualizar_tiempos(id):
+# FORMULARIO PARA EDITAR PERFIL
+@main.route('/perfil/editar/<int:id>', methods=['GET', 'POST'])
+def editar_perfil(id):
     atleta = Atleta.query.get_or_404(id)
-    atleta.pr_1000m = request.form.get('pr_1000m')
-    atleta.pr_10k = request.form.get('pr_10k')
-    atleta.pr_21k = request.form.get('pr_21k')
-    atleta.pr_42k = request.form.get('pr_42k')
-    db.session.commit()
-    return redirect(url_for('main.perfil', id=id))
 
-# RUTA TEMPORAL PARA CREAR ATLETAS
+    if request.method == 'POST':
+        atleta.email = request.form['email']
+        atleta.telefono = request.form['telefono']
+        atleta.edad = request.form['edad']
+        atleta.altura = request.form['altura']
+        atleta.peso = request.form['peso']
+        atleta.pr_1000 = request.form['pr_1000']
+        atleta.pr_10k = request.form['pr_10k']
+        atleta.pr_21k = request.form['pr_21k']
+        atleta.pr_42k = request.form['pr_42k']
+
+        db.session.commit()
+        return redirect(url_for('main.perfil', id=atleta.id))
+
+    return render_template("editar_perfil.html", atleta=atleta)
+
+# RUTA TEMPORAL PARA CREAR ATLETAS DE PRUEBA
 @main.route("/crear_atletas")
 def crear_atletas():
     nombres = [

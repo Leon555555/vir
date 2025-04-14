@@ -1,140 +1,53 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<style>
-  #sidebar {
-    transition: transform 0.3s ease;
-  }
+<div class="container mt-5">
+    <h2 class="mb-4 text-center">👤 Perfil de {{ atleta.nombre }}</h2>
 
-  #sidebar.hidden {
-    transform: translateX(-100%);
-  }
+    <div class="row">
+        <!-- Información del perfil -->
+        <div class="col-md-8">
+            <ul class="list-group">
+                <li class="list-group-item"><strong>Nombre:</strong> {{ atleta.nombre }}</li>
+                <li class="list-group-item"><strong>Apellido:</strong> {{ atleta.apellido }}</li>
+                <li class="list-group-item"><strong>Correo:</strong> {{ atleta.correo }}</li>
+                <!-- Agrega más campos según sea necesario -->
+            </ul>
+        </div>
 
-  #menu-toggle {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 999;
-  }
-
-  @media (min-width: 768px) {
-    #menu-toggle {
-      display: none;
-    }
-  }
-
-  .section-content {
-    display: none;
-  }
-
-  .section-content.show {
-    display: block;
-  }
-
-  .sidebar h5 {
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .arrow {
-    font-size: 0.9rem;
-  }
-</style>
-
-<!-- Botón menú -->
-<button id="menu-toggle" class="btn btn-danger">☰ Menú</button>
-
-<div class="d-flex">
-  {% include "_sidebar.html" %}
-
-  <div class="container flex-grow-1">
-    <h2 class="text-center mt-4 mb-2">Perfil de {{ atleta.nombre }}</h2>
-
-    <div class="text-end mb-3">
-      <a href="{{ url_for('main.editar_perfil', id=atleta.id) }}" class="btn btn-outline-primary">
-        ✏️ Editar perfil
-      </a>
+        <!-- Acordeón lateral para editar -->
+        <div class="col-md-4">
+            <div class="accordion" id="editarPerfilAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingEditar">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEditar" aria-expanded="true" aria-controls="collapseEditar">
+                            ✏️ Editar Perfil
+                        </button>
+                    </h2>
+                    <div id="collapseEditar" class="accordion-collapse collapse show" aria-labelledby="headingEditar" data-bs-parent="#editarPerfilAccordion">
+                        <div class="accordion-body">
+                            <form method="POST" action="{{ url_for('main.editar_perfil', atleta_id=atleta.id) }}">
+                                <div class="mb-3">
+                                    <label for="nombre" class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" value="{{ atleta.nombre }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="apellido" class="form-label">Apellido</label>
+                                    <input type="text" class="form-control" id="apellido" name="apellido" value="{{ atleta.apellido }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="correo" class="form-label">Correo</label>
+                                    <input type="email" class="form-control" id="correo" name="correo" value="{{ atleta.correo }}" required>
+                                </div>
+                                <!-- Agrega más campos según sea necesario -->
+                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <h4>📊 Progreso semanal</h4>
-    <div class="progress mb-4" style="height: 20px;">
-      <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">
-        {{ progreso_semana }}%
-      </div>
-    </div>
-
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <h4>🗓️ Próximos entrenamientos</h4>
-        {% if entrenamientos_planificados %}
-          <ul>
-            {% for entreno in entrenamientos_planificados %}
-              <li>{{ entreno.fecha.strftime('%d/%m/%Y') }} - {{ entreno.tipo }}: {{ entreno.detalle }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p>No hay entrenamientos planificados aún.</p>
-        {% endif %}
-      </div>
-
-      <div class="col-md-6">
-        <h4>✅ Entrenamientos realizados</h4>
-        {% if entrenamientos_realizados %}
-          <ul>
-            {% for entreno in entrenamientos_realizados %}
-              <li>{{ entreno.fecha.strftime('%d/%m/%Y') }} - {{ entreno.tipo }}: {{ entreno.detalle }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p>No hay entrenamientos realizados aún.</p>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="mt-4">
-      <h4>📅 Calendario mensual</h4>
-      <table class="table table-bordered text-center">
-        <thead>
-          <tr>
-            <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for semana in calendario_mensual %}
-            <tr>
-              {% for dia in semana %}
-                <td>{{ dia if dia != 0 else '' }}</td>
-              {% endfor %}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
 </div>
-
-<script>
-  const sections = ['perfil', 'marcas', 'casa', 'estiramientos'];
-
-  function toggleSection(id) {
-    sections.forEach(sec => {
-      const el = document.getElementById(sec);
-      const arrow = document.getElementById('arrow-' + sec);
-      if (sec === id) {
-        const isOpen = el.classList.toggle('show');
-        if (arrow) arrow.innerText = isOpen ? '▲' : '▼';
-      } else {
-        el.classList.remove('show');
-        const otherArrow = document.getElementById('arrow-' + sec);
-        if (otherArrow) otherArrow.innerText = '▼';
-      }
-    });
-  }
-
-  document.getElementById("menu-toggle").addEventListener("click", function () {
-    document.getElementById("sidebar").classList.toggle("hidden");
-  });
-</script>
 {% endblock %}

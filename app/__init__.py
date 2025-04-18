@@ -3,7 +3,7 @@ from flask import Flask
 from .extensions import db
 from config import Config
 
-# Solo cargar .env si no estamos en producción (Render)
+# Cargar variables de entorno desde .env si no estamos en producción
 if os.getenv("FLASK_ENV") != "production":
     from dotenv import load_dotenv
     load_dotenv()
@@ -12,12 +12,14 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Inicializar extensiones
     db.init_app(app)
 
-    from .routes import main
-    app.register_blueprint(main)
+    # Registrar blueprints
+    from .routes import main_bp
+    app.register_blueprint(main_bp)
 
-    # Crear atleta demo solo si estamos en entorno local
+    # Crear atleta demo solo si estamos en entorno de desarrollo
     if app.config.get("ENV") == "development":
         with app.app_context():
             from .models import Atleta

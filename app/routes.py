@@ -3,13 +3,13 @@ from app.models import db, Atleta
 from datetime import date, timedelta
 import calendar
 
-main = Blueprint('main', __name__)
+main_bp = Blueprint('main', __name__)
 
-@main.route("/")
+@main_bp.route("/")
 def index():
     return redirect(url_for('main.login'))
 
-@main.route("/login", methods=["GET", "POST"])
+@main_bp.route("/login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
@@ -23,12 +23,12 @@ def login():
             error = "Credenciales inválidas"
     return render_template("login.html", error=error)
 
-@main.route("/logout")
+@main_bp.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("main.login"))
 
-@main.route("/perfil/<int:id>")
+@main_bp.route("/perfil/<int:id>")
 def perfil(id):
     atleta = Atleta.query.get_or_404(id)
     hoy = date.today()

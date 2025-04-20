@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from app.models import db, Atleta, Entrenamiento
 from datetime import date, timedelta
 import calendar
-
+from flask import jsonify
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route("/")
@@ -166,3 +166,20 @@ def nuevo_entrenamiento():
 
     flash("✅ Entrenamiento guardado correctamente", "success")
     return redirect(url_for("main.dashboard", atleta=atleta.nombre))
+
+
+@main_bp.route("/marcar_realizado_ajax", methods=["POST"])
+def marcar_realizado_ajax():
+    data = request.get_json()
+    entrenamiento_id = data.get("id")
+    entrenamiento = Entrenamiento.query.get(entrenamiento_id)
+
+    if not entrenamiento:
+        return jsonify({"success": False, "message": "No encontrado"}), 404
+
+    hoy = date.today()
+    if entrenamiento.fecha > hoy:
+        entrenamiento.fecha = hoy
+    db.session.commit()
+
+    return jsonify({"success": True})

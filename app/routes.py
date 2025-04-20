@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from app.models import db, Atleta, Entrenamiento
 from datetime import date, timedelta
 import calendar
-from flask import jsonify
+
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route("/")
@@ -34,10 +34,10 @@ def perfil(id):
     hoy = date.today()
     hace_7_dias = hoy - timedelta(days=7)
 
-    entrenamientos_futuros = [e for e in atleta.entrenamientos if e.fecha >= hoy]
-    entrenamientos_pasados = [e for e in atleta.entrenamientos if e.fecha < hoy]
+    entrenamientos_futuros = [e for e in atleta.entrenamientos if e.fecha >= hoy and not e.realizado]
+    entrenamientos_realizados = [e for e in atleta.entrenamientos if e.realizado]
     planificados_7dias = [e for e in atleta.entrenamientos if hoy <= e.fecha <= hoy + timedelta(days=7)]
-    realizados_7dias = [e for e in atleta.entrenamientos if hace_7_dias <= e.fecha < hoy]
+    realizados_7dias = [e for e in atleta.entrenamientos if e.realizado and hace_7_dias <= e.fecha <= hoy]
 
     total = len(planificados_7dias)
     realizados = len(realizados_7dias)
@@ -54,8 +54,8 @@ def perfil(id):
     calendario_mensual = []
     semana = []
     dia_actual = 1
-
     primer_dia_semana = primer_dia.weekday()
+
     for _ in range((primer_dia_semana + 1) % 7):
         semana.append(0)
 
@@ -79,7 +79,7 @@ def perfil(id):
         atleta=atleta,
         hoy=hoy,
         entrenamientos_planificados=entrenamientos_futuros,
-        entrenamientos_realizados=entrenamientos_pasados,
+        entrenamientos_realizados=entrenamientos_realizados,
         progreso_semana=progreso,
         calendario_mensual=calendario_mensual
     )
@@ -106,13 +106,10 @@ def entrena_en_casa():
 def dashboard():
     atletas = Atleta.query.all()
     atleta_seleccionado = request.args.get("atleta")
-
     entrenamientos = Entrenamiento.query.all()
-
     hoy = date.today()
     anio = hoy.year
     mes = hoy.month
-
     primer_dia = date(anio, mes, 1)
     _, dias_en_mes = calendar.monthrange(anio, mes)
 
@@ -122,12 +119,14 @@ def dashboard():
     primer_dia_semana = primer_dia.weekday()
     for _ in range((primer_dia_semana + 1) % 7):
         semana.append(0)
+
     while dia_actual <= dias_en_mes:
         semana.append(dia_actual)
         if len(semana) == 7:
             calendario_mensual.append(semana)
             semana = []
         dia_actual += 1
+
     if semana:
         while len(semana) < 7:
             semana.append(0)
@@ -159,14 +158,14 @@ def nuevo_entrenamiento():
         atleta_id=atleta.id,
         fecha=fecha,
         tipo=tipo,
-        detalle=detalle
+        detalle=detalle,
+        realizado=False  # importante
     )
     db.session.add(nuevo)
     db.session.commit()
 
     flash("✅ Entrenamiento guardado correctamente", "success")
     return redirect(url_for("main.dashboard", atleta=atleta.nombre))
-
 
 @main_bp.route("/marcar_realizado_ajax", methods=["POST"])
 def marcar_realizado_ajax():
@@ -177,9 +176,7 @@ def marcar_realizado_ajax():
     if not entrenamiento:
         return jsonify({"success": False, "message": "No encontrado"}), 404
 
-    hoy = date.today()
-    if entrenamiento.fecha > hoy:
-        entrenamiento.fecha = hoy
+    entrenamiento.realizado = True
     db.session.commit()
 
     return jsonify({"success": True})

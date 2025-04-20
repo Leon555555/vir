@@ -20,7 +20,8 @@ class Entrenamiento(db.Model):
     atleta_id = db.Column(db.Integer, db.ForeignKey('atleta.id'), nullable=False)
     fecha = db.Column(db.Date, nullable=False)
     tipo = db.Column(db.String(50), nullable=False)
-    detalle = db.Column(db.Text)  # ✔ Este es el campo correcto
+    detalle = db.Column(db.Text)
+    realizado = db.Column(db.Boolean, default=False)  # Nuevo campo
 
 class Coach(db.Model):
     id = db.Column(db.Integer, primary_key=True)

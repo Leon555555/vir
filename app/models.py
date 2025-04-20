@@ -1,4 +1,3 @@
-# app/models.py
 from app.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -21,7 +20,7 @@ class Entrenamiento(db.Model):
     atleta_id = db.Column(db.Integer, db.ForeignKey('atleta.id'), nullable=False)
     fecha = db.Column(db.Date, nullable=False)
     tipo = db.Column(db.String(50), nullable=False)
-    detalle = db.Column(db.Text)
+    detalle = db.Column(db.Text)  # ✔ Este es el campo correcto
 
 class Coach(db.Model):
     id = db.Column(db.Integer, primary_key=True)

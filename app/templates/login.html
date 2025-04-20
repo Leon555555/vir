@@ -1,53 +1,25 @@
 {% extends "layout.html" %}
 
-{% block title %}Perfil - {{ atleta.nombre }}{% endblock %}
+{% block title %}Iniciar sesión{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <h2 class="mb-4 text-center">👤 Perfil de {{ atleta.nombre }}</h2>
+<div class="container py-4" style="max-width: 400px;">
+    <h2 class="mb-4 text-center">🔐 Iniciar sesión</h2>
 
-    <div class="row">
-        <div class="col-md-6">
-            <ul class="list-group mb-3">
-                <li class="list-group-item"><strong>Email:</strong> {{ atleta.email or '—' }}</li>
-                <li class="list-group-item"><strong>Teléfono:</strong> {{ atleta.telefono or '—' }}</li>
-                <li class="list-group-item"><strong>Edad:</strong> {{ atleta.edad or '—' }}</li>
-                <li class="list-group-item"><strong>Altura:</strong> {{ atleta.altura or '—' }} cm</li>
-                <li class="list-group-item"><strong>Peso:</strong> {{ atleta.peso or '—' }} kg</li>
-            </ul>
-        </div>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
 
-        <div class="col-md-6">
-            <form method="POST" action="{{ url_for('main.actualizar_tiempos', id=atleta.id) }}">
-                <h5>🏁 Marcas Personales</h5>
-                <div class="mb-2">
-                    <label>1000m</label>
-                    <input type="text" class="form-control" name="pr_1000m" value="{{ atleta.pr_1000m or '' }}">
-                </div>
-                <div class="mb-2">
-                    <label>10K</label>
-                    <input type="text" class="form-control" name="pr_10k" value="{{ atleta.pr_10k or '' }}">
-                </div>
-                <div class="mb-2">
-                    <label>21K</label>
-                    <input type="text" class="form-control" name="pr_21k" value="{{ atleta.pr_21k or '' }}">
-                </div>
-                <div class="mb-2">
-                    <label>42K</label>
-                    <input type="text" class="form-control" name="pr_42k" value="{{ atleta.pr_42k or '' }}">
-                </div>
-                <button class="btn btn-primary mt-2">Guardar tiempos</button>
-            </form>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" name="email" id="email" required>
         </div>
-    </div>
-
-    <div class="mt-4">
-        <h5>📈 Progreso esta semana</h5>
-        <div class="progress">
-            <div class="progress-bar" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">
-                {{ progreso_semana }}%
-            </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" class="form-control" name="password" id="password" required>
         </div>
-    </div>
+        <button type="submit" class="btn btn-primary w-100">Entrar</button>
+    </form>
 </div>
 {% endblock %}

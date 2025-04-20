@@ -74,3 +74,13 @@ def perfil(id):
         progreso_semana=progreso,
         calendario_mensual=calendario_mensual
     )
+@main_bp.route("/editar_perfil/<int:atleta_id>", methods=["POST"])
+def editar_perfil(atleta_id):
+    atleta = Atleta.query.get_or_404(atleta_id)
+    atleta.nombre = request.form["nombre"]
+    atleta.apellido = request.form["apellido"]
+    atleta.correo = request.form["correo"]
+    # Podés agregar más campos si tenés más en el formulario
+
+    db.session.commit()
+    return redirect(url_for("main.perfil", id=atleta.id))

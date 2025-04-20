@@ -1,6 +1,6 @@
 import os
 from flask import Flask
-from .extensions import db
+from .extensions import db, migrate
 from config import Config
 
 # Cargar variables de entorno desde .env si no estamos en producción
@@ -14,6 +14,7 @@ def create_app():
 
     # Inicializar extensiones
     db.init_app(app)
+    migrate.init_app(app, db)  # 👈 Aquí agregamos Flask-Migrate
 
     # Registrar blueprints
     from .routes import main_bp

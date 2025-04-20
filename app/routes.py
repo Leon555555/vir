@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from app.models import db, Atleta
 from datetime import date, timedelta
 import calendar
+from app.models import db, Atleta, Entrenamiento
 
 main_bp = Blueprint('main', __name__)
 
@@ -101,3 +102,44 @@ def entrena_en_casa():
         {"nombre": "Sentadillas", "video": "sentadillas.mp4"},
     ]
     return render_template("entrena_en_casa.html", ejercicios=ejercicios)
+
+@main_bp.route("/dashboard")
+def dashboard():
+    atletas = Atleta.query.all()
+    atleta_seleccionado = request.args.get("atleta")
+
+    entrenamientos = Entrenamiento.query.all()
+
+    hoy = date.today()
+    anio = hoy.year
+    mes = hoy.month
+
+    primer_dia = date(anio, mes, 1)
+    _, dias_en_mes = calendar.monthrange(anio, mes)
+
+    calendario_mensual = []
+    semana = []
+    dia_actual = 1
+    primer_dia_semana = primer_dia.weekday()
+    for _ in range((primer_dia_semana + 1) % 7):
+        semana.append(0)
+    while dia_actual <= dias_en_mes:
+        semana.append(dia_actual)
+        if len(semana) == 7:
+            calendario_mensual.append(semana)
+            semana = []
+        dia_actual += 1
+    if semana:
+        while len(semana) < 7:
+            semana.append(0)
+        calendario_mensual.append(semana)
+
+    return render_template(
+        "dashboard.html",
+        atletas=atletas,
+        atleta_seleccionado=atleta_seleccionado,
+        calendario_mensual=calendario_mensual,
+        entrenamientos=entrenamientos,
+        mes=mes,
+        anio=anio
+    )

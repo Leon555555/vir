@@ -1,9 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
-from app.models import db, Atleta
+from app.models import db, Atleta, Entrenamiento
 from datetime import date, timedelta
 import calendar
-from app.models import db, Atleta, Entrenamiento
-from flask import flash
 
 main_bp = Blueprint('main', __name__)
 
@@ -144,27 +142,7 @@ def dashboard():
         mes=mes,
         anio=anio
     )
-@main_bp.route("/nuevo_entrenamiento", methods=["POST"])
-def nuevo_entrenamiento():
-    atleta_nombre = request.form["atleta"]
-    fecha = request.form["fecha"]
-    tipo = request.form["tipo"]
-    detalle = request.form["detalle"]
 
-    atleta = Atleta.query.filter_by(nombre=atleta_nombre).first()
-    if not atleta:
-        return "Atleta no encontrado", 404
-
-    nuevo = Entrenamiento(
-        atleta_id=atleta.id,
-        fecha=fecha,
-        tipo=tipo,
-        descripcion=detalle
-    )
-    db.session.add(nuevo)
-    db.session.commit()
-
-    return redirect(url_for("main.dashboard", atleta=atleta.nombre))
 @main_bp.route("/nuevo_entrenamiento", methods=["POST"])
 def nuevo_entrenamiento():
     atleta_nombre = request.form["atleta"]

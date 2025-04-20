@@ -1,53 +1,129 @@
 {% extends "layout.html" %}
 
+{% block title %}Perfil - {{ atleta.nombre }}{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <h2 class="mb-4 text-center">👤 Perfil de {{ atleta.nombre }}</h2>
+<div class="container py-4">
+    <div class="mb-4 text-center animate__animated animate__fadeIn">
+        <h2>👤 Perfil de {{ atleta.nombre }} {{ atleta.apellido }}</h2>
+        <p class="text-muted">Aquí puedes ver y actualizar tus datos y tu programa de entrenamiento.</p>
+    </div>
 
     <div class="row">
-        <!-- Información del perfil -->
-        <div class="col-md-8">
-            <ul class="list-group">
-                <li class="list-group-item"><strong>Nombre:</strong> {{ atleta.nombre }}</li>
-                <li class="list-group-item"><strong>Apellido:</strong> {{ atleta.apellido }}</li>
-                <li class="list-group-item"><strong>Correo:</strong> {{ atleta.correo }}</li>
-                <!-- Agrega más campos según sea necesario -->
-            </ul>
+        <!-- Datos personales -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm animate__animated animate__fadeInUp">
+                <div class="card-header bg-primary text-white">📄 Datos personales</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong>Email:</strong> {{ atleta.correo or '—' }}</li>
+                        <li class="list-group-item"><strong>Teléfono:</strong> {{ atleta.telefono or '—' }}</li>
+                        <li class="list-group-item"><strong>Edad:</strong> {{ atleta.edad or '—' }} años</li>
+                        <li class="list-group-item"><strong>Altura:</strong> {{ atleta.altura or '—' }} cm</li>
+                        <li class="list-group-item"><strong>Peso:</strong> {{ atleta.peso or '—' }} kg</li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
-        <!-- Acordeón lateral para editar -->
-        <div class="col-md-4">
-            <div class="accordion" id="editarPerfilAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="headingEditar">
-                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEditar" aria-expanded="true" aria-controls="collapseEditar">
-                            ✏️ Editar Perfil
-                        </button>
-                    </h2>
-                    <div id="collapseEditar" class="accordion-collapse collapse show" aria-labelledby="headingEditar" data-bs-parent="#editarPerfilAccordion">
-                        <div class="accordion-body">
-                            <form method="POST" action="{{ url_for('main.editar_perfil', atleta_id=atleta.id) }}">
-                                <div class="mb-3">
-                                    <label for="nombre" class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" id="nombre" name="nombre" value="{{ atleta.nombre }}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="apellido" class="form-label">Apellido</label>
-                                    <input type="text" class="form-control" id="apellido" name="apellido" value="{{ atleta.apellido }}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="correo" class="form-label">Correo</label>
-                                    <input type="email" class="form-control" id="correo" name="correo" value="{{ atleta.correo }}" required>
-                                </div>
-                                <!-- Agrega más campos según sea necesario -->
-                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                            </form>
+        <!-- Formulario para editar -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm animate__animated animate__fadeInUp">
+                <div class="card-header bg-secondary text-white">✏️ Editar perfil</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.editar_perfil', atleta_id=atleta.id) }}">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" value="{{ atleta.nombre }}" required>
                         </div>
-                    </div>
+                        <div class="mb-3">
+                            <label for="apellido" class="form-label">Apellido</label>
+                            <input type="text" class="form-control" id="apellido" name="apellido" value="{{ atleta.apellido }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="correo" class="form-label">Correo</label>
+                            <input type="email" class="form-control" id="correo" name="correo" value="{{ atleta.correo }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Guardar cambios</button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Entrenamientos -->
+    <div class="row mt-4">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm animate__animated animate__fadeInUp">
+                <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
+                <ul class="list-group list-group-flush">
+                    {% for e in entrenamientos_planificados %}
+                        <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.descripcion or 'Sin descripción' }}</li>
+                    {% else %}
+                        <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm animate__animated animate__fadeInUp">
+                <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
+                <ul class="list-group list-group-flush">
+                    {% for e in entrenamientos_realizados %}
+                        <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.descripcion or 'Sin descripción' }}</li>
+                    {% else %}
+                        <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progreso semanal -->
+    <div class="mt-4">
+        <h5>📈 Progreso esta semana</h5>
+        <div class="progress animate__animated animate__slideInLeft">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">
+                {{ progreso_semana }}%
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendario mensual -->
+    <div class="mt-5 animate__animated animate__fadeIn">
+        <h4>🗓️ Calendario mensual</h4>
+        <table class="table table-bordered text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>Lun</th>
+                    <th>Mar</th>
+                    <th>Mié</th>
+                    <th>Jue</th>
+                    <th>Vie</th>
+                    <th>Sáb</th>
+                    <th>Dom</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for semana in calendario_mensual %}
+                    <tr>
+                        {% for dia in semana %}
+                            {% if dia == 0 %}
+                                <td class="bg-light"></td>
+                            {% else %}
+                                <td class="{% if dia.entreno %}bg-success text-white fw-bold{% endif %}">
+                                    {{ dia.numero }}
+                                    {% if dia.entreno %}
+                                        <div style="font-size: 0.8em;">🏃</div>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

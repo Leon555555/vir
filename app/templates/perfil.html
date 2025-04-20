@@ -5,7 +5,6 @@
 {% block content %}
 <div class="container-fluid">
   <div class="row">
-
     <!-- Sidebar -->
     <div class="col-md-3 bg-light border-end vh-100 py-4 position-sticky top-0">
       <h4 class="text-center mb-4">👤 {{ atleta.nombre }}</h4>
@@ -30,7 +29,13 @@
               <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
               <ul class="list-group list-group-flush">
                 {% for e in entrenamientos_planificados %}
-                <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.descripcion or 'Sin descripción' }}</li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
+                  <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-bs-toggle="modal"
+                          data-bs-target="#modalEntrenamiento" data-id="{{ e.id }}" data-detalle="{{ e.detalle }}">
+                    Ver
+                  </button>
+                </li>
                 {% else %}
                 <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
                 {% endfor %}
@@ -42,7 +47,7 @@
               <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
               <ul class="list-group list-group-flush">
                 {% for e in entrenamientos_realizados %}
-                <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.descripcion or 'Sin descripción' }}</li>
+                <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.detalle or 'Sin descripción' }}</li>
                 {% else %}
                 <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
                 {% endfor %}
@@ -85,9 +90,7 @@
                 {% else %}
                 <td class="{% if dia.entreno %}bg-success text-white fw-bold{% endif %}">
                   {{ dia.numero }}
-                  {% if dia.entreno %}
-                  <div style="font-size: 0.8em;">🏃</div>
-                  {% endif %}
+                  {% if dia.entreno %}<div style="font-size: 0.8em;">🏃</div>{% endif %}
                 </td>
                 {% endif %}
                 {% endfor %}
@@ -114,36 +117,34 @@
       <div id="seccion-editar" class="d-none">
         <h3 class="mb-3">✏️ Editar perfil</h3>
         <form method="POST" action="{{ url_for('main.editar_perfil', atleta_id=atleta.id) }}" class="shadow-sm p-4 bg-white rounded">
+          <!-- Campos como nombre, apellido, etc. -->
           <div class="mb-3">
             <label for="nombre" class="form-label">Nombre</label>
             <input type="text" class="form-control" name="nombre" value="{{ atleta.nombre }}">
           </div>
-          <div class="mb-3">
-            <label for="apellido" class="form-label">Apellido</label>
-            <input type="text" class="form-control" name="apellido" value="{{ atleta.apellido }}">
-          </div>
-          <div class="mb-3">
-            <label for="correo" class="form-label">Correo</label>
-            <input type="email" class="form-control" name="correo" value="{{ atleta.correo }}">
-          </div>
-          <div class="mb-3">
-            <label for="telefono" class="form-label">Teléfono</label>
-            <input type="text" class="form-control" name="telefono" value="{{ atleta.telefono }}">
-          </div>
-          <div class="mb-3">
-            <label for="edad" class="form-label">Edad</label>
-            <input type="number" class="form-control" name="edad" value="{{ atleta.edad }}">
-          </div>
-          <div class="mb-3">
-            <label for="altura" class="form-label">Altura (cm)</label>
-            <input type="number" class="form-control" name="altura" value="{{ atleta.altura }}">
-          </div>
-          <div class="mb-3">
-            <label for="peso" class="form-label">Peso (kg)</label>
-            <input type="number" class="form-control" name="peso" value="{{ atleta.peso }}">
-          </div>
+          <!-- ... otros campos ... -->
           <button type="submit" class="btn btn-primary">Guardar cambios</button>
         </form>
+      </div>
+
+      <!-- Modal Detalle -->
+      <div class="modal fade" id="modalEntrenamiento" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Detalle del entrenamiento</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p id="detalle-entrenamiento">Cargando...</p>
+              <div class="d-flex justify-content-between">
+                <button id="btn-realizado" class="btn btn-success">✔ Realizado</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">❌ No realizado</button>
+                <a id="strava-btn" href="#" class="btn btn-warning" target="_blank">🔗 Compartir en Strava</a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -158,91 +159,45 @@
       datos: document.getElementById("seccion-datos"),
       editar: document.getElementById("seccion-editar"),
     };
-
     botones.forEach(btn => {
       btn.addEventListener("click", () => {
-        // Estilo visual
         botones.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-
         const target = btn.dataset.section;
-
         for (const key in secciones) {
           secciones[key].classList.add("d-none");
         }
-
         secciones[target].classList.remove("d-none");
+      });
+    });
+
+    // Modal eventos
+    let entrenamientoId;
+    document.querySelectorAll('.ver-detalle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const detalle = btn.dataset.detalle;
+        entrenamientoId = btn.dataset.id;
+        const stravaLink = btn.dataset.strava || '#';
+        document.getElementById('detalle-entrenamiento').innerText = detalle || 'Sin descripción';
+        document.getElementById('strava-btn').href = stravaLink;
+      });
+    });
+
+    document.getElementById('btn-realizado').addEventListener('click', () => {
+      fetch('/marcar_realizado_ajax', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: entrenamientoId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Error al marcar como realizado');
+        }
       });
     });
   });
 </script>
 {% endblock %}
-<!-- Agregar esto al final de tu perfil.html antes de {% endblock %} -->
-
-<!-- Modal para mostrar detalles del entrenamiento -->
-<div class="modal fade" id="modalEntrenamiento" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Detalle del entrenamiento</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p id="detalle-entrenamiento">Cargando...</p>
-        <div class="d-flex justify-content-between">
-          <button id="btn-realizado" class="btn btn-success">✔ Realizado</button>
-          <button class="btn btn-secondary" data-bs-dismiss="modal">❌ No realizado</button>
-          <a id="strava-btn" href="#" class="btn btn-warning" target="_blank">🔗 Compartir en Strava</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  let entrenamientoId;
-
-  document.querySelectorAll('.ver-detalle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const detalle = btn.dataset.detalle;
-      entrenamientoId = btn.dataset.id;
-      const stravaLink = btn.dataset.strava || '#';
-
-      document.getElementById('detalle-entrenamiento').innerText = detalle || 'Sin descripción';
-      document.getElementById('strava-btn').href = stravaLink;
-    });
-  });
-
-  document.getElementById('btn-realizado').addEventListener('click', () => {
-    fetch('/marcar_realizado_ajax', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: entrenamientoId })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        location.reload();
-      } else {
-        alert('Error al marcar como realizado');
-      }
-    });
-  });
-});
-</script>
-
-<!-- En la sección de Próximos entrenamientos, reemplaza el item -->
-<ul class="list-group">
-  {% for e in entrenamientos_planificados %}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
-      <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-bs-toggle="modal"
-              data-bs-target="#modalEntrenamiento" data-id="{{ e.id }}" data-detalle="{{ e.detalle }}">
-        Ver
-      </button>
-    </li>
-  {% else %}
-    <li class="list-group-item">No hay entrenamientos planificados.</li>
-  {% endfor %}
-</ul>

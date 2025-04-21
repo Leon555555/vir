@@ -117,12 +117,11 @@
       <div id="seccion-editar" class="d-none">
         <h3 class="mb-3">✏️ Editar perfil</h3>
         <form method="POST" action="{{ url_for('main.editar_perfil', atleta_id=atleta.id) }}" class="shadow-sm p-4 bg-white rounded">
-          <!-- Campos como nombre, apellido, etc. -->
           <div class="mb-3">
             <label for="nombre" class="form-label">Nombre</label>
             <input type="text" class="form-control" name="nombre" value="{{ atleta.nombre }}">
           </div>
-          <!-- ... otros campos ... -->
+          <!-- Agregar aquí más campos si lo necesitás -->
           <button type="submit" class="btn btn-primary">Guardar cambios</button>
         </form>
       </div>
@@ -150,54 +149,8 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const botones = document.querySelectorAll("[data-section]");
-    const secciones = {
-      home: document.getElementById("seccion-home"),
-      datos: document.getElementById("seccion-datos"),
-      editar: document.getElementById("seccion-editar"),
-    };
-    botones.forEach(btn => {
-      btn.addEventListener("click", () => {
-        botones.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        const target = btn.dataset.section;
-        for (const key in secciones) {
-          secciones[key].classList.add("d-none");
-        }
-        secciones[target].classList.remove("d-none");
-      });
-    });
-
-    // Modal eventos
-    let entrenamientoId;
-    document.querySelectorAll('.ver-detalle-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const detalle = btn.dataset.detalle;
-        entrenamientoId = btn.dataset.id;
-        const stravaLink = btn.dataset.strava || '#';
-        document.getElementById('detalle-entrenamiento').innerText = detalle || 'Sin descripción';
-        document.getElementById('strava-btn').href = stravaLink;
-      });
-    });
-
-    document.getElementById('btn-realizado').addEventListener('click', () => {
-      fetch('/marcar_realizado_ajax', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: entrenamientoId })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          location.reload();
-        } else {
-          alert('Error al marcar como realizado');
-        }
-      });
-    });
-  });
-</script>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/perfil.js') }}"></script>
 {% endblock %}

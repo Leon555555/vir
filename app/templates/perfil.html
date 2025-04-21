@@ -1,14 +1,23 @@
+<!-- perfil.html actualizado -->
 {% extends "layout.html" %}
 
 {% block title %}Perfil de {{ atleta.nombre }}{% endblock %}
 
 {% block content %}
+<!-- Botón toggle menú -->
+<button id="menu-toggle" class="btn btn-light position-fixed top-0 start-0 m-3 z-3 d-md-none">
+  ☰
+</button>
+
 <div class="container-fluid">
   <div class="row">
     <!-- Sidebar -->
-    <div class="col-md-3 bg-light border-end vh-100 py-4 position-sticky top-0">
-      <h4 class="text-center mb-4">👤 {{ atleta.nombre }}</h4>
-      <div class="nav flex-column nav-pills px-3" role="tablist">
+    <div class="col-md-3 sidebar bg-dark text-white border-end vh-100 py-4 position-sticky top-0">
+      <div class="text-center mb-4">
+        <img src="{{ url_for('static', filename='img/logo-urban-blanco.jpg') }}" alt="Logo Urban" class="img-fluid" style="max-height: 80px;">
+      </div>
+      <h4 class="text-center">{{ atleta.nombre }}</h4>
+      <div class="nav flex-column nav-pills px-3 mt-3" role="tablist">
         <button class="nav-link active" data-section="home">🏠 Home</button>
         <button class="nav-link" data-section="datos">📄 Datos personales</button>
         <button class="nav-link" data-section="editar">✏️ Editar perfil</button>
@@ -19,7 +28,6 @@
 
     <!-- Contenido principal -->
     <div class="col-md-9 py-4 px-5">
-
       <!-- Sección HOME -->
       <div id="seccion-home">
         <div class="row">
@@ -31,8 +39,7 @@
                 {% for e in entrenamientos_planificados %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                   <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
-                  <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-bs-toggle="modal"
-                          data-bs-target="#modalEntrenamiento" data-id="{{ e.id }}" data-detalle="{{ e.detalle }}">
+                  <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-bs-toggle="modal" data-bs-target="#modalEntrenamiento" data-id="{{ e.id }}" data-detalle="{{ e.detalle }}">
                     Ver
                   </button>
                 </li>
@@ -42,6 +49,7 @@
               </ul>
             </div>
           </div>
+
           <div class="col-md-6 mb-4">
             <div class="card shadow-sm">
               <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
@@ -52,16 +60,6 @@
                 <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
                 {% endfor %}
               </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- Progreso -->
-        <div class="mt-4">
-          <h5>📈 Progreso esta semana</h5>
-          <div class="progress">
-            <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_semana }}%;" aria-valuenow="{{ progreso_semana }}" aria-valuemin="0" aria-valuemax="100">
-              {{ progreso_semana }}%
             </div>
           </div>
         </div>
@@ -90,7 +88,7 @@
                 {% else %}
                 <td class="{% if dia.entreno %}bg-success text-white fw-bold{% endif %}">
                   {{ dia.numero }}
-                  {% if dia.entreno %}<div style="font-size: 0.8em;">🏃</div>{% endif %}
+                  {% if dia.entreno %}<div style="font-size: 0.8em;"> 🏃</div>{% endif %}
                 </td>
                 {% endif %}
                 {% endfor %}
@@ -101,7 +99,7 @@
         </div>
       </div>
 
-      <!-- Sección Datos personales -->
+      <!-- Datos personales -->
       <div id="seccion-datos" class="d-none">
         <h3 class="mb-3">📄 Datos personales</h3>
         <ul class="list-group shadow-sm">
@@ -113,7 +111,7 @@
         </ul>
       </div>
 
-      <!-- Sección Editar perfil -->
+      <!-- Editar perfil -->
       <div id="seccion-editar" class="d-none">
         <h3 class="mb-3">✏️ Editar perfil</h3>
         <form method="POST" action="{{ url_for('main.editar_perfil', atleta_id=atleta.id) }}" class="shadow-sm p-4 bg-white rounded">
@@ -121,7 +119,6 @@
             <label for="nombre" class="form-label">Nombre</label>
             <input type="text" class="form-control" name="nombre" value="{{ atleta.nombre }}">
           </div>
-          <!-- Agregar aquí más campos si lo necesitás -->
           <button type="submit" class="btn btn-primary">Guardar cambios</button>
         </form>
       </div>
@@ -145,7 +142,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </div>

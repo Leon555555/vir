@@ -1,78 +1,95 @@
-<div id="seccion-home">
-    <div class="row">
-      <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-          <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
-          <ul class="list-group list-group-flush">
-            {% for e in entrenamientos_planificados %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
-              <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-bs-toggle="modal"
-                      data-bs-target="#modalEntrenamiento" data-id="{{ e.id }}" data-detalle="{{ e.detalle }}">
-                Ver
-              </button>
-            </li>
-            {% else %}
-            <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-      <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-          <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
-          <ul class="list-group list-group-flush">
-            {% for e in entrenamientos_realizados %}
-            <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.detalle or 'Sin descripción' }}</li>
-            {% else %}
-            <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
-            {% endfor %}
-          </ul>
-        </div>
+<!-- Próximos y realizados -->
+<div class="row">
+    <!-- Entrenamientos planificados -->
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
+        <ul class="list-group list-group-flush">
+          {% for e in entrenamientos_planificados %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
+            <button class="btn btn-sm btn-outline-primary ver-detalle-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalEntrenamiento"
+                    data-id="{{ e.id }}"
+                    data-tipo="{{ e.tipo }}"
+                    data-detalle="{{ e.detalle }}"
+                    data-strava="{{ e.strava or '#' }}">
+              Ver
+            </button>
+          </li>
+          {% else %}
+          <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
   
-    <!-- Calendario mensual -->
-    <div class="mt-4">
-      <h4>📅 Calendario mensual</h4>
-      <table class="table table-bordered text-center">
-        <thead class="table-light">
-          <tr>
-            <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for semana in calendario_mensual %}
-          <tr>
-            {% for dia in semana %}
-            {% if dia == 0 %}
-            <td class="bg-light"></td>
-            {% else %}
-            <td class="bg-white">
-              <div><strong>{{ dia.numero }}</strong></div>
-              <div>
-                {% for icono in dia.iconos %}
-                  <span>{{ icono }}</span>
-                {% endfor %}
-              </div>
-            </td>
-            {% endif %}
-            {% endfor %}
-          </tr>
+    <!-- Entrenamientos realizados -->
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
+        <ul class="list-group list-group-flush">
+          {% for e in entrenamientos_realizados %}
+          <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.detalle or 'Sin descripción' }}</li>
+          {% else %}
+          <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
           {% endfor %}
-        </tbody>
-      </table>
+        </ul>
+      </div>
     </div>
   </div>
   
-  <div id="seccion-datos" class="d-none">
-    <h3 class="mb-3">📄 Datos personales</h3>
-    <ul class="list-group shadow-sm">
-      <li class="list-group-item"><strong>Email:</strong> {{ atleta.correo or '—' }}</li>
-      <li class="list-group-item"><strong>Teléfono:</strong> {{ atleta.telefono or '—' }}</li>
-      <li class="list-group-item"><strong>Edad:</strong> {{ atleta.edad or '—' }} años</li>
-      <li class="list-group-item"><strong>Altura:</strong> {{ atleta.altura or '—' }} cm</li>
-      <li class="list-group-item"><strong>Peso:</strong> {{ atleta.peso or '—' }} kg</li>
-    </ul>
+  <!-- Calendario -->
+  <div class="mt-4">
+    <h4>📅 Calendario mensual</h4>
+    <table class="table table-bordered text-center">
+      <thead class="table-light">
+        <tr>
+          <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for semana in calendario_mensual %}
+        <tr>
+          {% for dia in semana %}
+          {% if dia == 0 %}
+          <td class="bg-light"></td>
+          {% else %}
+          <td>
+            <strong>{{ dia.numero }}</strong>
+            <div style="font-size: 0.8em;">
+              {% for icono in dia.iconos %}
+                {{ icono }}
+              {% endfor %}
+            </div>
+          </td>
+          {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Modal para detalle del entrenamiento -->
+  <div class="modal fade" id="modalEntrenamiento" tabindex="-1" aria-labelledby="modalEntrenamientoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEntrenamientoLabel">Detalle del entrenamiento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="detalle-entrenamiento">Cargando...</p>
+          <textarea id="comentario" class="form-control mb-3" placeholder="Añade un comentario..."></textarea>
+          <div class="d-flex justify-content-between">
+            <button id="btn-realizado" class="btn btn-success">✔ Realizado</button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">❌ No realizado</button>
+            <a id="strava-btn" href="#" class="btn btn-warning" target="_blank">🔗 Vincula tu Strava</a>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   

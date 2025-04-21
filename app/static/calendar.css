@@ -1,0 +1,71 @@
+/* Diseño general */
+.calendar {
+    width: 100%;
+    max-width: 800px;
+    margin: 2rem auto;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: #fff;
+  }
+  
+  /* Cabecera */
+  .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    font-size: 1.25rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  /* Tabla del calendario */
+  .calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .calendar-table th, .calendar-table td {
+    width: 14.28%;
+    padding: 0.75rem;
+    text-align: center;
+    border: 1px solid #eee;
+    vertical-align: top;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  /* Colores según tipo de entrenamiento */
+  .day.planificado {
+    background-color: #fdf2d0;
+  }
+  .day.realizado {
+    background-color: #d0f5d2;
+  }
+  .day.no-realizado {
+    background-color: #f5d0d0;
+  }
+  
+  /* Tooltip */
+  .tooltip {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 5px;
+    margin-top: 4px;
+    z-index: 2;
+    white-space: nowrap;
+  }
+  
+  .day:hover .tooltip {
+    display: block;
+  }
+  

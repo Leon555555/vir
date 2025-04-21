@@ -1,0 +1,66 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  .card-header {
+    font-weight: bold;
+    font-size: 1.1em;
+  }
+  
+  .progress {
+    height: 25px;
+  }
+  
+  .progress-bar {
+    font-weight: bold;
+  }
+  
+  .calendar {
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  
+  .calendar-header {
+    background-color: #0d6efd;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+  }
+  
+  .calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .calendar-table th,
+  .calendar-table td {
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    vertical-align: top;
+  }
+  
+  .day.planificado {
+    background-color: #d1e7dd;
+    font-weight: bold;
+  }
+  
+  .day.realizado {
+    background-color: #0d6efd;
+    color: white;
+    font-weight: bold;
+  }
+  
+  .day.no-realizado {
+    background-color: #f8f9fa;
+    color: #6c757d;
+  }
+  
+  .day .tooltip {
+    font-size: 0.75em;
+    margin-top: 4px;
+    color: #555;
+  }
+  

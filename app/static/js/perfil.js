@@ -1,5 +1,6 @@
+// static/js/perfil.js
 document.addEventListener("DOMContentLoaded", () => {
-  // Cambiar entre secciones del menú lateral
+  // Navegación entre secciones
   const botones = document.querySelectorAll("[data-section]");
   const secciones = {
     home: document.getElementById("seccion-home"),
@@ -11,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => {
       botones.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-
       const target = btn.dataset.section;
       for (const key in secciones) {
         secciones[key].classList.add("d-none");
@@ -20,15 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Modal entrenamiento
+  // Modal entrenamiento desde botón "Ver"
   let entrenamientoId;
   document.querySelectorAll('.ver-detalle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const detalle = btn.dataset.detalle;
       entrenamientoId = btn.dataset.id;
-      const stravaLink = btn.dataset.strava || '#';
       document.getElementById('detalle-entrenamiento').innerText = detalle || 'Sin descripción';
-      document.getElementById('strava-btn').href = stravaLink;
     });
   });
 
@@ -48,23 +46,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Lógica para ocultar barra lateral
-  const menuToggle = document.getElementById("menu-toggle");
-  const sidebar = document.getElementById("sidebar");
-  const mainContent = document.getElementById("main-content");
-
-  menuToggle?.addEventListener("click", () => {
-    sidebar.classList.toggle("d-none");
-    mainContent.classList.toggle("expanded");
-  });
-
   // Clic en día del calendario
-  document.querySelectorAll(".calendar-day").forEach(cell => {
-    cell.addEventListener("click", () => {
-      const tooltip = cell.dataset.tooltip;
-      if (tooltip) {
-        alert("Entrenamiento: " + tooltip);
+  document.querySelectorAll('.calendar-day').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const detalle = cell.dataset.detalle;
+      if (detalle && detalle.trim()) {
+        document.getElementById('detalle-entrenamiento').innerText = detalle;
+        const modal = new bootstrap.Modal(document.getElementById('modalEntrenamiento'));
+        modal.show();
       }
     });
+  });
+
+  // Botón para mostrar/ocultar barra lateral
+  const toggleBtn = document.getElementById('menu-toggle');
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main-content');
+
+  toggleBtn?.addEventListener('click', () => {
+    sidebar.classList.toggle('d-none');
+    main.classList.toggle('w-100');
   });
 });

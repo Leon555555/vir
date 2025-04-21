@@ -1,6 +1,5 @@
-<!-- Próximos y realizados -->
 <div class="row">
-    <!-- Entrenamientos planificados -->
+    <!-- Entrenamientos -->
     <div class="col-md-6 mb-4">
       <div class="card shadow-sm">
         <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
@@ -13,10 +12,7 @@
                     data-bs-target="#modalEntrenamiento"
                     data-id="{{ e.id }}"
                     data-tipo="{{ e.tipo }}"
-                    data-detalle="{{ e.detalle }}"
-                    data-strava="{{ e.strava or '#' }}">
-              Ver
-            </button>
+                    data-detalle="{{ e.detalle }}">Ver</button>
           </li>
           {% else %}
           <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
@@ -25,7 +21,6 @@
       </div>
     </div>
   
-    <!-- Entrenamientos realizados -->
     <div class="col-md-6 mb-4">
       <div class="card shadow-sm">
         <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
@@ -40,8 +35,8 @@
     </div>
   </div>
   
-  <!-- Calendario -->
-  <div class="mt-4">
+  <!-- Calendario mensual -->
+  <div class="mt-5">
     <h4>📅 Calendario mensual</h4>
     <table class="table table-bordered text-center">
       <thead class="table-light">
@@ -56,13 +51,11 @@
           {% if dia == 0 %}
           <td class="bg-light"></td>
           {% else %}
-          <td>
-            <strong>{{ dia.numero }}</strong>
-            <div style="font-size: 0.8em;">
-              {% for icono in dia.iconos %}
-                {{ icono }}
-              {% endfor %}
-            </div>
+          <td class="calendario-dia" data-dia="{{ dia.numero }}">
+            <div><strong>{{ dia.numero }}</strong></div>
+            {% for icono in dia.iconos %}
+              <div>{{ icono }}</div>
+            {% endfor %}
           </td>
           {% endif %}
           {% endfor %}
@@ -72,21 +65,28 @@
     </table>
   </div>
   
-  <!-- Modal para detalle del entrenamiento -->
-  <div class="modal fade" id="modalEntrenamiento" tabindex="-1" aria-labelledby="modalEntrenamientoLabel" aria-hidden="true">
+  <!-- Modal de entrenamiento -->
+  <div class="modal fade" id="modalEntrenamiento" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="modalEntrenamientoLabel">Detalle del entrenamiento</h5>
+          <h5 class="modal-title" id="modalEntrenamientoTitulo">Detalle del entrenamiento</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p id="detalle-entrenamiento">Cargando...</p>
-          <textarea id="comentario" class="form-control mb-3" placeholder="Añade un comentario..."></textarea>
+          <p id="modalEntrenamientoDetalle"></p>
+          <div class="mb-3">
+            <label for="comentario" class="form-label">Comentario del atleta</label>
+            <textarea id="comentario" class="form-control" placeholder="Escribe tu comentario..."></textarea>
+          </div>
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="bloquear-dia">
+            <label class="form-check-label" for="bloquear-dia">Bloquear este día</label>
+          </div>
           <div class="d-flex justify-content-between">
-            <button id="btn-realizado" class="btn btn-success">✔ Realizado</button>
-            <button class="btn btn-secondary" data-bs-dismiss="modal">❌ No realizado</button>
-            <a id="strava-btn" href="#" class="btn btn-warning" target="_blank">🔗 Vincula tu Strava</a>
+            <button class="btn btn-success">✔ Realizado</button>
+            <button class="btn btn-secondary">❌ No realizado</button>
+            <a href="#" target="_blank" class="btn btn-warning">🔗 Vincula tu Strava</a>
           </div>
         </div>
       </div>

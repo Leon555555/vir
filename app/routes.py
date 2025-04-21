@@ -43,6 +43,7 @@ def perfil(id):
     realizados = len(realizados_7dias)
     progreso = int((realizados / total) * 100) if total else 0
 
+    # Íconos por tipo de entrenamiento
     iconos_por_tipo = {
         "carrera": "🏃",
         "bicicleta": "🚴",
@@ -53,7 +54,7 @@ def perfil(id):
         "estiramientos": "🤸"
     }
 
-    # Calendario mensual con múltiples íconos por día
+    # Calendario mensual
     primer_dia = hoy.replace(day=1)
     _, dias_en_mes = calendar.monthrange(primer_dia.year, primer_dia.month)
     entrenamientos_mes = [
@@ -64,8 +65,7 @@ def perfil(id):
     dias_entreno = {}
     for e in entrenamientos_mes:
         dia = e.fecha.day
-        icono = iconos_por_tipo.get(e.tipo.lower(), "🏃")
-        dias_entreno.setdefault(dia, []).append(icono)
+        dias_entreno.setdefault(dia, []).append(iconos_por_tipo.get(e.tipo.lower(), "🏃"))
 
     calendario_mensual = []
     semana = []
@@ -133,7 +133,6 @@ def dashboard():
     semana = []
     dia_actual = 1
     primer_dia_semana = primer_dia.weekday()
-
     for _ in range((primer_dia_semana + 1) % 7):
         semana.append(0)
 

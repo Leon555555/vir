@@ -3,52 +3,39 @@ document.addEventListener("DOMContentLoaded", () => {
   const secciones = {
     home: document.getElementById("seccion-home"),
     datos: document.getElementById("seccion-datos"),
-    editar: document.getElementById("seccion-editar"),
+    editar: document.getElementById("seccion-editar")
   };
 
   botones.forEach(btn => {
     btn.addEventListener("click", () => {
       botones.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      const target = btn.dataset.section;
-      for (const key in secciones) {
-        secciones[key].classList.add("d-none");
-      }
-      secciones[target].classList.remove("d-none");
+      Object.values(secciones).forEach(s => s.classList.add("d-none"));
+      secciones[btn.dataset.section].classList.remove("d-none");
     });
   });
 
-  // Modal para detalle de entrenamiento
-  let entrenamientoId = null;
-
-  document.querySelectorAll('.ver-detalle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const detalle = btn.dataset.detalle;
+  document.querySelectorAll(".ver-detalle-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
       const tipo = btn.dataset.tipo;
-      entrenamientoId = btn.dataset.id;
-      const stravaLink = btn.dataset.strava || "#";
-
-      document.getElementById('modalEntrenamientoLabel').textContent = tipo || "Entrenamiento";
-      document.getElementById('detalle-entrenamiento').textContent = detalle || "Sin descripción";
-      document.getElementById('strava-btn').href = stravaLink;
-      document.getElementById('comentario').value = "";
+      const detalle = btn.dataset.detalle;
+      const iconos = {
+        "carrera": "🏃", "bicicleta": "🚴", "natación": "🏊‍♂️",
+        "fuerza": "💪", "descanso": "😴", "series pista": "🏟️", "estiramientos": "🤸"
+      };
+      const icono = iconos[tipo.toLowerCase()] || "🏃";
+      document.getElementById("modalEntrenamientoTitulo").textContent = `${icono} ${tipo}`;
+      document.getElementById("modalEntrenamientoDetalle").textContent = detalle;
     });
   });
 
-  document.getElementById('btn-realizado').addEventListener('click', () => {
-    const comentario = document.getElementById("comentario").value;
-    fetch('/marcar_realizado_ajax', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: entrenamientoId, comentario: comentario })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        location.reload();
-      } else {
-        alert('Error al marcar como realizado');
-      }
+  document.querySelectorAll(".calendario-dia").forEach(td => {
+    td.addEventListener("click", () => {
+      const dia = td.dataset.dia;
+      const iconos = Array.from(td.querySelectorAll("div")).slice(1).map(div => div.textContent).join(" ");
+      document.getElementById("modalEntrenamientoTitulo").textContent = `Entrenamientos día ${dia}`;
+      document.getElementById("modalEntrenamientoDetalle").innerHTML = `Entrenamientos: ${iconos}`;
+      new bootstrap.Modal(document.getElementById("modalEntrenamiento")).show();
     });
   });
 });

@@ -1,18 +1,26 @@
 body {
-  background-color: #121212;
-  color: #f8f9fa;
+  background-color: #ffffff;
   font-family: 'Segoe UI', sans-serif;
+  color: #212529;
 }
 
-.card {
-  background-color: #1f1f1f;
-  border: none;
-  color: #f8f9fa;
+.sidebar-header {
+  background-color: #000;
+  color: #fff;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.sidebar-header img {
+  width: 80px;
+  margin-bottom: 10px;
+}
+
+.sidebar {
+  background-color: #f8f9fa;
 }
 
 .card-header {
-  background-color: #212529;
-  color: #f8f9fa;
   font-weight: bold;
   font-size: 1.1em;
 }
@@ -25,57 +33,36 @@ body {
   font-weight: bold;
 }
 
-.table {
-  background-color: #1f1f1f;
-  color: #f8f9fa;
+.day.planificado {
+  background-color: #d1e7dd;
+  font-weight: bold;
 }
 
-.table-bordered th,
-.table-bordered td {
-  border-color: #343a40;
-}
-
-.list-group-item {
-  background-color: #1f1f1f;
-  color: #f8f9fa;
-  border-color: #343a40;
-}
-
-.modal-content {
-  background-color: #1f1f1f;
-  color: #f8f9fa;
-}
-
-.btn-close {
-  filter: invert(1);
-}
-
-.nav-link {
-  color: #f8f9fa;
-}
-.nav-link.active {
+.day.realizado {
   background-color: #0d6efd;
   color: white;
+  font-weight: bold;
 }
 
-.sidebar-logo {
-  max-width: 100px;
-  margin: 0 auto 1rem auto;
-  display: block;
+.day.no-realizado {
+  background-color: #f8f9fa;
+  color: #6c757d;
 }
 
-.sidebar {
-  background-color: #212529;
-  color: #f8f9fa;
+.day .tooltip {
+  font-size: 0.75em;
+  margin-top: 4px;
+  color: #555;
 }
 
-.sidebar-toggle {
+button#btn-toggle-menu {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 1001;
-  background: none;
-  border: none;
+  top: 15px;
+  left: 15px;
+  z-index: 1050;
+  background-color: #000;
   color: white;
-  font-size: 1.5rem;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 5px;
 }

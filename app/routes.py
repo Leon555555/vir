@@ -43,13 +43,29 @@ def perfil(id):
     realizados = len(realizados_7dias)
     progreso = int((realizados / total) * 100) if total else 0
 
-    # Calendario mensual
+    # Íconos por tipo
+    iconos = {
+        'carrera': '🏃',
+        'bicicleta': '🚴',
+        'natación': '🏊‍♂️',
+        'fuerza': '💪',
+        'descanso': '😴',
+        'series': '🏟️',
+        'estiramientos': '🤸',
+    }
+
+    # Entrenamientos por día
+    entrenamientos_por_dia = {}
+    for e in atleta.entrenamientos:
+        if e.fecha.month == hoy.month and e.fecha.year == hoy.year:
+            dia = e.fecha.day
+            entrenamientos_por_dia[dia] = {
+                "icono": iconos.get(e.tipo.lower(), '🏃'),
+                "detalle": e.detalle or 'Sin descripción'
+            }
+
     primer_dia = hoy.replace(day=1)
     _, dias_en_mes = calendar.monthrange(primer_dia.year, primer_dia.month)
-    entrenamientos_del_mes = [
-        e.fecha.day for e in atleta.entrenamientos
-        if e.fecha.month == hoy.month and e.fecha.year == hoy.year
-    ]
 
     calendario_mensual = []
     semana = []
@@ -60,9 +76,12 @@ def perfil(id):
         semana.append(0)
 
     while dia_actual <= dias_en_mes:
+        entreno = entrenamientos_por_dia.get(dia_actual)
         semana.append({
             "numero": dia_actual,
-            "entreno": dia_actual in entrenamientos_del_mes
+            "entreno": entreno is not None,
+            "icono": entreno["icono"] if entreno else "",
+            "detalle": entreno["detalle"] if entreno else "",
         })
         if len(semana) == 7:
             calendario_mensual.append(semana)
@@ -159,7 +178,7 @@ def nuevo_entrenamiento():
         fecha=fecha,
         tipo=tipo,
         detalle=detalle,
-        realizado=False  # importante
+        realizado=False
     )
     db.session.add(nuevo)
     db.session.commit()

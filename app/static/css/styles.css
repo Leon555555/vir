@@ -1,68 +1,25 @@
 body {
   background-color: #ffffff;
   font-family: 'Segoe UI', sans-serif;
-  color: #212529;
 }
 
-.sidebar-header {
-  background-color: #000;
-  color: #fff;
-  text-align: center;
-  padding: 20px 0;
+.top-bar {
+  height: 60px;
 }
 
-.sidebar-header img {
-  width: 80px;
-  margin-bottom: 10px;
+.logo-img {
+  height: 40px;
 }
 
 .sidebar {
-  background-color: #f8f9fa;
+  width: 250px;
+  transition: all 0.3s ease;
 }
 
-.card-header {
-  font-weight: bold;
-  font-size: 1.1em;
+#main-content {
+  transition: margin-left 0.3s ease;
 }
 
-.progress {
-  height: 25px;
-}
-
-.progress-bar {
-  font-weight: bold;
-}
-
-.day.planificado {
-  background-color: #d1e7dd;
-  font-weight: bold;
-}
-
-.day.realizado {
-  background-color: #0d6efd;
-  color: white;
-  font-weight: bold;
-}
-
-.day.no-realizado {
-  background-color: #f8f9fa;
-  color: #6c757d;
-}
-
-.day .tooltip {
-  font-size: 0.75em;
-  margin-top: 4px;
-  color: #555;
-}
-
-button#btn-toggle-menu {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  z-index: 1050;
-  background-color: #000;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 5px;
+.sidebar.collapsed {
+  display: none;
 }

@@ -1,17 +1,18 @@
 {% extends "layout.html" %}
 {% block title %}Perfil de {{ atleta.nombre }}{% endblock %}
+
 {% block content %}
 <div class="main-wrapper">
-  <!-- Barra superior más alta con logo grande -->
+  <!-- Barra superior -->
   <div class="top-bar bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
-    <span id="menu-toggle" class="btn btn-outline-light btn-sm">☰ Menú</span>
+    <button id="menu-toggle" class="btn btn-outline-light btn-sm">☰ Menú</button>
     <div class="text-center flex-grow-1">
-      <img src="{{ url_for('static', filename='img/logo_urban_blanco.png') }}" alt="Urban Athletics" class="logo-img-big">
+      <img src="{{ url_for('static', filename='img/logo_urban_blanco.png') }}" alt="Urban Athletics" class="logo-img">
     </div>
   </div>
 
   <div class="d-flex">
-    <!-- Sidebar -->
+    <!-- Barra lateral -->
     <div id="sidebar" class="sidebar bg-light border-end vh-100 p-3">
       <h5 class="text-center">{{ atleta.nombre }}</h5>
       <div class="nav flex-column nav-pills" role="tablist">
@@ -19,7 +20,7 @@
         <button class="nav-link" data-section="datos">📄 Datos personales</button>
         <button class="nav-link" data-section="editar">✏️ Editar perfil</button>
         <a class="nav-link" href="{{ url_for('main.entrena_en_casa') }}">🏡 Entrena en casa</a>
-        <a class="nav-link text-danger mt-5" href="{{ url_for('main.logout') }}">🚪 Cerrar sesión</a>
+        <a class="nav-link text-danger mt-5" href="{{ url_for('main.logout') }}">📕 Cerrar sesión</a>
       </div>
     </div>
 
@@ -30,6 +31,7 @@
   </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/perfil.js') }}"></script>
 {% endblock %}

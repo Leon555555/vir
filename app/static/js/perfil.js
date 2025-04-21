@@ -1,16 +1,17 @@
-### 2. perfil.js
-
 document.addEventListener("DOMContentLoaded", () => {
+  // Cambiar entre secciones del menú lateral
   const botones = document.querySelectorAll("[data-section]");
   const secciones = {
     home: document.getElementById("seccion-home"),
     datos: document.getElementById("seccion-datos"),
     editar: document.getElementById("seccion-editar"),
   };
+
   botones.forEach(btn => {
     btn.addEventListener("click", () => {
       botones.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
+
       const target = btn.dataset.section;
       for (const key in secciones) {
         secciones[key].classList.add("d-none");
@@ -19,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Modal entrenamiento
   let entrenamientoId;
   document.querySelectorAll('.ver-detalle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -30,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.getElementById('btn-realizado').addEventListener('click', () => {
+  document.getElementById('btn-realizado')?.addEventListener('click', () => {
     fetch('/marcar_realizado_ajax', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -46,10 +48,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.querySelectorAll(".calendario-dia").forEach(celda => {
-    celda.addEventListener("click", () => {
-      const dia = celda.dataset.dia;
-      alert("Detalle del día " + dia); // Se puede cambiar por modal
+  // Lógica para ocultar barra lateral
+  const menuToggle = document.getElementById("menu-toggle");
+  const sidebar = document.getElementById("sidebar");
+  const mainContent = document.getElementById("main-content");
+
+  menuToggle?.addEventListener("click", () => {
+    sidebar.classList.toggle("d-none");
+    mainContent.classList.toggle("expanded");
+  });
+
+  // Clic en día del calendario
+  document.querySelectorAll(".calendar-day").forEach(cell => {
+    cell.addEventListener("click", () => {
+      const tooltip = cell.dataset.tooltip;
+      if (tooltip) {
+        alert("Entrenamiento: " + tooltip);
+      }
     });
   });
 });

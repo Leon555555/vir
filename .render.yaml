@@ -2,6 +2,7 @@ services:
   - type: web
     name: urban-athletics
     env: python
-    buildCommand: ""
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     plan: free
+

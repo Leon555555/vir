@@ -1,9 +1,8 @@
-from app import app
+from app import create_app
+from app.extensions import db
 from flask_migrate import upgrade
 
-if __name__ == "__main__":
-    with app.app_context():
-        print("🛠️ Ejecutando migraciones automáticas...")
-        upgrade()
-        print("✅ Migraciones aplicadas con éxito.")
+app = create_app()
 
+with app.app_context():
+    upgrade()

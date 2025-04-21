@@ -1,26 +1,20 @@
 body {
-  background-color: #111;
+  background-color: #121212;
   color: #f8f9fa;
   font-family: 'Segoe UI', sans-serif;
 }
 
+.card {
+  background-color: #1f1f1f;
+  border: none;
+  color: #f8f9fa;
+}
+
 .card-header {
+  background-color: #212529;
+  color: #f8f9fa;
   font-weight: bold;
   font-size: 1.1em;
-  background-color: #222;
-  color: white;
-}
-
-.card {
-  background-color: #1a1a1a;
-  color: white;
-  border: none;
-}
-
-.list-group-item {
-  background-color: #1a1a1a;
-  color: white;
-  border-color: #333;
 }
 
 .progress {
@@ -32,49 +26,56 @@ body {
 }
 
 .table {
-  color: white;
+  background-color: #1f1f1f;
+  color: #f8f9fa;
 }
 
 .table-bordered th,
 .table-bordered td {
-  border-color: #444;
+  border-color: #343a40;
 }
 
-.bg-light {
-  background-color: #1e1e1e !important;
+.list-group-item {
+  background-color: #1f1f1f;
+  color: #f8f9fa;
+  border-color: #343a40;
 }
 
-.nav-link {
-  color: #ccc;
-}
-
-.nav-link.active {
-  background-color: #0d6efd;
-  color: white !important;
+.modal-content {
+  background-color: #1f1f1f;
+  color: #f8f9fa;
 }
 
 .btn-close {
   filter: invert(1);
 }
 
+.nav-link {
+  color: #f8f9fa;
+}
+.nav-link.active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.sidebar-logo {
+  max-width: 100px;
+  margin: 0 auto 1rem auto;
+  display: block;
+}
+
 .sidebar {
-  min-height: 100vh;
-  padding-top: 2rem;
+  background-color: #212529;
+  color: #f8f9fa;
 }
 
-.logo-container {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.logo-container img {
-  max-width: 120px;
-}
-
-.toggle-btn {
+.sidebar-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1001;
   background: none;
   border: none;
   color: white;
   font-size: 1.5rem;
-  margin-bottom: 1rem;
 }

@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.getElementById('btn-realizado').addEventListener('click', () => {
+  document.getElementById('btn-realizado')?.addEventListener('click', () => {
     fetch('/marcar_realizado_ajax', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,12 +45,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Botón toggle sidebar
-  const toggleBtn = document.getElementById("toggleSidebar");
-  const sidebar = document.getElementById("sidebar");
-  if (toggleBtn && sidebar) {
-    toggleBtn.addEventListener("click", () => {
-      sidebar.classList.toggle("d-none");
-    });
-  }
+  // Sidebar toggle
+  const toggleBtn = document.getElementById('toggle-sidebar');
+  const sidebar = document.getElementById('sidebar');
+  toggleBtn?.addEventListener('click', () => {
+    sidebar.classList.toggle('d-none');
+  });
 });

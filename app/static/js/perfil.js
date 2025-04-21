@@ -1,20 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Menú lateral
+  const toggleBtn = document.getElementById("menu-toggle");
   const sidebar = document.getElementById("sidebar");
   const mainContent = document.getElementById("main-content");
-  const menuToggle = document.getElementById("menu-toggle");
 
-  menuToggle.addEventListener("click", () => {
+  toggleBtn.addEventListener("click", () => {
     sidebar.classList.toggle("d-none");
-    if (sidebar.classList.contains("d-none")) {
-      mainContent.classList.remove("col-md-9");
-      mainContent.classList.add("w-100");
-    } else {
-      mainContent.classList.add("col-md-9");
-      mainContent.classList.remove("w-100");
-    }
+    mainContent.classList.toggle("w-100");
   });
 
-  // Navegación por secciones
+  // Secciones
   const botones = document.querySelectorAll("[data-section]");
   const secciones = {
     home: document.getElementById("seccion-home"),
@@ -26,7 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => {
       botones.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-
       const target = btn.dataset.section;
       for (const key in secciones) {
         secciones[key].classList.add("d-none");
@@ -35,20 +29,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Modal de detalle
+  // Modal detalle entrenamiento
   let entrenamientoId;
   document.querySelectorAll('.ver-detalle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      entrenamientoId = btn.dataset.id;
       const detalle = btn.dataset.detalle;
-      const strava = btn.dataset.strava || '#';
-
+      entrenamientoId = btn.dataset.id;
+      const stravaLink = btn.dataset.strava || '#';
       document.getElementById('detalle-entrenamiento').innerText = detalle || 'Sin descripción';
-      document.getElementById('strava-btn').href = strava;
+      document.getElementById('strava-btn').href = stravaLink;
     });
   });
 
-  document.getElementById('btn-realizado').addEventListener('click', () => {
+  document.getElementById('btn-realizado')?.addEventListener('click', () => {
     fetch('/marcar_realizado_ajax', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -59,8 +52,16 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.success) {
         location.reload();
       } else {
-        alert("Error al marcar como realizado");
+        alert('Error al marcar como realizado');
       }
+    });
+  });
+
+  // Mostrar detalle al hacer clic en el calendario
+  document.querySelectorAll(".calendar-day").forEach(cell => {
+    cell.addEventListener("click", () => {
+      const detalle = cell.dataset.detalle || "Sin detalle";
+      alert("📋 Entrenamiento: " + detalle);
     });
   });
 });

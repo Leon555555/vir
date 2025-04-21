@@ -1,109 +1,76 @@
-<!-- HOME -->
-<div id="seccion-home">
-    <div class="row">
-      <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-          <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
-          <ul class="list-group list-group-flush">
-            {% for e in entrenamientos_planificados %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
-              <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-bs-toggle="modal"
-                      data-bs-target="#modalEntrenamiento" data-id="{{ e.id }}" data-detalle="{{ e.detalle }}">
-                Ver
-              </button>
-            </li>
-            {% else %}
-            <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-      <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-          <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
-          <ul class="list-group list-group-flush">
-            {% for e in entrenamientos_realizados %}
-            <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.detalle or 'Sin descripción' }}</li>
-            {% else %}
-            <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-    </div>
-  
-    <!-- Calendario mensual -->
-    <div class="mt-5">
-      <h4>📅 Calendario mensual</h4>
-      <table class="table table-bordered text-center">
-        <thead class="table-light">
-          <tr>
-            <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for semana in calendario_mensual %}
-          <tr>
-            {% for dia in semana %}
-            {% if dia == 0 %}
-              <td class="bg-light"></td>
-            {% else %}
-              <td class="{% if dia.entreno %}bg-success text-white fw-bold{% endif %}" data-dia="{{ dia.numero }}">
-                {{ dia.numero }}
-                {% if dia.entreno %}
-                  {% if dia.tipo == 'carrera' %} 🏃
-                  {% elif dia.tipo == 'bicicleta' %} 🚴
-                  {% elif dia.tipo == 'natacion' %} 🏊‍♂️
-                  {% elif dia.tipo == 'fuerza' %} 💪
-                  {% elif dia.tipo == 'descanso' %} 😴
-                  {% elif dia.tipo == 'series' %} 🏟️
-                  {% elif dia.tipo == 'estiramientos' %} 🤸
-                  {% endif %}
-                {% endif %}
-              </td>
-            {% endif %}
-            {% endfor %}
-          </tr>
+<!-- Entrenamientos -->
+<div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
+        <ul class="list-group list-group-flush">
+          {% for e in entrenamientos_planificados %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
+            <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-bs-toggle="modal"
+                    data-bs-target="#modalEntrenamiento" data-id="{{ e.id }}" data-detalle="{{ e.detalle }}">
+              Ver
+            </button>
+          </li>
+          {% else %}
+          <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
           {% endfor %}
-        </tbody>
-      </table>
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
+        <ul class="list-group list-group-flush">
+          {% for e in entrenamientos_realizados %}
+          <li class="list-group-item"><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.detalle or 'Sin descripción' }}</li>
+          {% else %}
+          <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
   </div>
   
-  <!-- Datos personales -->
-  <div id="seccion-datos" class="d-none">
-    <h3>📄 Datos personales</h3>
-    <ul class="list-group shadow-sm">
-      <li class="list-group-item"><strong>Email:</strong> {{ atleta.correo or '—' }}</li>
-      <li class="list-group-item"><strong>Teléfono:</strong> {{ atleta.telefono or '—' }}</li>
-      <li class="list-group-item"><strong>Edad:</strong> {{ atleta.edad or '—' }} años</li>
-      <li class="list-group-item"><strong>Altura:</strong> {{ atleta.altura or '—' }} cm</li>
-      <li class="list-group-item"><strong>Peso:</strong> {{ atleta.peso or '—' }} kg</li>
-    </ul>
+  <!-- Calendario mensual -->
+  <div class="mt-5">
+    <h4>🗓️ Calendario mensual</h4>
+    <table class="table table-bordered text-center">
+      <thead class="table-light">
+        <tr>
+          <th>Lun</th>
+          <th>Mar</th>
+          <th>Mié</th>
+          <th>Jue</th>
+          <th>Vie</th>
+          <th>Sáb</th>
+          <th>Dom</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for semana in calendario_mensual %}
+        <tr>
+          {% for dia in semana %}
+          {% if dia == 0 %}
+          <td class="bg-light"></td>
+          {% else %}
+          <td class="bg-success text-white fw-bold">
+            {{ dia.numero }}
+            <div style="font-size: 0.9em;">
+              {% for icono in dia.iconos %}
+                {{ icono }}
+              {% endfor %}
+            </div>
+          </td>
+          {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
   
-  <!-- Editar perfil -->
-  <div id="seccion-editar" class="d-none">
-    <h3>✏️ Editar perfil</h3>
-    <form method="POST" action="{{ url_for('main.editar_perfil', atleta_id=atleta.id) }}" class="shadow-sm p-4 bg-white rounded">
-      <div class="mb-3">
-        <label for="nombre" class="form-label">Nombre</label>
-        <input type="text" class="form-control" name="nombre" value="{{ atleta.nombre }}">
-      </div>
-      <div class="mb-3">
-        <label for="apellido" class="form-label">Apellido</label>
-        <input type="text" class="form-control" name="apellido" value="{{ atleta.apellido }}">
-      </div>
-      <div class="mb-3">
-        <label for="correo" class="form-label">Correo</label>
-        <input type="email" class="form-control" name="correo" value="{{ atleta.correo }}">
-      </div>
-      <button type="submit" class="btn btn-primary">Guardar cambios</button>
-    </form>
-  </div>
-  
-  <!-- Modal -->
+  <!-- Modal Detalle -->
   <div class="modal fade" id="modalEntrenamiento" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">

@@ -1,5 +1,5 @@
+<!-- Próximos y realizados -->
 <div class="row">
-    <!-- Entrenamientos -->
     <div class="col-md-6 mb-4">
       <div class="card shadow-sm">
         <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
@@ -7,12 +7,10 @@
           {% for e in entrenamientos_planificados %}
           <li class="list-group-item d-flex justify-content-between align-items-center">
             <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
-            <button class="btn btn-sm btn-outline-primary ver-detalle-btn"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modalEntrenamiento"
-                    data-id="{{ e.id }}"
-                    data-tipo="{{ e.tipo }}"
-                    data-detalle="{{ e.detalle }}">Ver</button>
+            <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-bs-toggle="modal"
+                    data-bs-target="#modalDiaCalendario" data-dia="{{ e.fecha.day }}" data-detalle="{{ e.detalle }}" data-tipo="{{ e.tipo }}">
+              Ver
+            </button>
           </li>
           {% else %}
           <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
@@ -51,10 +49,10 @@
           {% if dia == 0 %}
           <td class="bg-light"></td>
           {% else %}
-          <td class="calendario-dia" data-dia="{{ dia.numero }}">
+          <td class="dia-calendario" data-dia="{{ dia.numero }}" style="cursor: pointer;">
             <div><strong>{{ dia.numero }}</strong></div>
             {% for icono in dia.iconos %}
-              <div>{{ icono }}</div>
+            <div>{{ icono }}</div>
             {% endfor %}
           </td>
           {% endif %}
@@ -63,33 +61,5 @@
         {% endfor %}
       </tbody>
     </table>
-  </div>
-  
-  <!-- Modal de entrenamiento -->
-  <div class="modal fade" id="modalEntrenamiento" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalEntrenamientoTitulo">Detalle del entrenamiento</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p id="modalEntrenamientoDetalle"></p>
-          <div class="mb-3">
-            <label for="comentario" class="form-label">Comentario del atleta</label>
-            <textarea id="comentario" class="form-control" placeholder="Escribe tu comentario..."></textarea>
-          </div>
-          <div class="form-check mb-3">
-            <input type="checkbox" class="form-check-input" id="bloquear-dia">
-            <label class="form-check-label" for="bloquear-dia">Bloquear este día</label>
-          </div>
-          <div class="d-flex justify-content-between">
-            <button class="btn btn-success">✔ Realizado</button>
-            <button class="btn btn-secondary">❌ No realizado</button>
-            <a href="#" target="_blank" class="btn btn-warning">🔗 Vincula tu Strava</a>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
   

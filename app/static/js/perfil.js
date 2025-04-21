@@ -1,41 +1,25 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const botones = document.querySelectorAll("[data-section]");
-  const secciones = {
-    home: document.getElementById("seccion-home"),
-    datos: document.getElementById("seccion-datos"),
-    editar: document.getElementById("seccion-editar")
-  };
-
-  botones.forEach(btn => {
-    btn.addEventListener("click", () => {
-      botones.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      Object.values(secciones).forEach(s => s.classList.add("d-none"));
-      secciones[btn.dataset.section].classList.remove("d-none");
+  document.querySelectorAll(".dia-calendario").forEach(td => {
+    td.addEventListener("click", () => {
+      const dia = td.dataset.dia;
+      const iconos = [...td.querySelectorAll("div:not(:first-child)")].map(div => div.textContent.trim()).join(" ");
+      document.getElementById("modalDiaTitulo").innerText = `Entrenamientos día ${dia}`;
+      document.getElementById("modalEntrenamientosTexto").innerText = iconos || "Sin entrenamientos";
+      document.getElementById("comentarioDia").value = "";
+      document.getElementById("bloquearDiaCheck").checked = false;
+      new bootstrap.Modal(document.getElementById("modalDiaCalendario")).show();
     });
   });
 
   document.querySelectorAll(".ver-detalle-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      const tipo = btn.dataset.tipo;
-      const detalle = btn.dataset.detalle;
-      const iconos = {
-        "carrera": "🏃", "bicicleta": "🚴", "natación": "🏊‍♂️",
-        "fuerza": "💪", "descanso": "😴", "series pista": "🏟️", "estiramientos": "🤸"
-      };
-      const icono = iconos[tipo.toLowerCase()] || "🏃";
-      document.getElementById("modalEntrenamientoTitulo").textContent = `${icono} ${tipo}`;
-      document.getElementById("modalEntrenamientoDetalle").textContent = detalle;
-    });
-  });
-
-  document.querySelectorAll(".calendario-dia").forEach(td => {
-    td.addEventListener("click", () => {
-      const dia = td.dataset.dia;
-      const iconos = Array.from(td.querySelectorAll("div")).slice(1).map(div => div.textContent).join(" ");
-      document.getElementById("modalEntrenamientoTitulo").textContent = `Entrenamientos día ${dia}`;
-      document.getElementById("modalEntrenamientoDetalle").innerHTML = `Entrenamientos: ${iconos}`;
-      new bootstrap.Modal(document.getElementById("modalEntrenamiento")).show();
+      const detalle = btn.dataset.detalle || "Sin descripción";
+      const tipo = btn.dataset.tipo || "Entrenamiento";
+      const dia = btn.dataset.dia || "";
+      document.getElementById("modalDiaTitulo").innerText = `${tipo.charAt(0).toUpperCase() + tipo.slice(1)} - día ${dia}`;
+      document.getElementById("modalEntrenamientosTexto").innerText = detalle;
+      document.getElementById("comentarioDia").value = "";
+      document.getElementById("bloquearDiaCheck").checked = false;
     });
   });
 });

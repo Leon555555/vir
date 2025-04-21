@@ -1,4 +1,7 @@
-document.addEventListener("DOMContentLoaded", () => {
+// perfil.js
+
+// Manejo de secciones
+export function setupPerfilView() {
   const botones = document.querySelectorAll("[data-section]");
   const secciones = {
     home: document.getElementById("seccion-home"),
@@ -29,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.getElementById('btn-realizado')?.addEventListener('click', () => {
+  document.getElementById('btn-realizado').addEventListener('click', () => {
     fetch('/marcar_realizado_ajax', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,10 +48,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Sidebar toggle
-  const toggleBtn = document.getElementById('toggle-sidebar');
-  const sidebar = document.getElementById('sidebar');
-  toggleBtn?.addEventListener('click', () => {
-    sidebar.classList.toggle('d-none');
-  });
-});
+  // Menú toggle y ajuste de contenido
+  const toggleMenuBtn = document.getElementById("toggle-menu");
+  const sidebar = document.getElementById("sidebar");
+  const mainContent = document.getElementById("main-content");
+
+  if (toggleMenuBtn && sidebar && mainContent) {
+    toggleMenuBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("d-none");
+      mainContent.classList.toggle("col-md-9");
+      mainContent.classList.toggle("col-md-12");
+    });
+  }
+}
+
+// Autoejecutar al cargar
+if (document.readyState !== 'loading') {
+  setupPerfilView();
+} else {
+  document.addEventListener('DOMContentLoaded', setupPerfilView);
+}

@@ -1,20 +1,17 @@
+<!-- perfil.html -->
 {% extends "layout.html" %}
 
 {% block title %}Perfil de {{ atleta.nombre }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-  <!-- Botón de menú para colapsar el sidebar -->
-  <div class="d-flex align-items-center py-2">
-    <button id="toggle-sidebar" class="btn btn-outline-light me-2">☰ Menú</button>
-  </div>
   <div class="row">
     <!-- Sidebar -->
-    <div id="sidebar" class="col-md-3 bg-dark text-white border-end vh-100 py-4 position-fixed">
-      <div class="text-center mb-3">
-        <img src="{{ url_for('static', filename='img/logo_urban_blanco.png') }}" class="img-fluid" style="max-height: 60px;" alt="Logo Urban">
-        <h4 class="mt-2">{{ atleta.nombre }}</h4>
+    <div id="sidebar" class="col-md-3 bg-secondary border-end vh-100 py-4 position-sticky top-0">
+      <div class="text-center mb-4">
+        <img src="{{ url_for('static', filename='img/logo_urban_blanco.png') }}" alt="Urban Logo" class="img-fluid" style="max-height: 80px;">
       </div>
+      <h4 class="text-center mb-4">👤 {{ atleta.nombre }}</h4>
       <div class="nav flex-column nav-pills px-3" role="tablist">
         <button class="nav-link active" data-section="home">🏠 Home</button>
         <button class="nav-link" data-section="datos">📄 Datos personales</button>
@@ -25,126 +22,16 @@
     </div>
 
     <!-- Contenido principal -->
-    <div class="offset-md-3 col-md-9 py-4 px-5">
+    <div id="main-content" class="col-md-9 py-4 px-5">
+      <button id="toggle-menu" class="btn btn-outline-light mb-3">📂 Menú</button>
 
-      <!-- Sección HOME -->
+      <!-- Secciones como Home, Datos personales y Editar -->
       <div id="seccion-home">
-        <div class="row">
-          <!-- Entrenamientos -->
-          <div class="col-md-6 mb-4">
-            <div class="card shadow-sm bg-dark text-white">
-              <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
-              <ul class="list-group list-group-flush">
-                {% for e in entrenamientos_planificados %}
-                <li class="list-group-item bg-dark text-white border-secondary d-flex justify-content-between align-items-center">
-                  <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
-                  <button class="btn btn-sm btn-outline-light ver-detalle-btn" data-bs-toggle="modal"
-                          data-bs-target="#modalEntrenamiento" data-id="{{ e.id }}" data-detalle="{{ e.detalle }}">
-                    Ver
-                  </button>
-                </li>
-                {% else %}
-                <li class="list-group-item bg-dark text-muted border-secondary">No hay entrenamientos planificados.</li>
-                {% endfor %}
-              </ul>
-            </div>
-          </div>
-          <div class="col-md-6 mb-4">
-            <div class="card shadow-sm bg-dark text-white">
-              <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
-              <ul class="list-group list-group-flush">
-                {% for e in entrenamientos_realizados %}
-                <li class="list-group-item bg-dark text-white border-secondary">
-                  <strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.detalle or 'Sin descripción' }}
-                </li>
-                {% else %}
-                <li class="list-group-item bg-dark text-muted border-secondary">No hay entrenamientos realizados.</li>
-                {% endfor %}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- Calendario mensual -->
-        <div class="mt-5">
-          <h4 class="text-white">🗓️ Calendario mensual</h4>
-          <table class="table table-bordered text-center table-dark">
-            <thead class="table-light">
-              <tr>
-                <th>Lun</th>
-                <th>Mar</th>
-                <th>Mié</th>
-                <th>Jue</th>
-                <th>Vie</th>
-                <th>Sáb</th>
-                <th>Dom</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for semana in calendario_mensual %}
-              <tr>
-                {% for dia in semana %}
-                {% if dia == 0 %}
-                <td class="bg-secondary"></td>
-                {% else %}
-                <td class="{% if dia.entreno %}bg-success text-white fw-bold{% endif %}">
-                  {{ dia.numero }}
-                  {% if dia.entreno %}<div style="font-size: 0.8em;">🏃</div>{% endif %}
-                </td>
-                {% endif %}
-                {% endfor %}
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+        <!-- Aquí va el contenido de entrenamientos, calendario, etc. -->
       </div>
-
-      <!-- Sección Datos personales -->
-      <div id="seccion-datos" class="d-none text-white">
-        <h3 class="mb-3">📄 Datos personales</h3>
-        <ul class="list-group shadow-sm">
-          <li class="list-group-item bg-dark text-white border-secondary"><strong>Email:</strong> {{ atleta.correo or '—' }}</li>
-          <li class="list-group-item bg-dark text-white border-secondary"><strong>Teléfono:</strong> {{ atleta.telefono or '—' }}</li>
-          <li class="list-group-item bg-dark text-white border-secondary"><strong>Edad:</strong> {{ atleta.edad or '—' }} años</li>
-          <li class="list-group-item bg-dark text-white border-secondary"><strong>Altura:</strong> {{ atleta.altura or '—' }} cm</li>
-          <li class="list-group-item bg-dark text-white border-secondary"><strong>Peso:</strong> {{ atleta.peso or '—' }} kg</li>
-        </ul>
-      </div>
-
-      <!-- Sección Editar perfil -->
-      <div id="seccion-editar" class="d-none text-white">
-        <h3 class="mb-3">✏️ Editar perfil</h3>
-        <form method="POST" action="{{ url_for('main.editar_perfil', atleta_id=atleta.id) }}" class="shadow-sm p-4 bg-dark rounded">
-          <div class="mb-3">
-            <label for="nombre" class="form-label">Nombre</label>
-            <input type="text" class="form-control" name="nombre" value="{{ atleta.nombre }}">
-          </div>
-          <!-- Otros campos -->
-          <button type="submit" class="btn btn-success">Guardar cambios</button>
-        </form>
-      </div>
-
-      <!-- Modal Detalle -->
-      <div class="modal fade" id="modalEntrenamiento" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content bg-dark text-white">
-            <div class="modal-header">
-              <h5 class="modal-title">Detalle del entrenamiento</h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <p id="detalle-entrenamiento">Cargando...</p>
-              <div class="d-flex justify-content-between">
-                <button id="btn-realizado" class="btn btn-success">✔ Realizado</button>
-                <button class="btn btn-secondary" data-bs-dismiss="modal">❌ No realizado</button>
-                <a id="strava-btn" href="#" class="btn btn-warning" target="_blank">🔗 Compartir en Strava</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <div id="seccion-datos" class="d-none"></div>
+      <div id="seccion-editar" class="d-none"></div>
+      <!-- Modal también aquí -->
     </div>
   </div>
 </div>

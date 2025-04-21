@@ -3,5 +3,5 @@ services:
     name: urban-athletics
     env: python
     buildCommand: ""
-    startCommand: python migrate_and_run.py
+    startCommand: bash -c "python auto_migrate.py && gunicorn run:app"
     plan: free

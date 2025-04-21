@@ -1,22 +1,12 @@
+### 2. perfil.js
+
 document.addEventListener("DOMContentLoaded", () => {
-  // Menú lateral
-  const toggleBtn = document.getElementById("menu-toggle");
-  const sidebar = document.getElementById("sidebar");
-  const mainContent = document.getElementById("main-content");
-
-  toggleBtn.addEventListener("click", () => {
-    sidebar.classList.toggle("d-none");
-    mainContent.classList.toggle("w-100");
-  });
-
-  // Secciones
   const botones = document.querySelectorAll("[data-section]");
   const secciones = {
     home: document.getElementById("seccion-home"),
     datos: document.getElementById("seccion-datos"),
     editar: document.getElementById("seccion-editar"),
   };
-
   botones.forEach(btn => {
     btn.addEventListener("click", () => {
       botones.forEach(b => b.classList.remove("active"));
@@ -29,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Modal detalle entrenamiento
   let entrenamientoId;
   document.querySelectorAll('.ver-detalle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -41,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.getElementById('btn-realizado')?.addEventListener('click', () => {
+  document.getElementById('btn-realizado').addEventListener('click', () => {
     fetch('/marcar_realizado_ajax', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,11 +46,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Mostrar detalle al hacer clic en el calendario
-  document.querySelectorAll(".calendar-day").forEach(cell => {
-    cell.addEventListener("click", () => {
-      const detalle = cell.dataset.detalle || "Sin detalle";
-      alert("📋 Entrenamiento: " + detalle);
+  document.querySelectorAll(".calendario-dia").forEach(celda => {
+    celda.addEventListener("click", () => {
+      const dia = celda.dataset.dia;
+      alert("Detalle del día " + dia); // Se puede cambiar por modal
     });
   });
 });

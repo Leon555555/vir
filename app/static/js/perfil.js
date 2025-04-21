@@ -1,25 +1,33 @@
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".dia-calendario").forEach(td => {
+  // Mostrar modal al hacer click en un día
+  document.querySelectorAll(".calendar-day").forEach(td => {
     td.addEventListener("click", () => {
       const dia = td.dataset.dia;
-      const iconos = [...td.querySelectorAll("div:not(:first-child)")].map(div => div.textContent.trim()).join(" ");
-      document.getElementById("modalDiaTitulo").innerText = `Entrenamientos día ${dia}`;
-      document.getElementById("modalEntrenamientosTexto").innerText = iconos || "Sin entrenamientos";
-      document.getElementById("comentarioDia").value = "";
-      document.getElementById("bloquearDiaCheck").checked = false;
-      new bootstrap.Modal(document.getElementById("modalDiaCalendario")).show();
+      document.getElementById("modal-dia-numero").innerText = dia;
+      document.getElementById("comentario-dia").value = ""; // opcional cargar comentario actual
+      document.getElementById("bloquear-dia").checked = td.classList.contains("bg-danger");
+      new bootstrap.Modal(document.getElementById("modalDia")).show();
     });
   });
 
-  document.querySelectorAll(".ver-detalle-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const detalle = btn.dataset.detalle || "Sin descripción";
-      const tipo = btn.dataset.tipo || "Entrenamiento";
-      const dia = btn.dataset.dia || "";
-      document.getElementById("modalDiaTitulo").innerText = `${tipo.charAt(0).toUpperCase() + tipo.slice(1)} - día ${dia}`;
-      document.getElementById("modalEntrenamientosTexto").innerText = detalle;
-      document.getElementById("comentarioDia").value = "";
-      document.getElementById("bloquearDiaCheck").checked = false;
+  // Guardar bloqueo
+  document.getElementById("guardar-dia-btn").addEventListener("click", () => {
+    const dia = document.getElementById("modal-dia-numero").innerText;
+    const comentario = document.getElementById("comentario-dia").value;
+    const bloqueado = document.getElementById("bloquear-dia").checked;
+
+    fetch("/guardar_bloqueo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dia, comentario, bloqueado })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        location.reload();
+      } else {
+        alert("Error al guardar");
+      }
     });
   });
 });

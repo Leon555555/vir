@@ -2,7 +2,8 @@ from flask import Blueprint, render_template, jsonify, request
 from datetime import datetime
 import calendar
 
-main = Blueprint("main", __name__)
+main_bp = Blueprint("main", __name__)
+
 
 # Simulación de base de datos
 DIAS_CALENDARIO = {}  # Estructura: { '2025-04-24': {'tipo': 'run', 'comentario': 'Día clave', 'bloqueado': True} }

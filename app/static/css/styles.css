@@ -23,3 +23,10 @@ body {
 .sidebar.collapsed {
   display: none;
 }
+#sidebar.d-none {
+  display: none !important;
+}
+
+#w-100 {
+  width: 100% !important;
+}

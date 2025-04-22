@@ -1,52 +1,96 @@
-<h4>📅 Próximos entrenamientos</h4>
-<div class="card mb-4">
-  <div class="card-body">
-    {% for e in entrenamientos_planificados %}
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>
-      <span>{{ e.detalle or 'Sin detalle' }}</span>
-      <button class="btn btn-sm btn-outline-primary ver-detalle-btn" data-id="{{ e.id }}" data-tipo="{{ e.tipo }}" data-detalle="{{ e.detalle }}">Ver</button>
-    </div>
-    {% else %}
-    <p class="text-muted">No hay entrenamientos próximos.</p>
-    {% endfor %}
-  </div>
-</div>
-
-<h4>✅ Entrenamientos realizados</h4>
-<div class="card mb-4">
-  <div class="card-body">
-    {% for e in entrenamientos_realizados %}
-    <div><strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.detalle or 'Sin detalle' }}</div>
-    {% else %}
-    <p class="text-muted">No hay entrenamientos realizados.</p>
-    {% endfor %}
-  </div>
-</div>
-
-<h4>📅 Calendario mensual</h4>
-<table class="table table-bordered text-center">
-  <thead>
-    <tr>
-      <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for semana in calendario_mensual %}
-    <tr>
-      {% for dia in semana %}
-        {% if dia == 0 %}
-          <td class="bg-light"></td>
-        {% else %}
-          <td class="calendar-day {% if dia.bloqueado %}bg-danger text-white{% endif %}" data-dia="{{ dia.numero }}">
-            <div><strong>{{ dia.numero }}</strong></div>
-            {% for icono in dia.iconos %}
-              <div>{{ icono }}</div>
+<!-- Sección HOME -->
+<div id="seccion-home">
+    <div class="row">
+      <!-- Entrenamientos Planificados -->
+      <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+          <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
+          <ul class="list-group list-group-flush">
+            {% for e in entrenamientos_planificados %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}</span>
+              <button class="btn btn-sm btn-outline-primary ver-detalle-btn"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modalDia"
+                      data-id="{{ e.id }}"
+                      data-dia="{{ e.fecha.day }}"
+                      data-detalle="{{ e.detalle }}"
+                      data-tipo="{{ e.tipo }}">
+                Ver
+              </button>
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
             {% endfor %}
-          </td>
-        {% endif %}
-      {% endfor %}
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+          </ul>
+        </div>
+      </div>
+  
+      <!-- Entrenamientos Realizados -->
+      <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+          <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
+          <ul class="list-group list-group-flush">
+            {% for e in entrenamientos_realizados %}
+            <li class="list-group-item">
+              <strong>{{ e.fecha.strftime('%d/%m/%Y') }}:</strong> {{ e.detalle or 'Sin descripción' }}
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Calendario mensual -->
+    <div class="mt-4">
+      <h4>📅 Calendario mensual</h4>
+      <table class="table table-bordered text-center">
+        <thead class="table-light">
+          <tr>
+            <th>Lun</th>
+            <th>Mar</th>
+            <th>Mié</th>
+            <th>Jue</th>
+            <th>Vie</th>
+            <th>Sáb</th>
+            <th>Dom</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for semana in calendario_mensual %}
+          <tr>
+            {% for dia in semana %}
+              {% if dia == 0 %}
+                <td class="bg-light"></td>
+              {% else %}
+                <td class="day-cell {% if dia.bloqueado %}bg-danger text-white{% endif %}" data-dia="{{ dia.numero }}">
+                  <div><strong>{{ dia.numero }}</strong></div>
+                  <div>
+                    {% for icono in dia.iconos %}
+                      {{ icono }}
+                    {% endfor %}
+                  </div>
+                </td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Sección Datos personales -->
+  <div id="seccion-datos" class="d-none">
+    <h3 class="mb-3">📄 Datos personales</h3>
+    <ul class="list-group shadow-sm">
+      <li class="list-group-item"><strong>Email:</strong> {{ atleta.correo or '—' }}</li>
+      <li class="list-group-item"><strong>Teléfono:</strong> {{ atleta.telefono or '—' }}</li>
+      <li class="list-group-item"><strong>Edad:</strong> {{ atleta.edad or '—' }} años</li>
+      <li class="list-group-item"><strong>Altura:</strong> {{ atleta.altura or '—' }} cm</li>
+      <li class="list-group-item"><strong>Peso:</strong> {{ atleta.peso or '—' }} kg</li>
+    </ul>
+  </div>
+  

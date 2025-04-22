@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block title %}Perfil de {{ atleta.nombre }}{% endblock %}
+
 {% block content %}
 <div class="main-wrapper container-fluid">
   <!-- Barra superior -->
@@ -34,19 +35,37 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modal-dia-title">Entrenamientos del día</h5>
+        <h5 class="modal-title" id="modal-dia-title">Editar día</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p id="modal-dia-detalle"><em>Cargando...</em></p>
+        <!-- Desplegable de actividad -->
         <div class="mb-3">
-          <label for="comentario" class="form-label">Comentario del atleta</label>
+          <label for="tipo-entrenamiento" class="form-label">Programar actividad</label>
+          <select class="form-select" id="tipo-entrenamiento">
+            <option value="">— Seleccionar —</option>
+            <option value="run">🏃 Correr</option>
+            <option value="natacion">🏊 Natación</option>
+            <option value="bike">🚴 Bike</option>
+            <option value="fuerza">🏋️ Fuerza</option>
+            <option value="estirar">🧘 Estirar</option>
+            <option value="series">🏃‍♂️ Series en pista</option>
+          </select>
+        </div>
+
+        <!-- Comentario -->
+        <div class="mb-3">
+          <label for="comentario" class="form-label">Comentario</label>
           <textarea class="form-control" id="comentario" rows="3"></textarea>
         </div>
-        <div class="form-check">
+
+        <!-- Bloquear día -->
+        <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="checkbox-bloquear">
           <label class="form-check-label" for="checkbox-bloquear">Bloquear este día</label>
         </div>
+
+        <!-- Día oculto -->
         <input type="hidden" id="dia-seleccionado">
       </div>
       <div class="modal-footer">

@@ -24,8 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
       fetch(`/detalles_dia/${dia}`)
         .then(res => res.json())
         .then(data => {
-          document.getElementById("modal-dia-title").innerText = `Entrenamientos día ${dia}`;
-          document.getElementById("modal-dia-detalle").innerText = data.detalle || "Sin descripción";
+          document.getElementById("modal-dia-title").innerText = `Editar día ${dia}`;
+          document.getElementById("tipo-entrenamiento").value = data.tipo || "";
           document.getElementById("comentario").value = data.comentario || "";
           document.getElementById("checkbox-bloquear").checked = data.bloqueado;
           document.getElementById("dia-seleccionado").value = dia;
@@ -35,16 +35,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Guardar cambios en el día
+  // Guardar cambios del día
   document.getElementById("guardar-dia").addEventListener("click", () => {
     const dia = document.getElementById("dia-seleccionado").value;
+    const tipo = document.getElementById("tipo-entrenamiento").value;
     const comentario = document.getElementById("comentario").value;
     const bloqueado = document.getElementById("checkbox-bloquear").checked;
 
     fetch("/guardar_dia", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dia, comentario, bloqueado })
+      body: JSON.stringify({ dia, tipo, comentario, bloqueado })
     })
       .then(res => res.json())
       .then(data => {
@@ -56,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 
-  // Mostrar/Ocultar el menú lateral
+  // Botón Menú
   const menuToggle = document.getElementById("menu-toggle");
   const sidebar = document.getElementById("sidebar");
   const mainContent = document.getElementById("main-content");

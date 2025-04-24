@@ -1,6 +1,9 @@
 from flask import Blueprint, render_template, jsonify, request
 from datetime import datetime
 import calendar
+from flask import render_template, request, redirect, url_for
+from flask import redirect, url_for
+
 
 main_bp = Blueprint("main", __name__)
 
@@ -116,4 +119,20 @@ def detalles_dia(dia):
         "bloqueado": False
     })
     return jsonify(datos)
+@main_bp.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
 
+        # 🔐 Ejemplo de login básico con el demo Leandro Videla
+        if email == "lvidelaramos@gmail.com" and password == "1234":
+            return redirect(url_for("main.perfil", id=1))
+        else:
+            error = "Credenciales incorrectas"
+
+    return render_template("login.html", error=error)
+@main_bp.route("/")
+def index():
+    return redirect(url_for("main.login"))

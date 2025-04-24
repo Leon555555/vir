@@ -30,7 +30,7 @@
   </div>
 </div>
 
-<!-- Modal para día calendario -->
+<!-- Modal para editar día calendario -->
 <div class="modal fade" id="modalDia" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -39,7 +39,6 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <!-- Desplegable de actividad -->
         <div class="mb-3">
           <label for="tipo-entrenamiento" class="form-label">Programar actividad</label>
           <select class="form-select" id="tipo-entrenamiento">
@@ -52,25 +51,41 @@
             <option value="series">🏃‍♂️ Series en pista</option>
           </select>
         </div>
-
-        <!-- Comentario -->
         <div class="mb-3">
           <label for="comentario" class="form-label">Comentario</label>
           <textarea class="form-control" id="comentario" rows="3"></textarea>
         </div>
-
-        <!-- Bloquear día -->
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="checkbox-bloquear">
           <label class="form-check-label" for="checkbox-bloquear">Bloquear este día</label>
         </div>
-
-        <!-- Día oculto -->
         <input type="hidden" id="dia-seleccionado">
       </div>
       <div class="modal-footer">
         <button id="guardar-dia" class="btn btn-success">✔ Guardar</button>
         <button class="btn btn-secondary" data-bs-dismiss="modal">❌ Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para ver entrenamiento -->
+<div class="modal fade" id="modalVerEntrenamiento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Entrenamiento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Descripción:</strong></p>
+        <p id="modal-dia-detalle" class="mb-3">—</p>
+
+        <div class="d-grid gap-2">
+          <button class="btn btn-success" id="btn-realizado">✔ Realizado</button>
+          <button class="btn btn-danger" id="btn-no-realizado">✖ No realizado</button>
+          <button class="btn btn-outline-secondary">🚴 Vincula tu Strava</button>
+        </div>
       </div>
     </div>
   </div>

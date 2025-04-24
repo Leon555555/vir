@@ -9,11 +9,12 @@ main_bp = Blueprint("main", __name__)
 # =====================
 # PERFIL DEL ATLETA
 # =====================
+
 @main_bp.route("/perfil/<int:id>")
 def perfil(id):
     atleta = Atleta.query.get_or_404(id)
     entrenamientos = Entrenamiento.query.filter_by(atleta_id=id).order_by(Entrenamiento.fecha).all()
-    hoy = datetime.today().date()
+    hoy = datetime.today()
 
     planificados = [e for e in entrenamientos if not e.realizado]
     realizados = [e for e in entrenamientos if e.realizado]
@@ -30,18 +31,29 @@ def perfil(id):
         iconos = []
 
         entrenamientos_dia = [e for e in entrenamientos if e.fecha == fecha]
+        bloqueado = False
+
         for e in entrenamientos_dia:
-            if e.tipo == "run": iconos.append("🏃")
-            elif e.tipo == "natacion": iconos.append("🏊")
-            elif e.tipo == "bike": iconos.append("🚴")
-            elif e.tipo == "fuerza": iconos.append("🏋️")
-            elif e.tipo == "estirar": iconos.append("🧘")
-            elif e.tipo == "series": iconos.append("🏃‍♂️")
+            tipo = e.tipo.lower()
+            if tipo == "run":
+                iconos.append("🏃")
+            elif tipo == "natacion":
+                iconos.append("🏊")
+            elif tipo == "bike":
+                iconos.append("🚴")
+            elif tipo == "fuerza":
+                iconos.append("🏋️")
+            elif tipo == "estirar":
+                iconos.append("🧘")
+            elif tipo == "series":
+                iconos.append("🏃‍♂️")
+            if hasattr(e, 'bloqueado') and e.bloqueado:
+                bloqueado = True
 
         semana.append({
             "numero": dia,
             "iconos": iconos,
-            "bloqueado": False  # si implementás bloqueo más adelante, lo cambiamos
+            "bloqueado": bloqueado
         })
 
         if len(semana) == 7:
@@ -62,6 +74,7 @@ def perfil(id):
 # =====================
 # DASHBOARD ENTRENADOR
 # =====================
+
 @main_bp.route("/dashboard")
 def dashboard():
     atletas = Atleta.query.all()
@@ -100,15 +113,41 @@ def dashboard():
                            anio=datetime.today().year,
                            mes=datetime.today().month)
 
+@main_bp.route("/nuevo-entrenamiento", methods=["POST"])
+def nuevo_entrenamiento():
+    atleta_nombre = request.form.get("atleta")
+    fecha = request.form.get("fecha")
+    tipo = request.form.get("tipo")
+    detalle = request.form.get("detalle")
+
+    atleta = Atleta.query.filter_by(nombre=atleta_nombre).first()
+    if not atleta:
+        return "Atleta no encontrado", 404
+
+    entrenamiento = Entrenamiento(
+        atleta_id=atleta.id,
+        fecha=datetime.strptime(fecha, "%Y-%m-%d").date(),
+        tipo=tipo,
+        detalle=detalle,
+        realizado=False
+    )
+    db.session.add(entrenamiento)
+    db.session.commit()
+
+    return redirect(url_for("main.dashboard", atleta=atleta.nombre))
+
 # =====================
 # FUNCIONES GENERALES
 # =====================
+
 @main_bp.route("/guardar_dia", methods=["POST"])
 def guardar_dia():
     data = request.get_json()
     dia = data.get("dia")
     tipo = data.get("tipo")
     comentario = data.get("comentario")
+    bloqueado = data.get("bloqueado", False)
+
     hoy = datetime.today()
     fecha = datetime(hoy.year, hoy.month, int(dia)).date()
 
@@ -140,18 +179,21 @@ def detalles_dia(dia):
     return jsonify(datos)
 
 # =====================
-# AUTENTICACIÓN
+# AUTENTICACIÓN BÁSICA
 # =====================
+
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
+
         if email == "lvidelaramos@gmail.com" and password == "1234":
             return redirect(url_for("main.perfil", id=1))
         else:
             error = "Credenciales incorrectas"
+
     return render_template("login.html", error=error)
 
 @main_bp.route("/")

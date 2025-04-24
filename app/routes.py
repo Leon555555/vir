@@ -132,3 +132,6 @@ def index():
 @main_bp.route("/entrena-en-casa")
 def entrena_en_casa():
     return render_template("entrena_en_casa.html")
+@main_bp.route("/logout")
+def logout():
+    return redirect(url_for("main.login"))

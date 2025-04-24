@@ -1,40 +1,25 @@
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for
 from datetime import datetime
 import calendar
+from .models import Atleta, Entrenamiento  # Asegurate de tener estos modelos reales
+from .extensions import db
 
 main_bp = Blueprint("main", __name__)
 
-# Simulación de base de datos
-DIAS_CALENDARIO = {}
-
-ENTRENAMIENTOS = {
-    1: {
-        'planificados': [
-            {'id': 1, 'fecha': datetime(2025, 4, 24), 'detalle': 'Fondo largo', 'tipo': 'run'},
-        ],
-        'realizados': [
-            {'id': 2, 'fecha': datetime(2025, 4, 20), 'detalle': 'Series', 'tipo': 'series'}
-        ]
-    }
-}
-
-ATLETAS = {
-    1: {
-        'nombre': 'Leandro Videla',
-        'correo': 'leandro@example.com',
-        'telefono': '123456789',
-        'edad': 30,
-        'altura': 180,
-        'peso': 75
-    }
-}
+# =====================
+# PERFIL DEL ATLETA
+# =====================
 
 @main_bp.route("/perfil/<int:id>")
 def perfil(id):
-    atleta = ATLETAS.get(id)
-    entrenamientos = ENTRENAMIENTOS.get(id, {'planificados': [], 'realizados': []})
+    atleta = Atleta.query.get_or_404(id)
+    entrenamientos = Entrenamiento.query.filter_by(atleta_id=id).order_by(Entrenamiento.fecha).all()
     hoy = datetime.today()
 
+    planificados = [e for e in entrenamientos if e.estado != "realizado"]
+    realizados = [e for e in entrenamientos if e.estado == "realizado"]
+
+    # Crear calendario mensual
     primer_dia, num_dias = calendar.monthrange(hoy.year, hoy.month)
     calendario = []
     semana = []
@@ -43,27 +28,29 @@ def perfil(id):
         semana.append(0)
 
     for dia in range(1, num_dias + 1):
-        fecha_str = f"{hoy.year}-{hoy.month:02d}-{dia:02d}"
-        data = DIAS_CALENDARIO.get(fecha_str, {})
+        fecha = datetime(hoy.year, hoy.month, dia).date()
         iconos = []
 
-        if data.get("tipo") == "run":
-            iconos.append("🏃")
-        elif data.get("tipo") == "natacion":
-            iconos.append("🏊")
-        elif data.get("tipo") == "bike":
-            iconos.append("🚴")
-        elif data.get("tipo") == "fuerza":
-            iconos.append("🏋️")
-        elif data.get("tipo") == "estirar":
-            iconos.append("🧘")
-        elif data.get("tipo") == "series":
-            iconos.append("🏃‍♂️")
+        entrenamientos_dia = [e for e in entrenamientos if e.fecha == fecha]
+
+        for e in entrenamientos_dia:
+            if e.tipo == "run":
+                iconos.append("🏃")
+            elif e.tipo == "natacion":
+                iconos.append("🏊")
+            elif e.tipo == "bike":
+                iconos.append("🚴")
+            elif e.tipo == "fuerza":
+                iconos.append("🏋️")
+            elif e.tipo == "estirar":
+                iconos.append("🧘")
+            elif e.tipo == "series":
+                iconos.append("🏃‍♂️")
 
         semana.append({
             "numero": dia,
             "iconos": iconos,
-            "bloqueado": data.get("bloqueado", False)
+            "bloqueado": e.bloqueado if entrenamientos_dia else False
         })
 
         if len(semana) == 7:
@@ -77,9 +64,55 @@ def perfil(id):
 
     return render_template("perfil.html",
                            atleta=atleta,
-                           entrenamientos_planificados=entrenamientos["planificados"],
-                           entrenamientos_realizados=entrenamientos["realizados"],
+                           entrenamientos_planificados=planificados,
+                           entrenamientos_realizados=realizados,
                            calendario_mensual=calendario)
+
+# =====================
+# DASHBOARD ENTRENADOR
+# =====================
+
+@main_bp.route("/dashboard")
+def dashboard():
+    atletas = Atleta.query.all()
+    nombre = request.args.get("atleta")
+    atleta_seleccionado = None
+    entrenamientos = []
+    calendario_mensual = []
+
+    if nombre:
+        atleta = Atleta.query.filter_by(nombre=nombre).first()
+        if atleta:
+            atleta_seleccionado = atleta.nombre
+            entrenamientos = Entrenamiento.query.filter_by(atleta_id=atleta.id).all()
+
+            hoy = datetime.today()
+            anio, mes = hoy.year, hoy.month
+            primer_dia, num_dias = calendar.monthrange(anio, mes)
+            semana = [0] * primer_dia
+
+            for dia in range(1, num_dias + 1):
+                semana.append(dia)
+                if len(semana) == 7:
+                    calendario_mensual.append(semana)
+                    semana = []
+
+            if semana:
+                while len(semana) < 7:
+                    semana.append(0)
+                calendario_mensual.append(semana)
+
+    return render_template("dashboard.html",
+                           atletas=atletas,
+                           entrenamientos=entrenamientos,
+                           atleta_seleccionado=atleta_seleccionado,
+                           calendario_mensual=calendario_mensual,
+                           anio=datetime.today().year,
+                           mes=datetime.today().month)
+
+# =====================
+# FUNCIONES GENERALES
+# =====================
 
 @main_bp.route("/guardar_dia", methods=["POST"])
 def guardar_dia():
@@ -90,26 +123,39 @@ def guardar_dia():
     bloqueado = data.get("bloqueado", False)
 
     hoy = datetime.today()
-    fecha_str = f"{hoy.year}-{hoy.month:02d}-{int(dia):02d}"
+    fecha = datetime(hoy.year, hoy.month, int(dia)).date()
 
-    DIAS_CALENDARIO[fecha_str] = {
-        "tipo": tipo,
-        "comentario": comentario,
-        "bloqueado": bloqueado
-    }
+    entrenamiento = Entrenamiento.query.filter_by(fecha=fecha).first()
+    if not entrenamiento:
+        return jsonify(success=False, msg="No hay entrenamiento en ese día")
+
+    entrenamiento.tipo = tipo
+    entrenamiento.comentario = comentario
+    entrenamiento.bloqueado = bloqueado
+    db.session.commit()
 
     return jsonify(success=True)
 
 @main_bp.route("/detalles_dia/<int:dia>")
 def detalles_dia(dia):
     hoy = datetime.today()
-    fecha_str = f"{hoy.year}-{hoy.month:02d}-{dia:02d}"
-    datos = DIAS_CALENDARIO.get(fecha_str, {
-        "tipo": "",
-        "comentario": "",
-        "bloqueado": False
-    })
+    fecha = datetime(hoy.year, hoy.month, dia).date()
+    entrenamiento = Entrenamiento.query.filter_by(fecha=fecha).first()
+
+    if entrenamiento:
+        datos = {
+            "tipo": entrenamiento.tipo,
+            "comentario": entrenamiento.comentario or "",
+            "bloqueado": entrenamiento.bloqueado
+        }
+    else:
+        datos = {"tipo": "", "comentario": "", "bloqueado": False}
+
     return jsonify(datos)
+
+# =====================
+# AUTENTICACIÓN BÁSICA
+# =====================
 
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -129,9 +175,10 @@ def login():
 def index():
     return redirect(url_for("main.login"))
 
-@main_bp.route("/entrena-en-casa")
-def entrena_en_casa():
-    return render_template("entrena_en_casa.html")
 @main_bp.route("/logout")
 def logout():
     return redirect(url_for("main.login"))
+
+@main_bp.route("/entrena-en-casa")
+def entrena_en_casa():
+    return render_template("entrena_en_casa.html")

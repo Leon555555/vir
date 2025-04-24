@@ -1,16 +1,12 @@
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, redirect, url_for
 from datetime import datetime
 import calendar
-from flask import render_template, request, redirect, url_for
-from flask import redirect, url_for
-
 
 main_bp = Blueprint("main", __name__)
 
 # Simulación de base de datos
-DIAS_CALENDARIO = {}  # Estructura: { '2025-04-24': {'tipo': 'run', 'comentario': '...', 'bloqueado': True} }
+DIAS_CALENDARIO = {}
 
-# Simulación de entrenamientos por atleta
 ENTRENAMIENTOS = {
     1: {
         'planificados': [
@@ -22,7 +18,6 @@ ENTRENAMIENTOS = {
     }
 }
 
-# Simulación de atletas
 ATLETAS = {
     1: {
         'nombre': 'Leandro Videla',
@@ -34,19 +29,17 @@ ATLETAS = {
     }
 }
 
-# Ruta del perfil
 @main_bp.route("/perfil/<int:id>")
 def perfil(id):
     atleta = ATLETAS.get(id)
     entrenamientos = ENTRENAMIENTOS.get(id, {'planificados': [], 'realizados': []})
     hoy = datetime.today()
 
-    # Calendario mensual
     primer_dia, num_dias = calendar.monthrange(hoy.year, hoy.month)
     calendario = []
     semana = []
 
-    for i in range(1, primer_dia + 1):  # Días vacíos al comienzo del mes
+    for i in range(1, primer_dia + 1):
         semana.append(0)
 
     for dia in range(1, num_dias + 1):
@@ -88,7 +81,6 @@ def perfil(id):
                            entrenamientos_realizados=entrenamientos["realizados"],
                            calendario_mensual=calendario)
 
-# Guardar cambios del día
 @main_bp.route("/guardar_dia", methods=["POST"])
 def guardar_dia():
     data = request.get_json()
@@ -108,7 +100,6 @@ def guardar_dia():
 
     return jsonify(success=True)
 
-# Obtener detalles de un día para el modal
 @main_bp.route("/detalles_dia/<int:dia>")
 def detalles_dia(dia):
     hoy = datetime.today()
@@ -119,6 +110,7 @@ def detalles_dia(dia):
         "bloqueado": False
     })
     return jsonify(datos)
+
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     error = None
@@ -126,13 +118,17 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        # 🔐 Ejemplo de login básico con el demo Leandro Videla
         if email == "lvidelaramos@gmail.com" and password == "1234":
             return redirect(url_for("main.perfil", id=1))
         else:
             error = "Credenciales incorrectas"
 
     return render_template("login.html", error=error)
+
 @main_bp.route("/")
 def index():
     return redirect(url_for("main.login"))
+
+@main_bp.route("/entrena-en-casa")
+def entrena_en_casa():
+    return render_template("entrena_en_casa.html")

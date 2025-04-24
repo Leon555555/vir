@@ -1,38 +1,17 @@
 {% extends "layout.html" %}
 
-{% block title %}Entrena en casa - Tabata{% endblock %}
+{% block title %}Entrena en casa{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    <h2 class="text-center mb-4">🏡 Entrena en casa - Tabata</h2>
-
-    <div class="row mb-4">
-        {% for ejercicio in ejercicios %}
-        <div class="col-md-6 mb-3 text-center">
-            <h5>{{ ejercicio.nombre }}</h5>
-            <video class="w-100 rounded shadow-sm" src="{{ url_for('static', filename='videos/' ~ ejercicio.video) }}" muted loop autoplay></video>
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="text-center mb-3">
-        <label for="tiempoTrabajo">⏱️ Trabajo (seg):</label>
-        <input type="number" id="tiempoTrabajo" value="20" class="form-control d-inline w-auto mx-2" min="5" max="60">
-
-        <label for="tiempoDescanso">🧘 Descanso (seg):</label>
-        <input type="number" id="tiempoDescanso" value="20" class="form-control d-inline w-auto mx-2" min="5" max="60">
-    </div>
-
-    <div class="text-center mb-4">
-        <button class="btn btn-success btn-lg" onclick="iniciarTabata()">▶️ Iniciar rutina</button>
-    </div>
-
-    <div class="text-center">
-        <h3 id="faseActual" class="mb-2">Prepárate...</h3>
-        <h1 id="contador" style="font-size: 4rem;">00</h1>
-        <h4 id="nombreEjercicio" class="mt-2"></h4>
-    </div>
+    <h2 class="mb-4">🏡 Entrena en casa</h2>
+    <p>Aquí podrás acceder a rutinas tipo <strong>Tabata</strong> y entrenamientos en casa con ejercicios como:</p>
+    <ul>
+        <li>✔️ Flexiones</li>
+        <li>✔️ Sentadillas</li>
+        <li>✔️ Abdominales</li>
+        <li>✔️ Saltos en el lugar</li>
+    </ul>
+    <p class="mt-3 text-muted">Muy pronto estarán disponibles con imágenes, tiempos y audio 🕒</p>
 </div>
-
-<script src="{{ url_for('static', filename='js/tabata.js') }}"></script>
 {% endblock %}

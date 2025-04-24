@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for
 from datetime import datetime
 import calendar
-from .models import Atleta, Entrenamiento  # Asegurate de tener estos modelos reales
+from .models import Atleta, Entrenamiento
 from .extensions import db
 
 main_bp = Blueprint("main", __name__)
@@ -19,7 +19,6 @@ def perfil(id):
     planificados = [e for e in entrenamientos if e.estado != "realizado"]
     realizados = [e for e in entrenamientos if e.estado == "realizado"]
 
-    # Crear calendario mensual
     primer_dia, num_dias = calendar.monthrange(hoy.year, hoy.month)
     calendario = []
     semana = []
@@ -30,7 +29,6 @@ def perfil(id):
     for dia in range(1, num_dias + 1):
         fecha = datetime(hoy.year, hoy.month, dia).date()
         iconos = []
-
         entrenamientos_dia = [e for e in entrenamientos if e.fecha == fecha]
 
         for e in entrenamientos_dia:
@@ -50,7 +48,7 @@ def perfil(id):
         semana.append({
             "numero": dia,
             "iconos": iconos,
-            "bloqueado": e.bloqueado if entrenamientos_dia else False
+            "bloqueado": entrenamientos_dia[0].bloqueado if entrenamientos_dia else False
         })
 
         if len(semana) == 7:
@@ -110,6 +108,30 @@ def dashboard():
                            anio=datetime.today().year,
                            mes=datetime.today().month)
 
+@main_bp.route("/nuevo_entrenamiento", methods=["POST"])
+def nuevo_entrenamiento():
+    nombre_atleta = request.form.get("atleta")
+    fecha = request.form.get("fecha")
+    tipo = request.form.get("tipo")
+    detalle = request.form.get("detalle")
+
+    atleta = Atleta.query.filter_by(nombre=nombre_atleta).first()
+
+    if atleta:
+        nuevo = Entrenamiento(
+            atleta_id=atleta.id,
+            fecha=datetime.strptime(fecha, "%Y-%m-%d").date(),
+            tipo=tipo,
+            detalle=detalle,
+            estado="pendiente",
+            bloqueado=False
+        )
+        db.session.add(nuevo)
+        db.session.commit()
+        return redirect(url_for("main.dashboard", atleta=nombre_atleta))
+
+    return "Atleta no encontrado", 404
+
 # =====================
 # FUNCIONES GENERALES
 # =====================
@@ -154,7 +176,7 @@ def detalles_dia(dia):
     return jsonify(datos)
 
 # =====================
-# AUTENTICACIÓN BÁSICA
+# AUTENTICACIÓN Y NAVEGACIÓN
 # =====================
 
 @main_bp.route("/login", methods=["GET", "POST"])

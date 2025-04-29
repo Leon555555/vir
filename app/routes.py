@@ -178,6 +178,20 @@ def detalles_dia(dia):
 
     return jsonify(datos)
 
+@main_bp.route("/marcar_realizado/<int:entrenamiento_id>", methods=["POST"])
+def marcar_realizado(entrenamiento_id):
+    entrenamiento = Entrenamiento.query.get_or_404(entrenamiento_id)
+    entrenamiento.realizado = True
+    db.session.commit()
+    return jsonify(success=True)
+
+@main_bp.route("/marcar_no_realizado/<int:entrenamiento_id>", methods=["POST"])
+def marcar_no_realizado(entrenamiento_id):
+    entrenamiento = Entrenamiento.query.get_or_404(entrenamiento_id)
+    entrenamiento.realizado = False
+    db.session.commit()
+    return jsonify(success=True)
+
 # =====================
 # AUTENTICACIÓN BÁSICA
 # =====================

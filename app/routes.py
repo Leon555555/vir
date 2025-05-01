@@ -30,20 +30,27 @@ def perfil(id):
         fecha = datetime(hoy.year, hoy.month, dia).date()
         iconos = []
         entrenamientos_dia = [e for e in entrenamientos if e.fecha == fecha]
+        bloqueado = False
 
         for e in entrenamientos_dia:
             tipo = e.tipo.lower()
-            if tipo == "run": iconos.append("🏃")
-            elif tipo == "natacion": iconos.append("🏊")
-            elif tipo == "bike": iconos.append("🚴")
-            elif tipo == "fuerza": iconos.append("🏋️")
-            elif tipo == "estirar": iconos.append("🧘")
-            elif tipo == "series": iconos.append("🏃‍♂️")
+            if tipo == "run":
+                iconos.append("🏃")
+            elif tipo == "natacion":
+                iconos.append("🏊")
+            elif tipo == "bike":
+                iconos.append("🚴")
+            elif tipo == "fuerza":
+                iconos.append("🏋️")
+            elif tipo == "estirar":
+                iconos.append("🧘")
+            elif tipo == "series":
+                iconos.append("🏃‍♂️")
 
         semana.append({
             "numero": dia,
             "iconos": iconos,
-            "bloqueado": False  # En el modelo actual no estás guardando bloqueado
+            "bloqueado": bloqueado
         })
 
         if len(semana) == 7:
@@ -136,6 +143,7 @@ def guardar_dia():
     dia = data.get("dia")
     tipo = data.get("tipo")
     comentario = data.get("comentario")
+    bloqueado = data.get("bloqueado", False)
 
     hoy = datetime.today()
     fecha = datetime(hoy.year, hoy.month, int(dia)).date()
@@ -170,17 +178,20 @@ def detalles_dia(dia):
 @main_bp.route("/editar_entrenamiento/<int:id>", methods=["POST"])
 def editar_entrenamiento(id):
     data = request.get_json()
+    detalle = data.get("detalle")
+    tipo = data.get("tipo")
+    realizado = data.get("realizado")
+
     entrenamiento = Entrenamiento.query.get_or_404(id)
-
-    entrenamiento.detalle = data.get("detalle", entrenamiento.detalle)
-    entrenamiento.tipo = data.get("tipo", entrenamiento.tipo)
-    entrenamiento.realizado = data.get("realizado", entrenamiento.realizado)
-
+    entrenamiento.detalle = detalle
+    entrenamiento.tipo = tipo
+    entrenamiento.realizado = realizado
     db.session.commit()
+
     return jsonify(success=True)
 
 # =====================
-# AUTENTICACIÓN
+# AUTENTICACIÓN BÁSICA
 # =====================
 
 @main_bp.route("/login", methods=["GET", "POST"])

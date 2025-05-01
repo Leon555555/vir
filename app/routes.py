@@ -30,21 +30,20 @@ def perfil(id):
         fecha = datetime(hoy.year, hoy.month, dia).date()
         iconos = []
         entrenamientos_dia = [e for e in entrenamientos if e.fecha == fecha]
-        bloqueado = False
 
         for e in entrenamientos_dia:
             tipo = e.tipo.lower()
-            if tipo == "run": iconos.append("\ud83c\udfc3")
-            elif tipo == "natacion": iconos.append("\ud83c\udfca")
-            elif tipo == "bike": iconos.append("\ud83d\udeb4")
-            elif tipo == "fuerza": iconos.append("\ud83c\udfcb\ufe0f")
-            elif tipo == "estirar": iconos.append("\ud83e\uddd8")
-            elif tipo == "series": iconos.append("\ud83c\udfc3\u200d♂\ufe0f")
+            if tipo == "run": iconos.append("🏃")
+            elif tipo == "natacion": iconos.append("🏊")
+            elif tipo == "bike": iconos.append("🚴")
+            elif tipo == "fuerza": iconos.append("🏋️")
+            elif tipo == "estirar": iconos.append("🧘")
+            elif tipo == "series": iconos.append("🏃‍♂️")
 
         semana.append({
             "numero": dia,
             "iconos": iconos,
-            "bloqueado": bloqueado
+            "bloqueado": False  # En el modelo actual no estás guardando bloqueado
         })
 
         if len(semana) == 7:
@@ -137,7 +136,6 @@ def guardar_dia():
     dia = data.get("dia")
     tipo = data.get("tipo")
     comentario = data.get("comentario")
-    bloqueado = data.get("bloqueado", False)
 
     hoy = datetime.today()
     fecha = datetime(hoy.year, hoy.month, int(dia)).date()
@@ -182,7 +180,7 @@ def editar_entrenamiento(id):
     return jsonify(success=True)
 
 # =====================
-# AUTENTICACIÓN BÁSICA
+# AUTENTICACIÓN
 # =====================
 
 @main_bp.route("/login", methods=["GET", "POST"])
@@ -210,18 +208,3 @@ def logout():
 @main_bp.route("/entrena-en-casa")
 def entrena_en_casa():
     return render_template("entrena_en_casa.html")
-
-@main_bp.route("/editar_entrenamiento/<int:id>", methods=["POST"])
-def editar_entrenamiento(id):
-    data = request.get_json()
-    detalle = data.get("detalle")
-    tipo = data.get("tipo")
-    realizado = data.get("realizado")
-
-    entrenamiento = Entrenamiento.query.get_or_404(id)
-    entrenamiento.detalle = detalle
-    entrenamiento.tipo = tipo
-    entrenamiento.realizado = realizado
-    db.session.commit()
-
-    return jsonify(success=True)

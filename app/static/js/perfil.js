@@ -1,10 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Cambiar de sección
+  // Navegación entre secciones
   const botones = document.querySelectorAll("[data-section]");
   const secciones = {
     home: document.getElementById("seccion-home"),
     datos: document.getElementById("seccion-datos")
   };
+
   botones.forEach(btn => {
     btn.addEventListener("click", () => {
       botones.forEach(b => b.classList.remove("active"));
@@ -17,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Mostrar modal para editar día del calendario
+  // Modal para editar día desde calendario
   document.querySelectorAll(".day-cell").forEach(td => {
     td.addEventListener("click", () => {
       const dia = td.dataset.dia;
@@ -36,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Guardar cambios del día (actividad, comentario, bloqueado)
+  // Guardar cambios del día
   document.getElementById("guardar-dia").addEventListener("click", () => {
     const dia = document.getElementById("dia-seleccionado").value;
     const tipo = document.getElementById("tipo-entrenamiento").value;
@@ -58,23 +59,67 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Mostrar modal con botones al hacer clic en "Ver"
+  // Ver detalle desde botón "Ver"
   document.querySelectorAll(".ver-detalle-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      const detalle = btn.dataset.detalle || "Sin descripción";
-      document.getElementById("modal-dia-detalle").innerText = detalle;
+      const entrenamientoId = btn.dataset.id;
+      const tipo = btn.dataset.tipo;
+      const detalle = btn.dataset.detalle;
+
+      document.getElementById("ver-id").value = entrenamientoId;
+      document.getElementById("ver-tipo").value = tipo;
+      document.getElementById("ver-detalle").value = detalle;
 
       const modal = new bootstrap.Modal(document.getElementById("modalVerEntrenamiento"));
       modal.show();
     });
   });
 
-  // Botones de acción (simulan acción por ahora)
+  // Marcar como realizado
   document.getElementById("btn-realizado").addEventListener("click", () => {
-    alert("✔ Entrenamiento marcado como realizado");
+    actualizarEstadoEntrenamiento(true);
   });
 
+  // Marcar como no realizado
   document.getElementById("btn-no-realizado").addEventListener("click", () => {
-    alert("✖ Entrenamiento marcado como no realizado");
+    actualizarEstadoEntrenamiento(false);
   });
+
+  // Guardar cambios en tipo/detalle desde modal
+  document.getElementById("btn-guardar-edicion").addEventListener("click", () => {
+    const id = document.getElementById("ver-id").value;
+    const tipo = document.getElementById("ver-tipo").value;
+    const detalle = document.getElementById("ver-detalle").value;
+
+    fetch(`/editar_entrenamiento/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipo, detalle })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        location.reload();
+      } else {
+        alert("Error al editar entrenamiento");
+      }
+    });
+  });
+
+  function actualizarEstadoEntrenamiento(realizado) {
+    const id = document.getElementById("ver-id").value;
+    fetch(`/marcar_entrenamiento/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ realizado })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        location.reload();
+      } else {
+        alert("Error al actualizar entrenamiento");
+      }
+    });
+  }
 });

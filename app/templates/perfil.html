@@ -30,7 +30,7 @@
   </div>
 </div>
 
-<!-- Modal para editar día calendario -->
+<!-- Modal para editar día del calendario -->
 <div class="modal fade" id="modalDia" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -69,24 +69,28 @@
   </div>
 </div>
 
-<!-- Modal para ver entrenamiento -->
+<!-- Modal para ver y editar entrenamiento -->
 <div class="modal fade" id="modalVerEntrenamiento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Entrenamiento</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p><strong>Descripción:</strong></p>
-        <p id="modal-dia-detalle" class="mb-3">—</p>
-
-        <div class="d-grid gap-2">
-          <button class="btn btn-success" id="btn-realizado">✔ Realizado</button>
-          <button class="btn btn-danger" id="btn-no-realizado">✖ No realizado</button>
-          <button class="btn btn-outline-secondary">🚴 Vincula tu Strava</button>
+      <form id="form-editar-entrenamiento">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar entrenamiento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-      </div>
+        <div class="modal-body">
+          <input type="hidden" id="entrenamiento-id">
+          <div class="mb-3">
+            <label for="editar-detalle" class="form-label">Detalle</label>
+            <textarea class="form-control" id="editar-detalle" rows="3"></textarea>
+          </div>
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-success" id="btn-realizado">✔ Marcar como realizado</button>
+            <button type="button" class="btn btn-danger" id="btn-no-realizado">✖ Marcar como no realizado</button>
+            <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 </div>

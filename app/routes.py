@@ -29,26 +29,17 @@ def perfil(id):
     for dia in range(1, num_dias + 1):
         fecha = datetime(hoy.year, hoy.month, dia).date()
         iconos = []
-
         entrenamientos_dia = [e for e in entrenamientos if e.fecha == fecha]
         bloqueado = False
 
         for e in entrenamientos_dia:
             tipo = e.tipo.lower()
-            if tipo == "run":
-                iconos.append("🏃")
-            elif tipo == "natacion":
-                iconos.append("🏊")
-            elif tipo == "bike":
-                iconos.append("🚴")
-            elif tipo == "fuerza":
-                iconos.append("🏋️")
-            elif tipo == "estirar":
-                iconos.append("🧘")
-            elif tipo == "series":
-                iconos.append("🏃‍♂️")
-            if hasattr(e, 'bloqueado') and e.bloqueado:
-                bloqueado = True
+            if tipo == "run": iconos.append("\ud83c\udfc3")
+            elif tipo == "natacion": iconos.append("\ud83c\udfca")
+            elif tipo == "bike": iconos.append("\ud83d\udeb4")
+            elif tipo == "fuerza": iconos.append("\ud83c\udfcb\ufe0f")
+            elif tipo == "estirar": iconos.append("\ud83e\uddd8")
+            elif tipo == "series": iconos.append("\ud83c\udfc3\u200d♂\ufe0f")
 
         semana.append({
             "numero": dia,
@@ -178,17 +169,15 @@ def detalles_dia(dia):
 
     return jsonify(datos)
 
-@main_bp.route("/marcar_realizado/<int:entrenamiento_id>", methods=["POST"])
-def marcar_realizado(entrenamiento_id):
-    entrenamiento = Entrenamiento.query.get_or_404(entrenamiento_id)
-    entrenamiento.realizado = True
-    db.session.commit()
-    return jsonify(success=True)
+@main_bp.route("/editar_entrenamiento/<int:id>", methods=["POST"])
+def editar_entrenamiento(id):
+    data = request.get_json()
+    entrenamiento = Entrenamiento.query.get_or_404(id)
 
-@main_bp.route("/marcar_no_realizado/<int:entrenamiento_id>", methods=["POST"])
-def marcar_no_realizado(entrenamiento_id):
-    entrenamiento = Entrenamiento.query.get_or_404(entrenamiento_id)
-    entrenamiento.realizado = False
+    entrenamiento.detalle = data.get("detalle", entrenamiento.detalle)
+    entrenamiento.tipo = data.get("tipo", entrenamiento.tipo)
+    entrenamiento.realizado = data.get("realizado", entrenamiento.realizado)
+
     db.session.commit()
     return jsonify(success=True)
 
@@ -221,3 +210,18 @@ def logout():
 @main_bp.route("/entrena-en-casa")
 def entrena_en_casa():
     return render_template("entrena_en_casa.html")
+
+@main_bp.route("/editar_entrenamiento/<int:id>", methods=["POST"])
+def editar_entrenamiento(id):
+    data = request.get_json()
+    detalle = data.get("detalle")
+    tipo = data.get("tipo")
+    realizado = data.get("realizado")
+
+    entrenamiento = Entrenamiento.query.get_or_404(id)
+    entrenamiento.detalle = detalle
+    entrenamiento.tipo = tipo
+    entrenamiento.realizado = realizado
+    db.session.commit()
+
+    return jsonify(success=True)

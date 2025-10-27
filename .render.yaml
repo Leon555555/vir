@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: urban-athletics
-    env: python
-    buildCommand: ""
-    startCommand: bash -c "python auto_migrate.py && gunicorn run:app"
-    plan: free

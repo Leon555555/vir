@@ -1,98 +1,268 @@
-<!-- Sección HOME -->
-<div id="seccion-home">
-  <div class="row">
-    <!-- Entrenamientos Planificados -->
-    <div class="col-md-6 mb-4">
-      <div class="card shadow-sm">
-        <div class="card-header bg-success text-white">📅 Próximos entrenamientos</div>
-        <ul class="list-group list-group-flush">
-          {% for e in entrenamientos_planificados %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>
-              <strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}
-            </span>
-            <button class="btn btn-sm btn-outline-primary ver-detalle-btn"
-                    data-id="{{ e.id }}"
-                    data-fecha="{{ e.fecha.strftime('%Y-%m-%d') }}"
-                    data-detalle="{{ e.detalle }}"
-                    data-tipo="{{ e.tipo }}">
-              Ver
-            </button>
-          </li>
-          {% else %}
-          <li class="list-group-item text-muted">No hay entrenamientos planificados.</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
+from datetime import date, datetime
+import calendar
+import uuid
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 
-    <!-- Entrenamientos Realizados -->
-    <div class="col-md-6 mb-4">
-      <div class="card shadow-sm">
-        <div class="card-header bg-info text-white">✅ Entrenamientos realizados</div>
-        <ul class="list-group list-group-flush">
-          {% for e in entrenamientos_realizados %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>
-              <strong>{{ e.fecha.strftime('%d/%m/%Y') }}</strong>: {{ e.detalle or 'Sin descripción' }}
-            </span>
-            <button class="btn btn-sm btn-outline-secondary editar-realizado-btn"
-                    data-id="{{ e.id }}"
-                    data-fecha="{{ e.fecha.strftime('%Y-%m-%d') }}"
-                    data-detalle="{{ e.detalle }}"
-                    data-tipo="{{ e.tipo }}">
-              Editar
-            </button>
-          </li>
-          {% else %}
-          <li class="list-group-item text-muted">No hay entrenamientos realizados.</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </div>
+# =========================
+#  BLUEPRINT
+# =========================
+bp = Blueprint("main", __name__)
+main_bp = bp  # alias para app.__init__.py
 
-  <!-- Calendario mensual -->
-  <div class="mt-4">
-    <h4>📅 Calendario mensual</h4>
-    <table class="table table-bordered text-center">
-      <thead class="table-light">
-        <tr>
-          <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for semana in calendario_mensual %}
-        <tr>
-          {% for dia in semana %}
-            {% if dia == 0 %}
-              <td class="bg-light"></td>
-            {% else %}
-              <td class="day-cell {% if dia.bloqueado %}bg-danger text-white{% endif %}" data-dia="{{ dia.numero }}">
-                <div><strong>{{ dia.numero }}</strong></div>
-                <div>
-                  {% for icono in dia.iconos %}
-                    {{ icono }}
-                  {% endfor %}
-                </div>
-              </td>
-            {% endif %}
-          {% endfor %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+# =========================
+#  DATOS EN MEMORIA (SIM)
+# =========================
 
-<!-- Sección Datos personales -->
-<div id="seccion-datos" class="d-none">
-  <h3 class="mb-3">📄 Datos personales</h3>
-  <ul class="list-group shadow-sm">
-    <li class="list-group-item"><strong>Email:</strong> {{ atleta.correo or '—' }}</li>
-    <li class="list-group-item"><strong>Teléfono:</strong> {{ atleta.telefono or '—' }}</li>
-    <li class="list-group-item"><strong>Edad:</strong> {{ atleta.edad or '—' }} años</li>
-    <li class="list-group-item"><strong>Altura:</strong> {{ atleta.altura or '—' }} cm</li>
-    <li class="list-group-item"><strong>Peso:</strong> {{ atleta.peso or '—' }} kg</li>
-  </ul>
-</div>
+# Atletas mock con datos personales que requiere perfil_content.html
+_ATLETAS = [
+    {
+        "id": str(uuid.uuid4()), "nombre": "Leo Videla", "email": "leo@ua.test",
+        "telefono": "+34 600 111 111", "edad": 40, "altura": 175, "peso": 70
+    },
+    {
+        "id": str(uuid.uuid4()), "nombre": "Dani Ruiz", "email": "dani@ua.test",
+        "telefono": "+34 600 222 222", "edad": 33, "altura": 178, "peso": 74
+    },
+    {
+        "id": str(uuid.uuid4()), "nombre": "Santi Pérez", "email": "santi@ua.test",
+        "telefono": "+34 600 333 333", "edad": 29, "altura": 181, "peso": 79
+    },
+    {
+        "id": str(uuid.uuid4()), "nombre": "Berni Cano", "email": "berni@ua.test",
+        "telefono": "+34 600 444 444", "edad": 36, "altura": 172, "peso": 68
+    },
+    {
+        "id": str(uuid.uuid4()), "nombre": "Puri Luna", "email": "puri@ua.test",
+        "telefono": "+34 600 555 555", "edad": 31, "altura": 165, "peso": 56
+    },
+]
+
+# ViewModels para que los templates funcionen igual que con DB
+class _VMAtletaRef:
+    def __init__(self, nombre): self.nombre = nombre
+
+class _VMEntrenamiento:
+    def __init__(self, atleta_nombre, fecha_dt, tipo, detalle, realizado=False):
+        self.id = str(uuid.uuid4())
+        self.fecha = fecha_dt          # datetime (perfil_content usa strftime)
+        self.tipo = tipo               # "Run", "Pista", "Fuerza", etc.
+        self.detalle = detalle or ""
+        self.atleta = _VMAtletaRef(atleta_nombre)
+        self.realizado = realizado     # bool para separar listas
+
+# Entrenos en memoria
+_ENTRENAMIENTOS = []
+
+def _seed_demo_mes_actual():
+    """Crea entrenos de muestra del mes actual para el primer atleta."""
+    if _ENTRENAMIENTOS:  # ya sembrado
+        return
+    if not _ATLETAS:
+        return
+    hoy = date.today()
+    atleta0 = _ATLETAS[0]["nombre"]
+    # (día, tipo, detalle, realizado?)
+    data = [
+        (2,  "Run",           "Rodaje suave 6k",         True),
+        (4,  "Fuerza",        "Full body 45’",           True),
+        (7,  "Pista",         "6×800m @ 5K pace, rec 2’", False),
+        (12, "Estiramientos", "Movilidad + core 25’",    False),
+        (18, "Run",           "Progresivo 8k",           False),
+        (23, "Bike",          "Rodillo 40’ Z2",          False),
+    ]
+    for d, tipo, detalle, done in data:
+        try:
+            dt = datetime(hoy.year, hoy.month, d, 19, 0, 0)
+            _ENTRENAMIENTOS.append(_VMEntrenamiento(atleta0, dt, tipo, detalle, realizado=done))
+        except ValueError:
+            # por si el mes no tiene ese día
+            continue
+
+_seed_demo_mes_actual()
+
+# =========================
+#  HELPERS
+# =========================
+
+# mapping de tipo → emoji como en tu dashboard
+_ICONOS = {
+    "Run": "🏃",
+    "Fuerza": "🏋️",
+    "Bike": "🚴",
+    "Natacion": "🏊",
+    "Estiramientos": "🤸",
+    "Descanso": "😴",
+    "Pista": "🏟️",
+}
+
+def _find_atleta_by_nombre(nombre: str):
+    return next((a for a in _ATLETAS if a["nombre"] == nombre), None)
+
+def _find_atleta_by_id(atleta_id: str):
+    return next((a for a in _ATLETAS if a["id"] == atleta_id), None)
+
+def _build_month_matrix_simple(year: int, month: int):
+    """Devuelve 6x7 con enteros (0 = celda vacía)."""
+    cal = calendar.Calendar(firstweekday=0)  # 0 = Lunes
+    days = list(cal.itermonthdays(year, month))
+    weeks = [days[i:i+7] for i in range(0, len(days), 7)]
+    while len(weeks) < 6: weeks.append([0]*7)
+    if len(weeks) > 6: weeks = weeks[:6]
+    weeks = [w + [0]*(7-len(w)) if len(w) < 7 else w for w in weeks]
+    return weeks
+
+def _build_month_matrix_vm(year: int, month: int, atleta_nombre: str):
+    """
+    Devuelve 6x7 de objetos día:
+      dia = { numero:int, bloqueado:bool, iconos:list[str] }
+    """
+    base = _build_month_matrix_simple(year, month)
+
+    # Por simplicidad de demo: ningún día bloqueado (puedes marcar los domingos, etc.)
+    bloqueados = set()  # {int:day}
+
+    # Mapa: día → lista de iconos según entrenos del atleta/més
+    iconos_por_dia = {}
+    for e in _ENTRENAMIENTOS:
+        if e.atleta.nombre != atleta_nombre:
+            continue
+        if e.fecha.year != year or e.fecha.month != month:
+            continue
+        d = e.fecha.day
+        icono = _ICONOS.get(e.tipo, "🏃")
+        iconos_por_dia.setdefault(d, []).append(icono)
+
+    # Construye la matriz final
+    vm = []
+    for semana in base:
+        fila = []
+        for d in semana:
+            if d == 0:
+                fila.append(0)
+            else:
+                fila.append({
+                    "numero": d,
+                    "bloqueado": (d in bloqueados),
+                    "iconos": iconos_por_dia.get(d, []),
+                })
+        vm.append(fila)
+    return vm
+
+# =========================
+#  RUTAS
+# =========================
+
+@main_bp.get("/")
+def dashboard_entrenador():
+    """
+    Dashboard con calendario y modal de nuevo entrenamiento (tu template dashboard_entrenador.html)
+    """
+    atleta_sel = request.args.get("atleta")
+    hoy = date.today()
+    anio = int(request.args.get("anio", hoy.year))
+    mes = int(request.args.get("mes", hoy.month))
+
+    if not atleta_sel and _ATLETAS:
+        atleta_sel = _ATLETAS[0]["nombre"]
+
+    # entrenos del mes para el seleccionado (para los iconos del calendario)
+    entrenamientos_mes = [
+        e for e in _ENTRENAMIENTOS
+        if e.atleta.nombre == atleta_sel and e.fecha.year == anio and e.fecha.month == mes
+    ]
+
+    cal = _build_month_matrix_simple(anio, mes)
+
+    return render_template(
+        "dashboard_entrenador.html",
+        atletas=[{"id": a["id"], "nombre": a["nombre"], "email": a["email"]} for a in _ATLETAS],
+        atleta_seleccionado=atleta_sel,
+        calendario_mensual=cal,   # aquí tu template espera enteros/0
+        anio=anio,
+        mes=mes,
+        entrenamientos=entrenamientos_mes,
+    )
+
+@main_bp.post("/nuevo_entrenamiento")
+def nuevo_entrenamiento():
+    atleta_nombre = request.form.get("atleta")
+    fecha_str = request.form.get("fecha")
+    tipo = request.form.get("tipo") or "Run"
+    detalle = request.form.get("detalle") or ""
+
+    if not _find_atleta_by_nombre(atleta_nombre):
+        flash("Atleta no encontrado", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    try:
+        fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d")
+    except Exception:
+        flash("Fecha inválida", "danger")
+        return redirect(url_for("main.dashboard_entrenador", atleta=atleta_nombre))
+
+    _ENTRENAMIENTOS.append(_VMEntrenamiento(atleta_nombre, fecha_dt, tipo, detalle, realizado=False))
+    flash("Entrenamiento guardado (simulación)", "success")
+
+    return redirect(url_for("main.dashboard_entrenador",
+                            atleta=atleta_nombre, anio=fecha_dt.year, mes=fecha_dt.month))
+
+@main_bp.get("/perfil/<id>")
+def perfil(id):
+    """
+    Perfil con 'perfil.html' que incluye 'perfil_content.html'
+    Debemos pasar:
+      - atleta: {nombre, correo, telefono, edad, altura, peso}
+      - entrenamientos_planificados: lista _VMEntrenamiento (realizado=False)
+      - entrenamientos_realizados:   lista _VMEntrenamiento (realizado=True)
+      - calendario_mensual: matriz 6x7 de objetos (numero, bloqueado, iconos)
+    """
+    atleta = _find_atleta_by_id(id)
+    if not atleta:
+        flash("Atleta no encontrado", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    # parámetros de calendario (mes actual por defecto)
+    hoy = date.today()
+    anio = int(request.args.get("anio", hoy.year))
+    mes = int(request.args.get("mes", hoy.month))
+
+    # filtrar entrenos por atleta
+    entrenos_atleta = [e for e in _ENTRENAMIENTOS if e.atleta.nombre == atleta["nombre"]]
+
+    entrenamientos_planificados = [e for e in entrenos_atleta if not e.realizado]
+    entrenamientos_realizados   = [e for e in entrenos_atleta if e.realizado]
+
+    # calendario VM con objetos de día (perfil_content lo espera así)
+    calendario_vm = _build_month_matrix_vm(anio, mes, atleta["nombre"])
+
+    # mapear llaves del atleta para coincidir con tu template (correo, telefono, etc.)
+    atleta_vm = {
+        "id": atleta["id"],
+        "nombre": atleta["nombre"],
+        "correo": atleta["email"],     # <— tu template usa 'correo'
+        "telefono": atleta.get("telefono"),
+        "edad": atleta.get("edad"),
+        "altura": atleta.get("altura"),
+        "peso": atleta.get("peso"),
+    }
+
+    return render_template(
+        "perfil.html",
+        atleta=atleta_vm,
+        entrenamientos_planificados=entrenamientos_planificados,
+        entrenamientos_realizados=entrenamientos_realizados,
+        calendario_mensual=calendario_vm
+    )
+
+@main_bp.get("/entrena-en-casa")
+def entrena_en_casa():
+    # Si tienes la plantilla, la renderiza; si no, muestra un placeholder
+    try:
+        return render_template("entrena_en_casa.html")
+    except Exception:
+        return "<h3>Entrena en casa (demo)</h3>"
+
+@main_bp.get("/logout")
+def logout():
+    flash("Sesión cerrada (demo).", "info")
+    return redirect(url_for("main.dashboard_entrenador"))

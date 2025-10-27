@@ -1,18 +1,13 @@
 import os
 
 class Config:
-    # Si está definida la variable de entorno DATABASE_URL (como en Render), se usa esa
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///urban.db')
+    # Corrige URLs antiguas (Render puede dar 'postgres://' en lugar de 'postgresql://')
+    uri = os.environ.get("DATABASE_URL", "sqlite:///urban.db")
+    if uri.startswith("postgres://"):
+        uri = uri.replace("postgres://", "postgresql://", 1)
 
-    # Evita advertencias de SQLAlchemy
+    SQLALCHEMY_DATABASE_URI = uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    # Clave secreta para sesiones
     SECRET_KEY = os.environ.get('SECRET_KEY', 'clave_de_desarollo')
-
-    # Activar modo debug si está en desarrollo
     DEBUG = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-
-    # Entorno: puede ser 'production' o 'development'
     ENV = os.environ.get('FLASK_ENV', 'production')
-

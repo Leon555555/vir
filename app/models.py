@@ -21,7 +21,7 @@ class Entrenamiento(db.Model):
     fecha = db.Column(db.Date, nullable=False)
     tipo = db.Column(db.String(50), nullable=False)
     detalle = db.Column(db.Text)
-    realizado = db.Column(db.Boolean, default=False)  # Nuevo campo
+    realizado = db.Column(db.Boolean, default=False)
 
 class Coach(db.Model):
     id = db.Column(db.Integer, primary_key=True)

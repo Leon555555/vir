@@ -14,7 +14,7 @@ def create_app():
 
     # Inicializar extensiones
     db.init_app(app)
-    migrate.init_app(app, db)  # 👈 Aquí agregamos Flask-Migrate
+    migrate.init_app(app, db)
 
     # Registrar blueprints
     from .routes import main_bp

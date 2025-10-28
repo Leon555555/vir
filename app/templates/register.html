@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Iniciar sesión | Vir</title>
+  <title>Registro | Vir</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-  <div class="login-container">
-    <h2>Iniciar sesión</h2>
+  <div class="register-container">
+    <h2>Crear cuenta</h2>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -17,12 +17,13 @@
     {% endwith %}
 
     <form method="POST">
+      <input type="text" name="nombre" placeholder="Nombre completo" required>
       <input type="email" name="email" placeholder="Correo electrónico" required>
       <input type="password" name="password" placeholder="Contraseña" required>
-      <button type="submit">Entrar</button>
+      <button type="submit">Registrarme</button>
     </form>
 
-    <p>¿No tienes cuenta? <a href="{{ url_for('main.register') }}">Regístrate aquí</a></p>
+    <p>¿Ya tienes cuenta? <a href="{{ url_for('main.login') }}">Inicia sesión</a></p>
   </div>
 </body>
 </html>

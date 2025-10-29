@@ -1,12 +1,14 @@
 {% extends "layout.html" %}
 {% block title %}Dashboard Entrenador{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
   <h2 class="mb-4">🏋️‍♂️ Panel del Entrenador — {{ current_user.nombre }}</h2>
 
   <a href="{{ url_for('main.nuevo_atleta') }}" class="btn btn-success mb-3">➕ Crear nuevo atleta</a>
 
-  <table class="table table-bordered text-center">
+  {% if atletas %}
+  <table class="table table-bordered text-center align-middle">
     <thead class="table-dark">
       <tr>
         <th>Nombre</th>
@@ -22,16 +24,20 @@
         <td>{{ atleta.email }}</td>
         <td>{{ atleta.grupo or '—' }}</td>
         <td>
+          <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}" class="btn btn-info btn-sm">👤 Ver perfil</a>
           <a href="{{ url_for('main.editar_atleta', atleta_id=atleta.id) }}" class="btn btn-warning btn-sm">✏️ Editar</a>
-          <form method="POST" action="{{ url_for('main.eliminar_atleta', atleta_id=atleta.id) }}" style="display:inline;">
-            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar este atleta?')">🗑️ Eliminar</button>
+          <form method="POST" action="{{ url_for('main.eliminar_atleta', atleta_id=atleta.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar a {{ atleta.nombre }}?');">
+            <button type="submit" class="btn btn-danger btn-sm">🗑️ Eliminar</button>
           </form>
         </td>
       </tr>
-      {% else %}
-      <tr><td colspan="4">Aún no hay atletas creados.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  {% else %}
+  <p class="text-muted">Aún no hay atletas registrados.</p>
+  {% endif %}
+
+  <a href="{{ url_for('main.logout') }}" class="btn btn-outline-secondary mt-3">Cerrar sesión</a>
 </div>
 {% endblock %}

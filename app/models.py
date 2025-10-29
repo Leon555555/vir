@@ -4,18 +4,25 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class User(UserMixin, db.Model):
-    __tablename__ = "user"
+    __tablename__ = "users"  # plural y más estándar
 
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255))
+    password_hash = db.Column(db.String(255), nullable=False)
+
     grupo = db.Column(db.String(50))
     calendario_url = db.Column(db.String(255))
-    foto = db.Column(db.String(255))
+    foto = db.Column(db.String(255))  # opcional para perfil o avatar futuro
 
-    def set_password(self, password):
+    # =============================
+    # 🔐 MÉTODOS DE AUTENTICACIÓN
+    # =============================
+    def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):
+    def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f"<User {self.nombre} ({self.email})>"

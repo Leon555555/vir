@@ -1,15 +1,37 @@
 {% extends "layout.html" %}
 {% block title %}Nuevo Atleta{% endblock %}
+
 {% block content %}
-<div class="container mt-4" style="max-width:600px;">
-  <h3>➕ Crear nuevo atleta</h3>
+<div class="container mt-4">
+  <h2 class="mb-4">➕ Crear nuevo atleta</h2>
+
   <form method="POST">
-    <div class="mb-3"><label>Nombre</label><input type="text" class="form-control" name="nombre" required></div>
-    <div class="mb-3"><label>Email</label><input type="email" class="form-control" name="email" required></div>
-    <div class="mb-3"><label>Contraseña</label><input type="password" class="form-control" name="password" required></div>
-    <div class="mb-3"><label>Grupo</label><input type="text" class="form-control" name="grupo"></div>
-    <div class="mb-3"><label>Calendario URL</label><input type="text" class="form-control" name="calendario_url"></div>
-    <button type="submit" class="btn btn-primary">Guardar</button>
+    <div class="mb-3">
+      <label class="form-label">Nombre</label>
+      <input type="text" name="nombre" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input type="email" name="email" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Contraseña</label>
+      <input type="password" name="password" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Grupo</label>
+      <input type="text" name="grupo" class="form-control" placeholder="Ej: Avanzado, Intermedio, etc.">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Calendario (URL)</label>
+      <input type="text" name="calendario_url" class="form-control" placeholder="URL del calendario de Google o Airtable">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar atleta</button>
     <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-secondary">Cancelar</a>
   </form>
 </div>

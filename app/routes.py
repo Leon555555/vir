@@ -16,7 +16,7 @@ def index():
         if current_user.email == "viru@vir.app":
             return redirect(url_for("main.dashboard_entrenador"))
         else:
-            return redirect(url_for("main.perfil"))
+            return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
 @main_bp.route("/login", methods=["GET", "POST"])
@@ -32,12 +32,11 @@ def login():
             if user.email == "viru@vir.app":
                 return redirect(url_for("main.dashboard_entrenador"))
             else:
-                return redirect(url_for("main.perfil"))
+                return redirect(url_for("main.perfil_usuario", user_id=user.id))
         else:
             flash("❌ Usuario o contraseña incorrectos.", "danger")
 
     return render_template("login.html")
-
 
 # ======================================
 # REGISTRO DE NUEVO USUARIO
@@ -68,16 +67,29 @@ def register():
 
     return render_template("register.html")
 
-
 # ======================================
-# PERFIL DEL USUARIO
+# PERFIL UNIFICADO (entrenador o atleta)
 # ======================================
 
 @main_bp.route("/perfil")
 @login_required
 def perfil():
-    return render_template("perfil.html", user=current_user)
+    return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
+@main_bp.route("/perfil/<int:user_id>")
+@login_required
+def perfil_usuario(user_id):
+    # Si el usuario es el entrenador, puede ver cualquier perfil
+    if current_user.email == "viru@vir.app":
+        user = User.query.get_or_404(user_id)
+    else:
+        # Si no es el entrenador, solo puede ver su propio perfil
+        if current_user.id != user_id:
+            flash("Acceso denegado.", "danger")
+            return redirect(url_for("main.perfil"))
+        user = current_user
+
+    return render_template("perfil.html", user=user)
 
 # ======================================
 # LOGOUT
@@ -89,7 +101,6 @@ def logout():
     logout_user()
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("main.login"))
-
 
 # ======================================
 # DASHBOARD DEL ENTRENADOR
@@ -104,7 +115,6 @@ def dashboard_entrenador():
 
     atletas = User.query.filter(User.email != "viru@vir.app").all()
     return render_template("dashboard_entrenador.html", atletas=atletas)
-
 
 # ======================================
 # CREAR NUEVO ATLETA
@@ -134,7 +144,6 @@ def nuevo_atleta():
 
     return render_template("nuevo_atleta.html")
 
-
 # ======================================
 # EDITAR ATLETA
 # ======================================
@@ -158,7 +167,6 @@ def editar_atleta(atleta_id):
         return redirect(url_for("main.dashboard_entrenador"))
 
     return render_template("editar_atleta.html", atleta=atleta)
-
 
 # ======================================
 # ELIMINAR ATLETA

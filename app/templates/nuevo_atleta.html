@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block title %}Nuevo Atleta{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width:600px;">
+  <h3>➕ Crear nuevo atleta</h3>
+  <form method="POST">
+    <div class="mb-3"><label>Nombre</label><input type="text" class="form-control" name="nombre" required></div>
+    <div class="mb-3"><label>Email</label><input type="email" class="form-control" name="email" required></div>
+    <div class="mb-3"><label>Contraseña</label><input type="password" class="form-control" name="password" required></div>
+    <div class="mb-3"><label>Grupo</label><input type="text" class="form-control" name="grupo"></div>
+    <div class="mb-3"><label>Calendario URL</label><input type="text" class="form-control" name="calendario_url"></div>
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

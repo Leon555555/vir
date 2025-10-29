@@ -1,16 +1,20 @@
 {% extends "layout.html" %}
-{% block title %}Perfil{% endblock %}
+{% block title %}Perfil de {{ user.nombre }}{% endblock %}
 {% block content %}
-<div class="container mt-5 text-center">
-  <div class="alert alert-success">{{ saludo }}</div>
+<div class="container mt-4">
+  <h2 class="mb-3">👋 Bienvenido {{ user.nombre }}</h2>
 
-  <h2 class="mt-4">Perfil</h2>
-  <ul class="list-group mt-3 text-start" style="max-width:400px;margin:auto;">
-    <li class="list-group-item"><strong>Email:</strong> {{ user.email }}</li>
-    <li class="list-group-item"><strong>Nombre:</strong> {{ user.nombre or "—" }}</li>
-    <li class="list-group-item"><strong>Apodo:</strong> {{ user.apodo or "—" }}</li>
-  </ul>
+  {% if user.grupo %}
+  <p><strong>Grupo:</strong> {{ user.grupo }}</p>
+  {% endif %}
 
-  <a href="{{ url_for('main.logout') }}" class="btn btn-outline-dark mt-4">Cerrar sesión</a>
+  {% if user.calendario_url %}
+    <h5 class="mt-4">📅 Tu calendario personalizado</h5>
+    <div class="ratio ratio-16x9 mt-3">
+      <iframe src="{{ user.calendario_url }}" style="border:0;width:100%;height:600px;" allowfullscreen></iframe>
+    </div>
+  {% else %}
+    <p class="text-muted mt-4">Aún no se ha asignado un calendario a tu cuenta.</p>
+  {% endif %}
 </div>
 {% endblock %}

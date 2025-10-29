@@ -2,17 +2,15 @@ from app.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
-class User(UserMixin, db.Model):  # ← hereda de UserMixin
+class User(UserMixin, db.Model):
     __tablename__ = "user"
 
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255))  # ampliado para no cortar hashes largos
-    edad = db.Column(db.Integer)
-    altura = db.Column(db.Float)
-    peso = db.Column(db.Float)
+    password_hash = db.Column(db.String(255))
     grupo = db.Column(db.String(50))
+    calendario_url = db.Column(db.String(255))
     foto = db.Column(db.String(255))
 
     def set_password(self, password):

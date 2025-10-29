@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}Editar Atleta{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width:600px;">
+  <h3>✏️ Editar datos de {{ atleta.nombre }}</h3>
+  <form method="POST">
+    <div class="mb-3"><label>Nombre</label><input type="text" class="form-control" name="nombre" value="{{ atleta.nombre }}" required></div>
+    <div class="mb-3"><label>Email</label><input type="email" class="form-control" name="email" value="{{ atleta.email }}" required></div>
+    <div class="mb-3"><label>Grupo</label><input type="text" class="form-control" name="grupo" value="{{ atleta.grupo }}"></div>
+    <div class="mb-3"><label>Calendario URL</label><input type="text" class="form-control" name="calendario_url" value="{{ atleta.calendario_url }}"></div>
+    <button type="submit" class="btn btn-warning">Guardar cambios</button>
+    <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

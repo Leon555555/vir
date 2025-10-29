@@ -1,31 +1,22 @@
 from app import create_app
-from app.extensions import db, login_manager
-from app.models import User  # modelo multiusuario principal
+from app.extensions import db
+from app.models import User
 
 app = create_app()
 
-# 🔹 Registrar el cargador de usuarios para Flask-Login
-@login_manager.user_loader
-def load_user(user_id):
-    """Permite a Flask-Login cargar el usuario activo desde la base de datos."""
-    return User.query.get(int(user_id))
-
-
-# 🔧 Crea las tablas automáticamente si no existen y agrega el usuario Vale
 with app.app_context():
     db.create_all()
     print("✅ Tablas creadas o ya existentes.")
 
-    # Crear usuario Vale automáticamente si no existe
-    if not User.query.filter_by(email="vale@vir.app").first():
-        vale = User(nombre="Valeria", email="vale@vir.app")
-        vale.set_password("vale123")
-        db.session.add(vale)
+    # Crear usuario entrenador Viru si no existe
+    if not User.query.filter_by(email="viru@vir.app").first():
+        viru = User(nombre="Viru", email="viru@vir.app", grupo="Entrenador")
+        viru.set_password("Virulana369")
+        db.session.add(viru)
         db.session.commit()
-        print("🌸 Usuario 'Vale' creado correctamente.")
+        print("🏋️‍♂️ Usuario entrenador 'Viru' creado correctamente.")
     else:
-        print("✅ Usuario 'Vale' ya existe.")
-
+        print("✅ Usuario 'Viru' ya existe.")
 
 if __name__ == "__main__":
     app.run(debug=True)

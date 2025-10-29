@@ -1,8 +1,11 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import User
 from app.extensions import db
-from . import main_bp
+
+main_bp = Blueprint("main", __name__)
+
+# Tus rutas empiezan aquí...
 
 # ======================================
 # LOGIN Y PERFIL

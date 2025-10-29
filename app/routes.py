@@ -1,18 +1,22 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash
 from app.models import User
 from app.extensions import db
 
 main_bp = Blueprint("main", __name__)
 
-# Tus rutas empiezan aquí...
-
 # ======================================
-# LOGIN Y PERFIL
+# INDEX Y LOGIN
 # ======================================
 
 @main_bp.route("/")
 def index():
+    if current_user.is_authenticated:
+        if current_user.email == "viru@vir.app":
+            return redirect(url_for("main.dashboard_entrenador"))
+        else:
+            return redirect(url_for("main.perfil"))
     return redirect(url_for("main.login"))
 
 @main_bp.route("/login", methods=["GET", "POST"])
@@ -34,6 +38,51 @@ def login():
 
     return render_template("login.html")
 
+
+# ======================================
+# REGISTRO DE NUEVO USUARIO
+# ======================================
+
+@main_bp.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        nombre = request.form.get("nombre")
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        if not (nombre and email and password):
+            flash("Por favor completa todos los campos", "danger")
+            return redirect(url_for("main.register"))
+
+        if User.query.filter_by(email=email).first():
+            flash("Ese correo ya está registrado", "danger")
+            return redirect(url_for("main.register"))
+
+        nuevo = User(nombre=nombre, email=email)
+        nuevo.set_password(password)
+        db.session.add(nuevo)
+        db.session.commit()
+
+        flash("Cuenta creada correctamente. Ahora inicia sesión.", "success")
+        return redirect(url_for("main.login"))
+
+    return render_template("register.html")
+
+
+# ======================================
+# PERFIL DEL USUARIO
+# ======================================
+
+@main_bp.route("/perfil")
+@login_required
+def perfil():
+    return render_template("perfil.html", user=current_user)
+
+
+# ======================================
+# LOGOUT
+# ======================================
+
 @main_bp.route("/logout")
 @login_required
 def logout():
@@ -41,10 +90,6 @@ def logout():
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("main.login"))
 
-@main_bp.route("/perfil")
-@login_required
-def perfil():
-    return render_template("perfil.html", user=current_user)
 
 # ======================================
 # DASHBOARD DEL ENTRENADOR
@@ -59,6 +104,7 @@ def dashboard_entrenador():
 
     atletas = User.query.filter(User.email != "viru@vir.app").all()
     return render_template("dashboard_entrenador.html", atletas=atletas)
+
 
 # ======================================
 # CREAR NUEVO ATLETA
@@ -88,6 +134,7 @@ def nuevo_atleta():
 
     return render_template("nuevo_atleta.html")
 
+
 # ======================================
 # EDITAR ATLETA
 # ======================================
@@ -111,6 +158,7 @@ def editar_atleta(atleta_id):
         return redirect(url_for("main.dashboard_entrenador"))
 
     return render_template("editar_atleta.html", atleta=atleta)
+
 
 # ======================================
 # ELIMINAR ATLETA

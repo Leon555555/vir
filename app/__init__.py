@@ -1,40 +1,32 @@
-import os
 from flask import Flask
-from .extensions import db, migrate, login_manager
-from config import Config
+from flask_login import LoginManager
+from app.extensions import db
+from app.models import User
 
-# Cargar variables de entorno desde .env si no estamos en producción
-if os.getenv("FLASK_ENV") != "production":
-    from dotenv import load_dotenv
-    load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config)
+    app.config["SECRET_KEY"] = "clave-ultra-segura"
+    app.config[
+        "SQLALCHEMY_DATABASE_URI"
+    ] = "postgresql://vir_db_user:bRbsLtpZ3I4rag19scmcAfRyXjZVNsUw@dpg-d3vtoc75r7bs73ch4bc0-a/vir_db"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Inicializar extensiones
     db.init_app(app)
-    migrate.init_app(app, db)
+
+    # Configuración de Flask-Login
+    login_manager = LoginManager()
+    login_manager.login_view = "main.login"
     login_manager.init_app(app)
 
-    # Registrar blueprints
-    from .routes import main_bp
-    app.register_blueprint(main_bp)
+    # 🔑 Esta función es la que faltaba
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
 
-    # Crear atleta demo solo si estamos en entorno de desarrollo
-    if app.config.get("ENV") == "development":
-        with app.app_context():
-            from .models import Atleta
-            if not Atleta.query.filter_by(email='lvidelaramos@gmail.com').first():
-                nuevo = Atleta(
-                    nombre='Leandro Videla',
-                    email='lvidelaramos@gmail.com',
-                    telefono='123456789',
-                    edad=30,
-                    altura=175,
-                    peso=70
-                )
-                db.session.add(nuevo)
-                db.session.commit()
+    # Registrar blueprint principal
+    from app.routes import main_bp
+
+    app.register_blueprint(main_bp)
 
     return app

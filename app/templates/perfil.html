@@ -1,194 +1,231 @@
 {% extends "layout.html" %}
-{% block title %}Perfil de {{ user.nombre }}{% endblock %}
+{% block title %}Perfil — {{ user.nombre }}{% endblock %}
 
 {% block content %}
-<link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
 <style>
-  :root{
-    --bg:#0c0e10; --panel:#14171a; --panel2:#1a1f24;
-    --txt:#e9ecef; --muted:#9aa4ad; --brand:#e63946; --ok:#2ec4b6;
-    --blue:#1976d2; --red:#d7263d; --ring:rgba(230,57,70,.15);
+  :root {
+    --bg-dark: #0b0c0e;
+    --panel: #111317;
+    --accent-red: #e63946;
+    --accent-blue: #1e88e5;
+    --text-light: #f8f9fa;
+    --muted: #a1a5ad;
   }
-  body{background:var(--bg); color:var(--txt); font-family:"Poppins",system-ui,sans-serif;}
-  .wrap{max-width:1100px; margin:24px auto; padding:0 16px;}
-  .top{
-    display:flex; align-items:center; justify-content:space-between;
-    background:linear-gradient(135deg, #171b20 0%, #121417 60%);
-    border-radius:18px; padding:22px 28px; box-shadow:0 12px 30px rgba(0,0,0,.35);
-    position:relative; overflow:hidden;
-  }
-  .top::after{
-    content:""; position:absolute; right:-60px; top:-60px; width:160px; height:160px;
-    background: radial-gradient(closest-side, var(--ring), transparent);
-    border-radius:50%;
-  }
-  .id h2{margin:0 0 6px 0; font-size:28px; font-weight:800;}
-  .id small{color:var(--muted)}
-  .avatar{font-size:60px; filter:drop-shadow(0 8px 18px rgba(0,0,0,.4))}
-  .cards{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:22px 0;}
-  .card{
-    border-radius:16px; padding:18px 20px; box-shadow:0 10px 24px rgba(0,0,0,.35);
-    background:var(--panel);
-  }
-  .card.blue{background:linear-gradient(145deg, #0f315a, #0c2749);}
-  .card.red{background:linear-gradient(145deg, #5a1117, #3a0b0f);}
-  .card h4{margin:0 0 6px 0; font-weight:800}
-  .card p, .card small{margin:0; color:#d8dee4}
-  .line{height:1px; background:#2a2f34; margin:20px 0}
 
-  /* Calendario horizontal */
-  .week{
-    background:var(--panel2); border-radius:16px; padding:18px; box-shadow:0 10px 24px rgba(0,0,0,.35);
+  .profile-header {
+    background: linear-gradient(135deg, rgba(230,57,70,0.15), rgba(30,136,229,0.08));
+    border-radius: 20px;
+    padding: 2rem;
+    margin-top: 2rem;
+    box-shadow: 0 0 25px rgba(230,57,70,0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
-  .week-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
-  .week-title{font-weight:700}
-  .btn-month{border:1px solid #3a424a; color:#fff; background:transparent; padding:6px 12px; border-radius:10px}
-  .days{display:grid; grid-template-columns:repeat(7,1fr); gap:12px}
-  .day{
-    background:#101317; border:1px solid #20262c; border-radius:12px; padding:10px; text-align:center;
-    position:relative; transition:.2s transform;
-  }
-  .day:hover{transform:translateY(-2px)}
-  .day .dnum{font-size:18px; font-weight:800}
-  .day .w{font-size:12px; color:var(--muted)}
-  .dot{width:8px; height:8px; border-radius:50%; background:var(--ok); margin:6px auto 0 auto; opacity:.85}
-  .day.today{outline:2px solid var(--brand)}
-  .btn-mini{margin-top:8px; font-size:12px; padding:2px 8px; border-radius:8px; border:1px solid #2a3036; background:#161b20; color:#fff}
-  .btn-mini:hover{background:#1b2228}
 
-  /* Progreso / gráfico */
-  .chart{
-    background:var(--panel2); border-radius:16px; padding:18px; margin-top:18px;
-    box-shadow:0 10px 24px rgba(0,0,0,.35);
+  .profile-header h2 {
+    font-weight: 700;
+    color: var(--text-light);
   }
-  .chart h4{margin:0 0 12px 0; font-weight:800}
-  .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px}
-  .kpi{background:#101317; border:1px solid #1f262c; border-radius:12px; padding:12px 14px; text-align:center}
-  .kpi h6{margin:0; font-size:12px; color:var(--muted)}
-  .kpi p{margin:4px 0 0 0; font-size:20px; font-weight:800; color:var(--brand)}
 
-  /* Sesiones fuerza */
-  .strength{background:var(--panel2); border-radius:16px; padding:18px; margin-top:18px; box-shadow:0 10px 24px rgba(0,0,0,.35);}
-  .s-item{background:#101317; border:1px solid #1f262c; border-radius:12px; padding:12px 14px; margin-bottom:10px}
-  .s-item h6{margin:0 0 4px 0; color:#f5b000; font-weight:700}
-  .s-item small{color:var(--muted)}
+  .info-tag {
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+
+  .section-card {
+    background: var(--panel);
+    border-radius: 18px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  .training-blocks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .block {
+    border-radius: 16px;
+    padding: 1.2rem;
+    color: var(--text-light);
+  }
+
+  .block.blue {
+    background: linear-gradient(145deg, #1e3c72, #2a5298);
+  }
+
+  .block.red {
+    background: linear-gradient(145deg, #8e0e00, #e52d27);
+  }
+
+  .calendar-week {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 1.2rem;
+  }
+
+  .day-box {
+    background: #181a1f;
+    border-radius: 12px;
+    width: 80px;
+    height: 90px;
+    text-align: center;
+    color: var(--text-light);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: 6px;
+    transition: 0.3s;
+  }
+
+  .day-box.active {
+    border: 2px solid var(--accent-red);
+  }
+
+  .day-box:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(230,57,70,0.4);
+  }
+
+  .plus-btn {
+    background: none;
+    border: 1px solid var(--muted);
+    border-radius: 50%;
+    color: var(--muted);
+    width: 28px;
+    height: 28px;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  canvas {
+    width: 100%;
+    height: 280px;
+  }
+
+  .training-list {
+    margin-top: 2rem;
+  }
+
+  .training-item {
+    background: #15171b;
+    border-left: 5px solid var(--accent-blue);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .training-item span {
+    font-weight: 600;
+    color: var(--text-light);
+  }
+
+  .training-item small {
+    color: var(--muted);
+  }
+
+  .training-item .btn {
+    font-size: 0.85rem;
+  }
+
+  .see-month {
+    background: none;
+    border: 1px solid var(--muted);
+    color: var(--text-light);
+    border-radius: 12px;
+    padding: 0.4rem 1rem;
+    float: right;
+    transition: 0.3s;
+  }
+
+  .see-month:hover {
+    background: var(--accent-red);
+    border-color: var(--accent-red);
+  }
 </style>
 
-<div class="wrap">
-
-  <!-- CABECERA -->
-  <div class="top">
-    <div class="id">
-      <h2>{{ user.nombre }}</h2>
-      <small>{{ user.email }} &nbsp;•&nbsp; Grupo: <strong>{{ user.grupo or "—" }}</strong></small>
-    </div>
-    <div class="avatar">🏃‍♂️</div>
+<div class="profile-header">
+  <div>
+    <h2>{{ user.nombre }}</h2>
+    <p class="info-tag">{{ user.email }} &nbsp;•&nbsp; Grupo: {{ user.grupo or "—" }}</p>
   </div>
-
-  <!-- TARJETAS -->
-  <div class="cards">
-    <div class="card blue">
-      <h4>Último entrenamiento</h4>
-      {% if ultima %}
-        <p><strong>{{ ultima.tipo }}</strong> — {{ ultima.fecha.strftime('%d/%m/%Y') }}</p>
-        <small>{{ ultima.descripcion or '—' }}</small>
-      {% else %}
-        <p>No hay entrenamientos anteriores.</p>
-      {% endif %}
-    </div>
-    <div class="card red">
-      <h4>Próximo entrenamiento</h4>
-      {% if proxima %}
-        <p><strong>{{ proxima.tipo }}</strong> — {{ proxima.fecha.strftime('%d/%m/%Y') }}</p>
-        <small>{{ proxima.descripcion or '—' }}</small>
-      {% else %}
-        <p>No hay próximos entrenamientos planificados.</p>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- CALENDARIO SEMANAL -->
-  <div class="week">
-    <div class="week-head">
-      <div class="week-title">Octubre 2025</div>
-      <a class="btn-month" href="{{ user.calendario_url or '#' }}" target="_blank">Ver mes completo</a>
-    </div>
-    <div class="days">
-      {% for d in semana %}
-      <div class="day {% if d.hoy %}today{% endif %}">
-        <div class="dnum">{{ d.fecha.day }}</div>
-        <div class="w">{{ ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][loop.index0] }}</div>
-        {% if d.tiene_sesion %}<div class="dot" title="Sesión planificada"></div>{% endif %}
-        <button class="btn-mini" title="Ver detalles">+</button>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- PROGRESO / GRÁFICO -->
-  <div class="chart">
-    <h4>Tu progreso semanal</h4>
-    <canvas id="progressChart" height="80"></canvas>
-    <div class="kpis">
-      <div class="kpi"><h6>Cumplimiento</h6><p>{{ cumplimiento }}%</p></div>
-      <div class="kpi"><h6>Sesiones esta semana</h6><p>{{ semana|selectattr('tiene_sesion')|list|length }}</p></div>
-      <div class="kpi"><h6>Siguiente sesión</h6><p>{{ proxima.fecha.strftime('%d/%m') if proxima else "—" }}</p></div>
-    </div>
-  </div>
-
-  <!-- SESIONES DE FUERZA PROPUESTAS -->
-  <div class="strength">
-    <h4>Sesiones de fuerza propuestas</h4>
-    {% set fuerzas = sesiones|selectattr('tipo','equalto','Fuerza')|list %}
-    {% if fuerzas %}
-      {% for s in fuerzas %}
-      <div class="s-item">
-        <h6>{{ s.tipo }} — {{ s.fecha.strftime('%d/%m/%Y') }}</h6>
-        <small>{{ s.descripcion or "Sin notas" }}{% if s.duracion %} · {{ s.duracion }} min{% endif %}{% if s.intensidad %} · {{ s.intensidad }}{% endif %}</small>
-      </div>
-      {% endfor %}
-    {% else %}
-      <div class="s-item"><small>No hay sesiones de fuerza cargadas aún.</small></div>
-    {% endif %}
-  </div>
-
-  {% if current_user.email == "viru@vir.app" %}
-  <div style="margin-top:16px">
-    <a class="btn btn-outline-light" href="{{ url_for('main.sesiones_atleta', atleta_id=user.id) }}">➕ Gestionar sesiones</a>
-  </div>
-  {% endif %}
-
 </div>
 
+<div class="section-card training-blocks">
+  <div class="block blue">
+    <h5>Último entrenamiento</h5>
+    <p>No hay entrenamientos anteriores.</p>
+  </div>
+  <div class="block red">
+    <h5>Próximo entrenamiento</h5>
+    <p>No hay próximos entrenamientos planificados.</p>
+  </div>
+</div>
+
+<div class="section-card">
+  <div class="d-flex justify-content-between align-items-center">
+    <h5>Calendario semanal</h5>
+    <button class="see-month">Ver mes completo</button>
+  </div>
+
+  <div class="calendar-week">
+    {% for d in ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"] %}
+    <div class="day-box {% if loop.index == 4 %}active{% endif %}">
+      <strong>{{ 26 + loop.index }}</strong>
+      <small>{{ d }}</small>
+      <button class="plus-btn">+</button>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="section-card">
+  <h5>Tu progreso semanal</h5>
+  <canvas id="progresoChart"></canvas>
+</div>
+
+<div class="section-card training-list">
+  <h5>Entrenamientos de fuerza propuestos</h5>
+
+  <div class="training-item">
+    <div>
+      <span>Full Body 45’</span><br>
+      <small>Fuerza general + Core</small>
+    </div>
+    <button class="btn btn-outline-light btn-sm">Ver rutina</button>
+  </div>
+
+  <div class="training-item">
+    <div>
+      <span>Piernas y glúteos</span><br>
+      <small>Enfocado en tren inferior</small>
+    </div>
+    <button class="btn btn-outline-light btn-sm">Ver rutina</button>
+  </div>
+
+  <div class="training-item">
+    <div>
+      <span>Resistencia + HIIT</span><br>
+      <small>Cardio y estabilidad</small>
+    </div>
+    <button class="btn btn-outline-light btn-sm">Ver rutina</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // Gráfico de progreso (dummy basado en días con sesión)
-  const labels = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-  const data = {{ semana|map(attribute='tiene_sesion')|list|tojson }};
-  // transformar booleanos a 0/1 * 100
-  const series = data.map(x => x ? 100 : 20);
-  new Chart(document.getElementById("progressChart"), {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [{
-        label: "Progreso diario",
-        data: series,
-        backgroundColor: "rgba(230,57,70,.55)",
-        borderColor: "#e63946",
-        borderWidth: 1,
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive:true,
-      plugins:{ legend:{ display:false }},
-      scales:{
-        y:{ suggestedMin:0, suggestedMax:100, ticks:{ color:"#cbd5e1" }, grid:{ color:"#26303a" }},
-        x:{ ticks:{ color:"#cbd5e1" }, grid:{ display:false }}
-      }
-    }
-  });
-</script>
-{% endblock %}
+const ctx = document.getElementById('progresoChart');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
+    datasets: [{
+      label:

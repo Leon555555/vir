@@ -12,6 +12,10 @@
     --muted: #a1a5ad;
   }
 
+  body {
+    background: radial-gradient(circle at 30% 30%, #0f0f12 0%, #050607 100%);
+  }
+
   .profile-header {
     background: linear-gradient(135deg, rgba(230,57,70,0.15), rgba(30,136,229,0.08));
     border-radius: 20px;
@@ -179,7 +183,7 @@
   <div class="calendar-week">
     {% for d in ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"] %}
     <div class="day-box {% if loop.index == 4 %}active{% endif %}">
-      <strong>{{ 26 + loop.index }}</strong>
+      <strong>{{ 27 + loop.index }}</strong>
       <small>{{ d }}</small>
       <button class="plus-btn">+</button>
     </div>
@@ -228,4 +232,20 @@ new Chart(ctx, {
   data: {
     labels: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
     datasets: [{
-      label:
+      label: 'Cumplimiento semanal (%)',
+      data: [60,70,80,75,50,0,0],
+      backgroundColor: 'rgba(230,57,70,0.8)',
+      borderRadius: 6
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#222' }, ticks:{ color:'#888' } },
+      x: { grid: { display: false }, ticks:{ color:'#ccc' } }
+    }
+  }
+});
+</script>
+
+{% endblock %}

@@ -2,194 +2,193 @@
 {% block title %}Perfil de {{ user.nombre }}{% endblock %}
 
 {% block content %}
-<!-- ======================================== -->
-<!-- DASHBOARD PRO: PERFIL DE ATLETA -->
-<!-- ======================================== -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <style>
-  body {
-    background-color: #0b0b0b;
-    color: #fff;
-    font-family: "Poppins", sans-serif;
+  :root{
+    --bg:#0c0e10; --panel:#14171a; --panel2:#1a1f24;
+    --txt:#e9ecef; --muted:#9aa4ad; --brand:#e63946; --ok:#2ec4b6;
+    --blue:#1976d2; --red:#d7263d; --ring:rgba(230,57,70,.15);
   }
+  body{background:var(--bg); color:var(--txt); font-family:"Poppins",system-ui,sans-serif;}
+  .wrap{max-width:1100px; margin:24px auto; padding:0 16px;}
+  .top{
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(135deg, #171b20 0%, #121417 60%);
+    border-radius:18px; padding:22px 28px; box-shadow:0 12px 30px rgba(0,0,0,.35);
+    position:relative; overflow:hidden;
+  }
+  .top::after{
+    content:""; position:absolute; right:-60px; top:-60px; width:160px; height:160px;
+    background: radial-gradient(closest-side, var(--ring), transparent);
+    border-radius:50%;
+  }
+  .id h2{margin:0 0 6px 0; font-size:28px; font-weight:800;}
+  .id small{color:var(--muted)}
+  .avatar{font-size:60px; filter:drop-shadow(0 8px 18px rgba(0,0,0,.4))}
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:22px 0;}
+  .card{
+    border-radius:16px; padding:18px 20px; box-shadow:0 10px 24px rgba(0,0,0,.35);
+    background:var(--panel);
+  }
+  .card.blue{background:linear-gradient(145deg, #0f315a, #0c2749);}
+  .card.red{background:linear-gradient(145deg, #5a1117, #3a0b0f);}
+  .card h4{margin:0 0 6px 0; font-weight:800}
+  .card p, .card small{margin:0; color:#d8dee4}
+  .line{height:1px; background:#2a2f34; margin:20px 0}
 
-  .perfil-header {
-    background: linear-gradient(135deg, #1b1b1b, #222);
-    border-radius: 15px;
-    padding: 30px;
-    margin-top: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  /* Calendario horizontal */
+  .week{
+    background:var(--panel2); border-radius:16px; padding:18px; box-shadow:0 10px 24px rgba(0,0,0,.35);
   }
+  .week-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+  .week-title{font-weight:700}
+  .btn-month{border:1px solid #3a424a; color:#fff; background:transparent; padding:6px 12px; border-radius:10px}
+  .days{display:grid; grid-template-columns:repeat(7,1fr); gap:12px}
+  .day{
+    background:#101317; border:1px solid #20262c; border-radius:12px; padding:10px; text-align:center;
+    position:relative; transition:.2s transform;
+  }
+  .day:hover{transform:translateY(-2px)}
+  .day .dnum{font-size:18px; font-weight:800}
+  .day .w{font-size:12px; color:var(--muted)}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--ok); margin:6px auto 0 auto; opacity:.85}
+  .day.today{outline:2px solid var(--brand)}
+  .btn-mini{margin-top:8px; font-size:12px; padding:2px 8px; border-radius:8px; border:1px solid #2a3036; background:#161b20; color:#fff}
+  .btn-mini:hover{background:#1b2228}
 
-  .perfil-header h2 {
-    color: #e63946;
-    font-size: 1.8rem;
-    font-weight: 700;
+  /* Progreso / gráfico */
+  .chart{
+    background:var(--panel2); border-radius:16px; padding:18px; margin-top:18px;
+    box-shadow:0 10px 24px rgba(0,0,0,.35);
   }
+  .chart h4{margin:0 0 12px 0; font-weight:800}
+  .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px}
+  .kpi{background:#101317; border:1px solid #1f262c; border-radius:12px; padding:12px 14px; text-align:center}
+  .kpi h6{margin:0; font-size:12px; color:var(--muted)}
+  .kpi p{margin:4px 0 0 0; font-size:20px; font-weight:800; color:var(--brand)}
 
-  .calendar-section {
-    background-color: #161616;
-    border-radius: 12px;
-    padding: 25px;
-    margin-top: 35px;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
-  }
-
-  .chart-section {
-    background-color: #181818;
-    border-radius: 12px;
-    padding: 25px;
-    margin-top: 35px;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
-  }
-
-  .training-section {
-    background-color: #191919;
-    border-radius: 12px;
-    padding: 25px;
-    margin-top: 35px;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
-  }
-
-  .training-card {
-    background-color: #222;
-    border-radius: 10px;
-    padding: 15px 20px;
-    margin-bottom: 10px;
-  }
-
-  .training-card h6 {
-    color: #f5b000;
-    margin-bottom: 5px;
-  }
-
-  .training-card small {
-    color: #bbb;
-  }
-
-  .btn-toggle {
-    background-color: #e63946;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 10px;
-    color: #fff;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-
-  .btn-toggle:hover {
-    background-color: #d62828;
-  }
+  /* Sesiones fuerza */
+  .strength{background:var(--panel2); border-radius:16px; padding:18px; margin-top:18px; box-shadow:0 10px 24px rgba(0,0,0,.35);}
+  .s-item{background:#101317; border:1px solid #1f262c; border-radius:12px; padding:12px 14px; margin-bottom:10px}
+  .s-item h6{margin:0 0 4px 0; color:#f5b000; font-weight:700}
+  .s-item small{color:var(--muted)}
 </style>
 
-<div class="container">
+<div class="wrap">
+
   <!-- CABECERA -->
-  <div class="perfil-header">
-    <div>
-      <h2>🏃‍♂️ {{ user.nombre }}</h2>
-      <p class="text-muted">{{ user.email }}</p>
-      <p><strong>Grupo:</strong> {{ user.grupo or "—" }}</p>
+  <div class="top">
+    <div class="id">
+      <h2>{{ user.nombre }}</h2>
+      <small>{{ user.email }} &nbsp;•&nbsp; Grupo: <strong>{{ user.grupo or "—" }}</strong></small>
     </div>
-    <div style="font-size: 60px;">💪</div>
+    <div class="avatar">🏃‍♂️</div>
   </div>
 
-  <!-- CALENDARIO INTERACTIVO -->
-  <div class="calendar-section">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h4>📅 Calendario de Entrenamientos</h4>
-      <button id="toggleView" class="btn-toggle">+ Ver mes</button>
+  <!-- TARJETAS -->
+  <div class="cards">
+    <div class="card blue">
+      <h4>Último entrenamiento</h4>
+      {% if ultima %}
+        <p><strong>{{ ultima.tipo }}</strong> — {{ ultima.fecha.strftime('%d/%m/%Y') }}</p>
+        <small>{{ ultima.descripcion or '—' }}</small>
+      {% else %}
+        <p>No hay entrenamientos anteriores.</p>
+      {% endif %}
     </div>
-    <div id="calendar"></div>
-  </div>
-
-  <!-- GRÁFICO DE PROGRESO -->
-  <div class="chart-section">
-    <h4>📈 Evolución Semanal</h4>
-    <canvas id="progressChart" height="100"></canvas>
-  </div>
-
-  <!-- SESIONES DE ENTRENAMIENTO -->
-  <div class="training-section">
-    <h4>🏋️ Sesiones de fuerza propuestas</h4>
-
-    <div class="training-card">
-      <h6>Press de banca</h6>
-      <small>4x10 reps · 60 kg · Ritmo controlado</small>
-    </div>
-
-    <div class="training-card">
-      <h6>Sentadillas</h6>
-      <small>4x8 reps · 80 kg · Profundas</small>
-    </div>
-
-    <div class="training-card">
-      <h6>Peso muerto</h6>
-      <small>3x6 reps · 90 kg · Técnica estricta</small>
+    <div class="card red">
+      <h4>Próximo entrenamiento</h4>
+      {% if proxima %}
+        <p><strong>{{ proxima.tipo }}</strong> — {{ proxima.fecha.strftime('%d/%m/%Y') }}</p>
+        <small>{{ proxima.descripcion or '—' }}</small>
+      {% else %}
+        <p>No hay próximos entrenamientos planificados.</p>
+      {% endif %}
     </div>
   </div>
+
+  <!-- CALENDARIO SEMANAL -->
+  <div class="week">
+    <div class="week-head">
+      <div class="week-title">Octubre 2025</div>
+      <a class="btn-month" href="{{ user.calendario_url or '#' }}" target="_blank">Ver mes completo</a>
+    </div>
+    <div class="days">
+      {% for d in semana %}
+      <div class="day {% if d.hoy %}today{% endif %}">
+        <div class="dnum">{{ d.fecha.day }}</div>
+        <div class="w">{{ ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][loop.index0] }}</div>
+        {% if d.tiene_sesion %}<div class="dot" title="Sesión planificada"></div>{% endif %}
+        <button class="btn-mini" title="Ver detalles">+</button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- PROGRESO / GRÁFICO -->
+  <div class="chart">
+    <h4>Tu progreso semanal</h4>
+    <canvas id="progressChart" height="80"></canvas>
+    <div class="kpis">
+      <div class="kpi"><h6>Cumplimiento</h6><p>{{ cumplimiento }}%</p></div>
+      <div class="kpi"><h6>Sesiones esta semana</h6><p>{{ semana|selectattr('tiene_sesion')|list|length }}</p></div>
+      <div class="kpi"><h6>Siguiente sesión</h6><p>{{ proxima.fecha.strftime('%d/%m') if proxima else "—" }}</p></div>
+    </div>
+  </div>
+
+  <!-- SESIONES DE FUERZA PROPUESTAS -->
+  <div class="strength">
+    <h4>Sesiones de fuerza propuestas</h4>
+    {% set fuerzas = sesiones|selectattr('tipo','equalto','Fuerza')|list %}
+    {% if fuerzas %}
+      {% for s in fuerzas %}
+      <div class="s-item">
+        <h6>{{ s.tipo }} — {{ s.fecha.strftime('%d/%m/%Y') }}</h6>
+        <small>{{ s.descripcion or "Sin notas" }}{% if s.duracion %} · {{ s.duracion }} min{% endif %}{% if s.intensidad %} · {{ s.intensidad }}{% endif %}</small>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="s-item"><small>No hay sesiones de fuerza cargadas aún.</small></div>
+    {% endif %}
+  </div>
+
+  {% if current_user.email == "viru@vir.app" %}
+  <div style="margin-top:16px">
+    <a class="btn btn-outline-light" href="{{ url_for('main.sesiones_atleta', atleta_id=user.id) }}">➕ Gestionar sesiones</a>
+  </div>
+  {% endif %}
+
 </div>
 
 <script>
-  // ===========================
-  // CALENDARIO FULLCALENDAR
-  // ===========================
-  document.addEventListener("DOMContentLoaded", function () {
-    const calendarEl = document.getElementById("calendar");
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: "timeGridWeek",
-      height: 500,
-      headerToolbar: false,
-      events: [
-        { title: "Fuerza Tren Superior", start: "2025-10-27T09:00:00" },
-        { title: "Carrera Tempo", start: "2025-10-28T18:00:00" },
-        { title: "Descanso Activo", start: "2025-10-29T11:00:00" },
-        { title: "Fuerza Piernas", start: "2025-10-30T09:30:00" },
-      ],
-    });
-    calendar.render();
-
-    const toggleBtn = document.getElementById("toggleView");
-    let monthly = false;
-
-    toggleBtn.addEventListener("click", () => {
-      monthly = !monthly;
-      calendar.changeView(monthly ? "dayGridMonth" : "timeGridWeek");
-      toggleBtn.textContent = monthly ? "↩ Ver semana" : "+ Ver mes";
-    });
-  });
-
-  // ===========================
-  // CHART.JS - GRÁFICO DE PROGRESO
-  // ===========================
-  const ctx = document.getElementById("progressChart");
-  new Chart(ctx, {
-    type: "line",
+  // Gráfico de progreso (dummy basado en días con sesión)
+  const labels = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  const data = {{ semana|map(attribute='tiene_sesion')|list|tojson }};
+  // transformar booleanos a 0/1 * 100
+  const series = data.map(x => x ? 100 : 20);
+  new Chart(document.getElementById("progressChart"), {
+    type: "bar",
     data: {
-      labels: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
-      datasets: [
-        {
-          label: "Cumplimiento %",
-          data: [80, 85, 90, 88, 92, 96, 97],
-          borderColor: "#e63946",
-          backgroundColor: "rgba(230, 57, 70, 0.3)",
-          tension: 0.3,
-          fill: true,
-        },
-      ],
+      labels: labels,
+      datasets: [{
+        label: "Progreso diario",
+        data: series,
+        backgroundColor: "rgba(230,57,70,.55)",
+        borderColor: "#e63946",
+        borderWidth: 1,
+        borderRadius: 8
+      }]
     },
     options: {
-      scales: {
-        y: { min: 0, max: 100, ticks: { color: "#ccc" } },
-        x: { ticks: { color: "#ccc" } },
-      },
-      plugins: { legend: { display: false } },
-    },
+      responsive:true,
+      plugins:{ legend:{ display:false }},
+      scales:{
+        y:{ suggestedMin:0, suggestedMax:100, ticks:{ color:"#cbd5e1" }, grid:{ color:"#26303a" }},
+        x:{ ticks:{ color:"#cbd5e1" }, grid:{ display:false }}
+      }
+    }
   });
 </script>
 {% endblock %}

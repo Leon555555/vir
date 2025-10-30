@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
+from datetime import date, timedelta
 from app.models import User, Sesion
 from app.extensions import db
 
@@ -90,10 +91,46 @@ def perfil_usuario(user_id):
             return redirect(url_for("main.perfil"))
         user = current_user
 
-    # Traer las sesiones del atleta
-    sesiones = Sesion.query.filter_by(user_id=user.id).order_by(Sesion.fecha.desc()).all()
+    # Traer todas las sesiones del atleta
+    sesiones = Sesion.query.filter_by(user_id=user.id).order_by(Sesion.fecha.asc()).all()
 
-    return render_template("perfil.html", user=user, sesiones=sesiones)
+    # Calcular última y próxima sesión
+    hoy = date.today()
+    ultima = None
+    proxima = None
+    for s in sesiones:
+        if s.fecha <= hoy:
+            ultima = s
+        if s.fecha > hoy and proxima is None:
+            proxima = s
+
+    # Calcular semana actual (lunes-domingo)
+    lunes = hoy - timedelta(days=hoy.weekday())
+    semana = []
+    sesiones_por_dia = {}
+    for s in sesiones:
+        sesiones_por_dia.setdefault(s.fecha, []).append(s)
+
+    for i in range(7):
+        d = lunes + timedelta(days=i)
+        semana.append({
+            "fecha": d,
+            "hoy": (d == hoy),
+            "tiene_sesion": d in sesiones_por_dia,
+            "sesiones": sesiones_por_dia.get(d, [])
+        })
+
+    cumplimiento = round(100 * sum(1 for d in semana if d["tiene_sesion"]) / 7, 1)
+
+    return render_template(
+        "perfil.html",
+        user=user,
+        sesiones=sesiones,
+        ultima=ultima,
+        proxima=proxima,
+        semana=semana,
+        cumplimiento=cumplimiento
+    )
 
 
 # ======================================

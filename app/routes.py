@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from app.models import User
+from app.models import User, Sesion
 from app.extensions import db
 
 main_bp = Blueprint("main", __name__)
@@ -17,6 +17,7 @@ def index():
         else:
             return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
+
 
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -36,6 +37,7 @@ def login():
             flash("❌ Usuario o contraseña incorrectos.", "danger")
 
     return render_template("login.html")
+
 
 # ======================================
 # REGISTRO DE NUEVO USUARIO
@@ -66,6 +68,7 @@ def register():
 
     return render_template("register.html")
 
+
 # ======================================
 # PERFIL UNIFICADO (ENTRENADOR O ATLETA)
 # ======================================
@@ -74,6 +77,7 @@ def register():
 @login_required
 def perfil():
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+
 
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
@@ -86,7 +90,11 @@ def perfil_usuario(user_id):
             return redirect(url_for("main.perfil"))
         user = current_user
 
-    return render_template("perfil.html", user=user)
+    # Traer las sesiones del atleta
+    sesiones = Sesion.query.filter_by(user_id=user.id).order_by(Sesion.fecha.desc()).all()
+
+    return render_template("perfil.html", user=user, sesiones=sesiones)
+
 
 # ======================================
 # DASHBOARD DEL ENTRENADOR
@@ -101,6 +109,7 @@ def dashboard_entrenador():
 
     atletas = User.query.filter(User.email != "viru@vir.app").all()
     return render_template("dashboard_entrenador.html", atletas=atletas)
+
 
 # ======================================
 # CREAR NUEVO ATLETA
@@ -135,6 +144,7 @@ def nuevo_atleta():
 
     return render_template("nuevo_atleta.html")
 
+
 # ======================================
 # EDITAR ATLETA
 # ======================================
@@ -159,6 +169,7 @@ def editar_atleta(atleta_id):
 
     return render_template("editar_atleta.html", atleta=atleta)
 
+
 # ======================================
 # ELIMINAR ATLETA
 # ======================================
@@ -175,6 +186,61 @@ def eliminar_atleta(atleta_id):
     db.session.commit()
     flash(f"❌ Atleta '{atleta.nombre}' eliminado.", "warning")
     return redirect(url_for("main.dashboard_entrenador"))
+
+
+# ======================================
+# SESIONES DE ENTRENAMIENTO (ENTRENADOR)
+# ======================================
+
+@main_bp.route("/coach/sesiones/<int:atleta_id>", methods=["GET", "POST"])
+@login_required
+def sesiones_atleta(atleta_id):
+    if current_user.email != "viru@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
+
+    atleta = User.query.get_or_404(atleta_id)
+
+    if request.method == "POST":
+        tipo = request.form.get("tipo")
+        descripcion = request.form.get("descripcion")
+        fecha = request.form.get("fecha")
+        duracion = request.form.get("duracion")
+        intensidad = request.form.get("intensidad")
+
+        if not tipo or not fecha:
+            flash("Completa los campos obligatorios.", "danger")
+        else:
+            nueva = Sesion(
+                user_id=atleta.id,
+                tipo=tipo,
+                descripcion=descripcion,
+                fecha=fecha,
+                duracion=int(duracion or 0),
+                intensidad=intensidad,
+            )
+            db.session.add(nueva)
+            db.session.commit()
+            flash("✅ Sesión agregada correctamente.", "success")
+
+        return redirect(url_for("main.sesiones_atleta", atleta_id=atleta.id))
+
+    sesiones = Sesion.query.filter_by(user_id=atleta.id).order_by(Sesion.fecha.desc()).all()
+    return render_template("sesiones_atleta.html", atleta=atleta, sesiones=sesiones)
+
+
+@main_bp.route("/coach/sesiones/eliminar/<int:sesion_id>", methods=["POST"])
+@login_required
+def eliminar_sesion(sesion_id):
+    sesion = Sesion.query.get_or_404(sesion_id)
+    if current_user.email != "viru@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
+    db.session.delete(sesion)
+    db.session.commit()
+    flash("❌ Sesión eliminada.", "warning")
+    return redirect(url_for("main.sesiones_atleta", atleta_id=sesion.user_id))
+
 
 # ======================================
 # LOGOUT

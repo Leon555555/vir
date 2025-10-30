@@ -26,3 +26,18 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f"<User {self.nombre} ({self.email})>"
+class Sesion(db.Model):
+    __tablename__ = "sesiones"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    fecha = db.Column(db.Date, nullable=False)
+    tipo = db.Column(db.String(100), nullable=False)
+    descripcion = db.Column(db.String(255))
+    duracion = db.Column(db.Integer)  # en minutos
+    intensidad = db.Column(db.String(50))
+
+    user = db.relationship("User", backref=db.backref("sesiones", lazy=True))
+
+    def __repr__(self):
+        return f"<Sesion {self.tipo} - {self.fecha}>"

@@ -2,195 +2,194 @@
 {% block title %}Perfil de {{ user.nombre }}{% endblock %}
 
 {% block content %}
+<!-- ======================================== -->
+<!-- DASHBOARD PRO: PERFIL DE ATLETA -->
+<!-- ======================================== -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
 <style>
   body {
-    background-color: #0e0e0e;
-    color: #f5f5f5;
+    background-color: #0b0b0b;
+    color: #fff;
     font-family: "Poppins", sans-serif;
   }
 
   .perfil-header {
-    background: linear-gradient(135deg, #111, #222);
+    background: linear-gradient(135deg, #1b1b1b, #222);
     border-radius: 15px;
-    padding: 25px 30px;
-    margin-top: 30px;
+    padding: 30px;
+    margin-top: 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
   }
 
   .perfil-header h2 {
+    color: #e63946;
     font-size: 1.8rem;
     font-weight: 700;
-    color: #e63946;
   }
 
-  .perfil-header small {
-    color: #aaa;
-  }
-
-  .perfil-avatar {
-    font-size: 60px;
-  }
-
-  .perfil-datos {
-    margin-top: 25px;
-    padding: 20px;
-    background-color: #1a1a1a;
+  .calendar-section {
+    background-color: #161616;
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    padding: 25px;
+    margin-top: 35px;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
   }
 
-  .perfil-datos strong {
-    color: #f8f9fa;
-  }
-
-  .metricas {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-top: 30px;
-  }
-
-  .card-metrica {
-    background-color: #1d1d1d;
+  .chart-section {
+    background-color: #181818;
     border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+    padding: 25px;
+    margin-top: 35px;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
   }
 
-  .card-metrica h5 {
-    font-size: 1rem;
-    color: #ccc;
+  .training-section {
+    background-color: #191919;
+    border-radius: 12px;
+    padding: 25px;
+    margin-top: 35px;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+  }
+
+  .training-card {
+    background-color: #222;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+  }
+
+  .training-card h6 {
+    color: #f5b000;
     margin-bottom: 5px;
   }
 
-  .card-metrica p {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #e63946;
+  .training-card small {
+    color: #bbb;
   }
 
-  iframe {
-    border-radius: 12px;
-    margin-top: 25px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
-  }
-
-  .botones {
-    margin-top: 30px;
-    display: flex;
-    gap: 15px;
-  }
-
-  .btn-custom {
+  .btn-toggle {
+    background-color: #e63946;
     border: none;
-    font-weight: 600;
+    border-radius: 6px;
+    padding: 6px 10px;
     color: #fff;
-    transition: all 0.3s ease;
+    cursor: pointer;
+    font-size: 0.9rem;
   }
 
-  .btn-edit {
-    background-color: #f5b000;
-  }
-
-  .btn-edit:hover {
-    background-color: #d89a00;
-  }
-
-  .btn-delete {
+  .btn-toggle:hover {
     background-color: #d62828;
-  }
-
-  .btn-delete:hover {
-    background-color: #b71d1d;
-  }
-
-  .btn-back {
-    background-color: #457b9d;
-  }
-
-  .btn-back:hover {
-    background-color: #35617d;
-  }
-
-  footer {
-    color: #666;
-    margin-top: 50px;
   }
 </style>
 
-<div class="container mt-4">
+<div class="container">
   <!-- CABECERA -->
   <div class="perfil-header">
     <div>
-      <h2>🏃‍♂️ Perfil de {{ user.nombre }}</h2>
-      <small>{{ user.email }}</small>
+      <h2>🏃‍♂️ {{ user.nombre }}</h2>
+      <p class="text-muted">{{ user.email }}</p>
+      <p><strong>Grupo:</strong> {{ user.grupo or "—" }}</p>
     </div>
-    <div class="perfil-avatar">💪</div>
+    <div style="font-size: 60px;">💪</div>
   </div>
 
-  <!-- DATOS DEL USUARIO -->
-  <div class="perfil-datos">
-    <p><strong>Grupo:</strong> {{ user.grupo or "—" }}</p>
-
-    {% if user.calendario_url %}
-    <h5 class="mt-4 mb-2">📅 Calendario de entrenamiento</h5>
-    <iframe
-      src="{{ user.calendario_url }}"
-      width="100%"
-      height="600"
-      frameborder="0"
-      allowfullscreen
-    ></iframe>
-    {% else %}
-    <p class="text-muted mt-4">Sin calendario asignado.</p>
-    {% endif %}
+  <!-- CALENDARIO INTERACTIVO -->
+  <div class="calendar-section">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4>📅 Calendario de Entrenamientos</h4>
+      <button id="toggleView" class="btn-toggle">+ Ver mes</button>
+    </div>
+    <div id="calendar"></div>
   </div>
 
-  <!-- MÉTRICAS (pueden ser dinámicas luego) -->
-  <div class="metricas">
-    <div class="card-metrica">
-      <h5>Sesiones completadas</h5>
-      <p>42</p>
-    </div>
-    <div class="card-metrica">
-      <h5>Progreso semanal</h5>
-      <p>87%</p>
-    </div>
-    <div class="card-metrica">
-      <h5>Objetivo actual</h5>
-      <p>Maratón BCN</p>
-    </div>
+  <!-- GRÁFICO DE PROGRESO -->
+  <div class="chart-section">
+    <h4>📈 Evolución Semanal</h4>
+    <canvas id="progressChart" height="100"></canvas>
   </div>
 
-  <!-- BOTONES DE ACCIÓN -->
-  {% if current_user.email == "viru@vir.app" %}
-  <div class="botones">
-    <a
-      href="{{ url_for('main.editar_atleta', atleta_id=user.id) }}"
-      class="btn btn-custom btn-edit"
-      >✏️ Editar</a
-    >
-    <form
-      method="POST"
-      action="{{ url_for('main.eliminar_atleta', atleta_id=user.id) }}"
-      onsubmit="return confirm('¿Eliminar atleta definitivamente?');"
-    >
-      <button type="submit" class="btn btn-custom btn-delete">🗑️ Eliminar</button>
-    </form>
-    <a
-      href="{{ url_for('main.dashboard_entrenador') }}"
-      class="btn btn-custom btn-back"
-      >⬅️ Volver al panel</a
-    >
+  <!-- SESIONES DE ENTRENAMIENTO -->
+  <div class="training-section">
+    <h4>🏋️ Sesiones de fuerza propuestas</h4>
+
+    <div class="training-card">
+      <h6>Press de banca</h6>
+      <small>4x10 reps · 60 kg · Ritmo controlado</small>
+    </div>
+
+    <div class="training-card">
+      <h6>Sentadillas</h6>
+      <small>4x8 reps · 80 kg · Profundas</small>
+    </div>
+
+    <div class="training-card">
+      <h6>Peso muerto</h6>
+      <small>3x6 reps · 90 kg · Técnica estricta</small>
+    </div>
   </div>
-  {% else %}
-  <div class="botones">
-    <a href="{{ url_for('main.logout') }}" class="btn btn-outline-danger">Cerrar sesión</a>
-  </div>
-  {% endif %}
 </div>
+
+<script>
+  // ===========================
+  // CALENDARIO FULLCALENDAR
+  // ===========================
+  document.addEventListener("DOMContentLoaded", function () {
+    const calendarEl = document.getElementById("calendar");
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: "timeGridWeek",
+      height: 500,
+      headerToolbar: false,
+      events: [
+        { title: "Fuerza Tren Superior", start: "2025-10-27T09:00:00" },
+        { title: "Carrera Tempo", start: "2025-10-28T18:00:00" },
+        { title: "Descanso Activo", start: "2025-10-29T11:00:00" },
+        { title: "Fuerza Piernas", start: "2025-10-30T09:30:00" },
+      ],
+    });
+    calendar.render();
+
+    const toggleBtn = document.getElementById("toggleView");
+    let monthly = false;
+
+    toggleBtn.addEventListener("click", () => {
+      monthly = !monthly;
+      calendar.changeView(monthly ? "dayGridMonth" : "timeGridWeek");
+      toggleBtn.textContent = monthly ? "↩ Ver semana" : "+ Ver mes";
+    });
+  });
+
+  // ===========================
+  // CHART.JS - GRÁFICO DE PROGRESO
+  // ===========================
+  const ctx = document.getElementById("progressChart");
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+      datasets: [
+        {
+          label: "Cumplimiento %",
+          data: [80, 85, 90, 88, 92, 96, 97],
+          borderColor: "#e63946",
+          backgroundColor: "rgba(230, 57, 70, 0.3)",
+          tension: 0.3,
+          fill: true,
+        },
+      ],
+    },
+    options: {
+      scales: {
+        y: { min: 0, max: 100, ticks: { color: "#ccc" } },
+        x: { ticks: { color: "#ccc" } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+</script>
 {% endblock %}

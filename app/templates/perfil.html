@@ -2,44 +2,195 @@
 {% block title %}Perfil de {{ user.nombre }}{% endblock %}
 
 {% block content %}
+<style>
+  body {
+    background-color: #0e0e0e;
+    color: #f5f5f5;
+    font-family: "Poppins", sans-serif;
+  }
+
+  .perfil-header {
+    background: linear-gradient(135deg, #111, #222);
+    border-radius: 15px;
+    padding: 25px 30px;
+    margin-top: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .perfil-header h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #e63946;
+  }
+
+  .perfil-header small {
+    color: #aaa;
+  }
+
+  .perfil-avatar {
+    font-size: 60px;
+  }
+
+  .perfil-datos {
+    margin-top: 25px;
+    padding: 20px;
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  }
+
+  .perfil-datos strong {
+    color: #f8f9fa;
+  }
+
+  .metricas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+  }
+
+  .card-metrica {
+    background-color: #1d1d1d;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-metrica h5 {
+    font-size: 1rem;
+    color: #ccc;
+    margin-bottom: 5px;
+  }
+
+  .card-metrica p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #e63946;
+  }
+
+  iframe {
+    border-radius: 12px;
+    margin-top: 25px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+  }
+
+  .botones {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+  }
+
+  .btn-custom {
+    border: none;
+    font-weight: 600;
+    color: #fff;
+    transition: all 0.3s ease;
+  }
+
+  .btn-edit {
+    background-color: #f5b000;
+  }
+
+  .btn-edit:hover {
+    background-color: #d89a00;
+  }
+
+  .btn-delete {
+    background-color: #d62828;
+  }
+
+  .btn-delete:hover {
+    background-color: #b71d1d;
+  }
+
+  .btn-back {
+    background-color: #457b9d;
+  }
+
+  .btn-back:hover {
+    background-color: #35617d;
+  }
+
+  footer {
+    color: #666;
+    margin-top: 50px;
+  }
+</style>
+
 <div class="container mt-4">
-  <h2 class="mb-3">🏃‍♂️ Perfil de {{ user.nombre }}</h2>
-  <p class="text-muted">Email: {{ user.email }}</p>
+  <!-- CABECERA -->
+  <div class="perfil-header">
+    <div>
+      <h2>🏃‍♂️ Perfil de {{ user.nombre }}</h2>
+      <small>{{ user.email }}</small>
+    </div>
+    <div class="perfil-avatar">💪</div>
+  </div>
 
-  {% if user.grupo %}
-  <p><strong>Grupo:</strong> {{ user.grupo }}</p>
-  {% else %}
-  <p><strong>Grupo:</strong> —</p>
-  {% endif %}
+  <!-- DATOS DEL USUARIO -->
+  <div class="perfil-datos">
+    <p><strong>Grupo:</strong> {{ user.grupo or "—" }}</p>
 
-  {% if user.calendario_url %}
-  <div class="mt-4">
-    <h5>📅 Calendario de entrenamiento</h5>
+    {% if user.calendario_url %}
+    <h5 class="mt-4 mb-2">📅 Calendario de entrenamiento</h5>
     <iframe
       src="{{ user.calendario_url }}"
       width="100%"
       height="600"
       frameborder="0"
-      style="border-radius: 10px;"
-      allowfullscreen>
-    </iframe>
+      allowfullscreen
+    ></iframe>
+    {% else %}
+    <p class="text-muted mt-4">Sin calendario asignado.</p>
+    {% endif %}
   </div>
-  {% else %}
-  <p class="text-muted mt-4">Sin calendario asignado.</p>
-  {% endif %}
 
-  <hr>
+  <!-- MÉTRICAS (pueden ser dinámicas luego) -->
+  <div class="metricas">
+    <div class="card-metrica">
+      <h5>Sesiones completadas</h5>
+      <p>42</p>
+    </div>
+    <div class="card-metrica">
+      <h5>Progreso semanal</h5>
+      <p>87%</p>
+    </div>
+    <div class="card-metrica">
+      <h5>Objetivo actual</h5>
+      <p>Maratón BCN</p>
+    </div>
+  </div>
 
+  <!-- BOTONES DE ACCIÓN -->
   {% if current_user.email == "viru@vir.app" %}
-  <div class="d-flex gap-2">
-    <a href="{{ url_for('main.editar_atleta', atleta_id=user.id) }}" class="btn btn-warning">✏️ Editar</a>
-    <form method="POST" action="{{ url_for('main.eliminar_atleta', atleta_id=user.id) }}" onsubmit="return confirm('¿Eliminar atleta definitivamente?');">
-      <button type="submit" class="btn btn-danger">🗑️ Eliminar</button>
+  <div class="botones">
+    <a
+      href="{{ url_for('main.editar_atleta', atleta_id=user.id) }}"
+      class="btn btn-custom btn-edit"
+      >✏️ Editar</a
+    >
+    <form
+      method="POST"
+      action="{{ url_for('main.eliminar_atleta', atleta_id=user.id) }}"
+      onsubmit="return confirm('¿Eliminar atleta definitivamente?');"
+    >
+      <button type="submit" class="btn btn-custom btn-delete">🗑️ Eliminar</button>
     </form>
-    <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-secondary">⬅️ Volver al panel</a>
+    <a
+      href="{{ url_for('main.dashboard_entrenador') }}"
+      class="btn btn-custom btn-back"
+      >⬅️ Volver al panel</a
+    >
   </div>
   {% else %}
-  <a href="{{ url_for('main.logout') }}" class="btn btn-outline-danger mt-3">Cerrar sesión</a>
+  <div class="botones">
+    <a href="{{ url_for('main.logout') }}" class="btn btn-outline-danger">Cerrar sesión</a>
+  </div>
   {% endif %}
 </div>
 {% endblock %}

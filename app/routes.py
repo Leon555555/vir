@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash
 from app.models import User
 from app.extensions import db
 
@@ -68,7 +67,7 @@ def register():
     return render_template("register.html")
 
 # ======================================
-# PERFIL UNIFICADO (entrenador o atleta)
+# PERFIL UNIFICADO (ENTRENADOR O ATLETA)
 # ======================================
 
 @main_bp.route("/perfil")
@@ -79,28 +78,15 @@ def perfil():
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id):
-    # Si el usuario es el entrenador, puede ver cualquier perfil
     if current_user.email == "viru@vir.app":
         user = User.query.get_or_404(user_id)
     else:
-        # Si no es el entrenador, solo puede ver su propio perfil
         if current_user.id != user_id:
             flash("Acceso denegado.", "danger")
             return redirect(url_for("main.perfil"))
         user = current_user
 
     return render_template("perfil.html", user=user)
-
-# ======================================
-# LOGOUT
-# ======================================
-
-@main_bp.route("/logout")
-@login_required
-def logout():
-    logout_user()
-    flash("Sesión cerrada correctamente.", "info")
-    return redirect(url_for("main.login"))
 
 # ======================================
 # DASHBOARD DEL ENTRENADOR
@@ -134,7 +120,12 @@ def nuevo_atleta():
         grupo = request.form.get("grupo")
         calendario_url = request.form.get("calendario_url")
 
-        atleta = User(nombre=nombre, email=email, grupo=grupo, calendario_url=calendario_url)
+        atleta = User(
+            nombre=nombre,
+            email=email,
+            grupo=grupo,
+            calendario_url=calendario_url,
+        )
         atleta.set_password(password)
         db.session.add(atleta)
         db.session.commit()
@@ -184,3 +175,14 @@ def eliminar_atleta(atleta_id):
     db.session.commit()
     flash(f"❌ Atleta '{atleta.nombre}' eliminado.", "warning")
     return redirect(url_for("main.dashboard_entrenador"))
+
+# ======================================
+# LOGOUT
+# ======================================
+
+@main_bp.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    flash("Sesión cerrada correctamente.", "info")
+    return redirect(url_for("main.login"))

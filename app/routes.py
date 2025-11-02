@@ -7,18 +7,26 @@ from app.extensions import db
 main_bp = Blueprint("main", __name__)
 
 
-# ============== Helpers ==============
+# ======================================
+# HELPERS
+# ======================================
+
 def start_of_week(d: date) -> date:
-    # lunes como inicio
-    return d - timedelta(days=(d.weekday() % 7))
+    """Devuelve el lunes de la semana de la fecha dada."""
+    return d - timedelta(days=d.weekday())
+
 
 def week_dates(center: date | None = None):
+    """Devuelve lista de fechas lunes-domingo."""
     base = center or date.today()
     start = start_of_week(base)
     return [start + timedelta(days=i) for i in range(7)]
 
 
-# ============== INDEX & LOGIN ==============
+# ======================================
+# INDEX / LOGIN / LOGOUT
+# ======================================
+
 @main_bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -53,7 +61,10 @@ def logout():
     return redirect(url_for("main.login"))
 
 
-# ============== PERFIL ATLETA ==============
+# ======================================
+# PERFIL DEL USUARIO (ATLETA)
+# ======================================
+
 @main_bp.route("/perfil")
 @login_required
 def perfil():
@@ -63,7 +74,7 @@ def perfil():
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id):
-    # admin puede ver cualquiera; atleta solo el suyo
+    # Entrenador puede ver cualquiera; atleta solo el suyo
     if current_user.email == "admin@vir.app":
         user = User.query.get_or_404(user_id)
     else:
@@ -72,14 +83,19 @@ def perfil_usuario(user_id):
             return redirect(url_for("main.perfil"))
         user = current_user
 
-    # semana actual
-    fechas = week_dates()
+    # Semana actual dinámica (lunes a domingo)
+    hoy = date.today()
+    lunes = hoy - timedelta(days=hoy.weekday())
+    fechas = [lunes + timedelta(days=i) for i in range(7)]
+    semana_str = f"Semana del {lunes.strftime('%d/%m')} al {(lunes + timedelta(days=6)).strftime('%d/%m')}"
+
+    # Planes del atleta
     planes = {p.fecha: p for p in DiaPlan.query.filter(
         DiaPlan.user_id == user.id,
         DiaPlan.fecha.in_(fechas)
     ).all()}
 
-    # crear al vuelo días que no existan (estado "descanso")
+    # Crear días faltantes
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -87,12 +103,12 @@ def perfil_usuario(user_id):
             planes[f] = nuevo
     db.session.commit()
 
-    # datos para el gráfico líneas
+    # Datos del gráfico (Propuesto vs Realizado)
     labels = [f.strftime("%d/%m") for f in fechas]
     propuesto = [planes[f].propuesto_score or 0 for f in fechas]
     realizado = [planes[f].realizado_score or 0 for f in fechas]
 
-    # catálogo de rutinas (muestra las últimas 6)
+    # Rutinas más recientes
     rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(6).all()
 
     return render_template(
@@ -103,11 +119,15 @@ def perfil_usuario(user_id):
         labels=labels,
         propuesto=propuesto,
         realizado=realizado,
-        rutinas=rutinas
+        rutinas=rutinas,
+        semana_str=semana_str
     )
 
 
-# Guardar cambios de un día (plan_type + 3 bloques + propuesto/realizado)
+# ======================================
+# GUARDAR PLAN DIARIO
+# ======================================
+
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
 def save_day():
@@ -141,12 +161,16 @@ def save_day():
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
 
-# ============== DASHBOARD ENTRENADOR (mínimo) ==============
+# ======================================
+# DASHBOARD ENTRENADOR
+# ======================================
+
 @main_bp.route("/coach/dashboard")
 @login_required
 def dashboard_entrenador():
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado.", "danger")
         return redirect(url_for("main.perfil"))
+
     atletas = User.query.filter(User.email != "admin@vir.app").all()
     return render_template("dashboard_entrenador.html", atletas=atletas)

@@ -3,153 +3,112 @@
 
 {% block content %}
 <style>
-  body{background: radial-gradient(1200px 600px at 10% 0%, rgba(220,30,40,0.18), transparent 40%), #070809;}
-  .header-vir{
-    background: linear-gradient(135deg, rgba(220,30,40,.25), rgba(10,14,18,.7));
-    border-radius: 20px; padding: 24px 28px; color: #fff; box-shadow: 0 10px 35px rgba(0,0,0,.4);
-  }
-  .panel{background:#0e1116;border-radius:18px;padding:18px 18px;box-shadow:0 8px 26px rgba(0,0,0,.35);color:#e9ecef}
+  body{background: radial-gradient(1000px 600px at 10% 0%, rgba(220,30,40,0.15), transparent 50%), #070809;}
+  .panel{background:#0e1116;border-radius:18px;padding:20px;box-shadow:0 8px 26px rgba(0,0,0,.35);color:#e9ecef}
   .title{font-weight:700;letter-spacing:.3px}
-  .badge-vir{background:#e63946}
-  .day-card{
-    background:#11151b;border:1px solid rgba(255,255,255,.06);
-    border-radius:14px;padding:14px;min-height:100%;transition:.15s; color:#e9ecef
+  .day-button{
+    background:#13181f;border:1px solid rgba(255,255,255,.07);
+    border-radius:12px; padding:16px 12px; color:#eee; font-weight:600;
+    cursor:pointer; transition:.15s; text-align:center;
   }
-  .day-card:hover{transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.35)}
-  .day-date{font-weight:700;font-size:1.05rem}
-  .day-week{color:#9aa3ac;font-size:.85rem}
-  .day-select,.day-text{background:#0b0f14;color:#e2e6ea;border:1px solid rgba(255,255,255,.08)}
+  .day-button:hover{background:#1a1f27}
+  .day-button.fuerza{border-left:4px solid #e63946;}
+  .day-button.correr{border-left:4px solid #12fff7;}
+  .day-button.natacion{border-left:4px solid #1f78ff;}
+  .day-button.bike{border-left:4px solid #f5a623;}
+  .day-button.fisioterapia{border-left:4px solid #a020f0;}
+  .day-button.descanso{border-left:4px solid #555;}
+  .day-title{font-size:1rem;font-weight:600;}
+  .collapse-box{background:#10141a;border-radius:12px;margin-top:10px;padding:14px 18px;border:1px solid rgba(255,255,255,.06);}
+  .form-control-sm{background:#0b0f14;border:none;color:#eee;}
   .btn-vir{background:#e63946;border:none;font-weight:700}
   .btn-vir:hover{background:#be2f3a}
-  .routine-card{background:#10141a;border:1px solid rgba(255,255,255,.06);border-radius:16px}
-  .routine-thumb{border-radius:16px 16px 0 0; height:150px; object-fit:cover}
 </style>
 
-<div class="header-vir mb-4">
+<!-- Header -->
+<div class="panel mb-4">
   <div class="d-flex align-items-center justify-content-between">
     <div>
-      <h2 class="mb-1">{{ user.nombre }}</h2>
+      <h3 class="mb-1">{{ user.nombre }}</h3>
       <div class="text-secondary small">{{ user.email }}{% if user.grupo %} • Grupo: {{ user.grupo }}{% endif %}</div>
     </div>
-    <div>
-      <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.logout') }}"><i class="bi bi-box-arrow-right"></i> Salir</a>
-    </div>
+    <a href="{{ url_for('main.logout') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Salir</a>
   </div>
 </div>
 
-<div class="row g-3">
-  <div class="col-md-6">
-    <div class="panel h-100">
-      <div class="title mb-2"><i class="bi bi-clock-history"></i> Último entrenamiento</div>
-      <div class="text-secondary">No hay entrenamientos anteriores.</div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="panel h-100">
-      <div class="title mb-2"><i class="bi bi-calendar-event"></i> Próximo entrenamiento</div>
-      <div class="text-secondary">No hay próximos entrenamientos planificados.</div>
-    </div>
-  </div>
-</div>
-
-<!-- Calendario semanal -->
-<div class="panel mt-4">
-  <div class="d-flex align-items-center justify-content-between mb-2">
-    <div class="title"><i class="bi bi-calendar-week"></i> Calendario semanal</div>
-    <button class="btn btn-outline-light btn-sm">Ver mes completo</button>
-  </div>
-
-  <div class="row g-3">
+<!-- Semana -->
+<div class="panel">
+  <div class="title mb-3"><i class="bi bi-calendar-week"></i> Semana actual</div>
+  <div class="row g-3 text-center">
     {% for f in fechas %}
-    {% set plan = planes[f] %}
-    <div class="col-12 col-md-6 col-lg-4">
-      <div class="day-card">
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="day-date">{{ f.strftime("%d/%m") }}</div>
-          <div class="day-week">{{ ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][loop.index0] }}</div>
+      {% set plan = planes[f] %}
+      <div class="col-6 col-md-3 col-lg-1-7">
+        <div class="day-button {{ plan.plan_type }}" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+          <div>{{ ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][loop.index0] }}</div>
+          <div class="day-title mt-1">
+            {% if plan.plan_type == "fuerza" %}Fuerza
+            {% elif plan.plan_type == "correr" %}Correr
+            {% elif plan.plan_type == "natacion" %}Natación
+            {% elif plan.plan_type == "bike" %}Bike
+            {% elif plan.plan_type == "fisioterapia" %}Fisio
+            {% else %}Descanso{% endif %}
+          </div>
         </div>
 
-        <form class="mt-2" method="POST" action="{{ url_for('main.save_day') }}">
-          <input type="hidden" name="user_id" value="{{ user.id }}">
-          <input type="hidden" name="fecha" value="{{ f.strftime('%Y-%m-%d') }}">
+        <div class="collapse mt-2" id="collapse{{ loop.index }}">
+          <div class="collapse-box text-start">
+            <form method="POST" action="{{ url_for('main.save_day') }}">
+              <input type="hidden" name="user_id" value="{{ user.id }}">
+              <input type="hidden" name="fecha" value="{{ f.strftime('%Y-%m-%d') }}">
+              
+              <label class="form-label small text-secondary">Tipo de día</label>
+              <select class="form-select form-select-sm mb-2" name="plan_type">
+                {% for val,label in [("fuerza","Fuerza"),("correr","Correr"),("natacion","Natación"),("bike","Bike"),("fisioterapia","Fisioterapia"),("descanso","Descanso")] %}
+                  <option value="{{ val }}" {% if plan.plan_type==val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
 
-          <label class="form-label mt-1 mb-1 small text-secondary">Tipo de día</label>
-          <select class="form-select form-select-sm day-select" name="plan_type">
-            {% for val,label in [("fuerza","Fuerza"),("correr","Correr"),("natacion","Natación"),("bike","Bike"),("fisioterapia","Fisioterapia"),("descanso","Descanso")] %}
-              <option value="{{ val }}" {% if plan.plan_type==val %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-
-          <div class="row g-2 mt-2">
-            <div class="col-12">
-              <label class="small text-secondary mb-1">Calentamiento</label>
-              <textarea class="form-control form-control-sm day-text" name="warmup" rows="2" placeholder="Movilidad + activación...">{{ plan.warmup or "" }}</textarea>
-            </div>
-            <div class="col-12">
-              <label class="small text-secondary mb-1">Entrenamiento</label>
-              <textarea class="form-control form-control-sm day-text" name="main" rows="3" placeholder="Bloque principal...">{{ plan.main or "" }}</textarea>
-            </div>
-            <div class="col-12">
-              <label class="small text-secondary mb-1">Bloque final</label>
-              <textarea class="form-control form-control-sm day-text" name="finisher" rows="2" placeholder="Core / movilidad / descarga...">{{ plan.finisher or "" }}</textarea>
-            </div>
+              <label class="small text-secondary">Calentamiento</label>
+              <textarea class="form-control form-control-sm mb-2" name="warmup" rows="2">{{ plan.warmup or "" }}</textarea>
+              <label class="small text-secondary">Entrenamiento</label>
+              <textarea class="form-control form-control-sm mb-2" name="main" rows="3">{{ plan.main or "" }}</textarea>
+              <label class="small text-secondary">Bloque final</label>
+              <textarea class="form-control form-control-sm mb-3" name="finisher" rows="2">{{ plan.finisher or "" }}</textarea>
+              <div class="text-end">
+                <button class="btn btn-vir btn-sm"><i class="bi bi-save"></i> Guardar</button>
+              </div>
+            </form>
           </div>
-
-          <div class="row g-2 mt-2">
-            <div class="col-6">
-              <label class="small text-secondary mb-1">Propuesto</label>
-              <input type="number" class="form-control form-control-sm day-text" name="propuesto_score" value="{{ plan.propuesto_score or 0 }}">
-            </div>
-            <div class="col-6">
-              <label class="small text-secondary mb-1">Realizado</label>
-              <input type="number" class="form-control form-control-sm day-text" name="realizado_score" value="{{ plan.realizado_score or 0 }}">
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-end mt-3">
-            <button class="btn btn-vir btn-sm"><i class="bi bi-save"></i> Guardar</button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
     {% endfor %}
   </div>
 </div>
 
-<!-- Gráfico: Propuesto vs Realizado (líneas) -->
+<!-- Line Chart -->
 <div class="panel mt-4">
   <div class="title mb-2"><i class="bi bi-graph-up"></i> Propuesto vs Realizado</div>
-  <canvas id="lineChart" height="100"></canvas>
+  <canvas id="lineChart" height="90"></canvas>
 </div>
 
-<!-- Rutinas de fuerza sugeridas -->
+<!-- Rutinas de fuerza -->
 <div class="panel mt-4">
-  <div class="title mb-3"><i class="bi bi-lightning-charge"></i> Rutinas de Fuerza para realizar</div>
+  <div class="title mb-3"><i class="bi bi-lightning-charge"></i> Rutinas de fuerza</div>
   <div class="row g-3">
     {% for r in rutinas %}
-    <div class="col-md-6 col-lg-4">
-      <div class="routine-card h-100">
-        <img src="{{ r.imagen_url or 'https://images.unsplash.com/photo-1517963628607-235ccdd5476a?q=80&w=1600&auto=format&fit=crop' }}" class="routine-thumb w-100" alt="rutina">
-        <div class="p-3">
-          <div class="d-flex justify-content-between align-items-center">
-            <h6 class="mb-1">{{ r.titulo }}</h6>
-            <span class="badge badge-vir bg-danger">{{ r.nivel }}</span>
+      <div class="col-md-4">
+        <div class="card bg-dark text-light border-0 shadow-lg h-100" style="border-radius: 18px;">
+          <img src="{{ r.imagen_url or 'https://images.unsplash.com/photo-1517963628607-235ccdd5476a?q=80&w=1600&auto=format&fit=crop' }}" 
+               class="card-img-top" style="height: 160px; object-fit: cover; border-radius: 18px 18px 0 0;">
+          <div class="card-body">
+            <h5 class="card-title">{{ r.titulo }}</h5>
+            <p class="text-secondary small">{{ r.descripcion or "Sesión de fuerza general." }}</p>
+            <a href="#" class="btn btn-outline-light btn-sm w-100" onclick="alert('Versión IA de rutina con video 🤖');">Ver detalles</a>
           </div>
-          <div class="text-secondary small">Duración aprox: {{ r.duracion_min }}’</div>
-          <p class="small mt-2 mb-2">{{ r.descripcion or "Sesión de fuerza completa." }}</p>
-          {% if r.ejercicios %}
-          <ul class="small text-secondary mb-2" style="padding-left: 18px;">
-            {% for e in r.ejercicios[:3] %}
-              <li>{{ e.nombre }} ({{ e.series }} x {{ e.repeticiones }})</li>
-            {% endfor %}
-          </ul>
-          {% endif %}
-          <a class="btn btn-outline-light btn-sm" href="#" onclick="alert('Pronto: detalle con videos IA 🤖');">Ver rutina</a>
         </div>
       </div>
-    </div>
     {% else %}
-      <div class="text-secondary">Aún no hay rutinas cargadas.</div>
+      <p class="text-secondary">No hay rutinas configuradas.</p>
     {% endfor %}
   </div>
 </div>
@@ -168,8 +127,7 @@ new Chart(ctx, {
         borderColor: '#e63946',
         backgroundColor: 'rgba(230,57,70,.15)',
         borderWidth: 3,
-        tension: .35,
-        pointRadius: 3
+        tension: .35
       },
       {
         label: 'Realizado',
@@ -177,8 +135,7 @@ new Chart(ctx, {
         borderColor: '#12fff7',
         backgroundColor: 'rgba(18,255,247,.12)',
         borderWidth: 3,
-        tension: .35,
-        pointRadius: 3
+        tension: .35
       }
     ]
   },

@@ -3,249 +3,192 @@
 
 {% block content %}
 <style>
-  :root {
-    --bg-dark: #0b0c0e;
-    --panel: #111317;
-    --accent-red: #e63946;
-    --accent-blue: #1e88e5;
-    --text-light: #f8f9fa;
-    --muted: #a1a5ad;
+  body{background: radial-gradient(1200px 600px at 10% 0%, rgba(220,30,40,0.18), transparent 40%), #070809;}
+  .header-vir{
+    background: linear-gradient(135deg, rgba(220,30,40,.25), rgba(10,14,18,.7));
+    border-radius: 20px; padding: 24px 28px; color: #fff; box-shadow: 0 10px 35px rgba(0,0,0,.4);
   }
-
-  body {
-    background: radial-gradient(circle at 30% 30%, #0f0f12 0%, #050607 100%);
+  .panel{background:#0e1116;border-radius:18px;padding:18px 18px;box-shadow:0 8px 26px rgba(0,0,0,.35);color:#e9ecef}
+  .title{font-weight:700;letter-spacing:.3px}
+  .badge-vir{background:#e63946}
+  .day-card{
+    background:#11151b;border:1px solid rgba(255,255,255,.06);
+    border-radius:14px;padding:14px;min-height:100%;transition:.15s; color:#e9ecef
   }
-
-  .profile-header {
-    background: linear-gradient(135deg, rgba(230,57,70,0.15), rgba(30,136,229,0.08));
-    border-radius: 20px;
-    padding: 2rem;
-    margin-top: 2rem;
-    box-shadow: 0 0 25px rgba(230,57,70,0.2);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .profile-header h2 {
-    font-weight: 700;
-    color: var(--text-light);
-  }
-
-  .info-tag {
-    font-size: 0.95rem;
-    color: var(--muted);
-  }
-
-  .section-card {
-    background: var(--panel);
-    border-radius: 18px;
-    padding: 1.5rem;
-    margin-top: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  }
-
-  .training-blocks {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-
-  .block {
-    border-radius: 16px;
-    padding: 1.2rem;
-    color: var(--text-light);
-  }
-
-  .block.blue {
-    background: linear-gradient(145deg, #1e3c72, #2a5298);
-  }
-
-  .block.red {
-    background: linear-gradient(145deg, #8e0e00, #e52d27);
-  }
-
-  .calendar-week {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 1.2rem;
-  }
-
-  .day-box {
-    background: #181a1f;
-    border-radius: 12px;
-    width: 80px;
-    height: 90px;
-    text-align: center;
-    color: var(--text-light);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    margin: 6px;
-    transition: 0.3s;
-  }
-
-  .day-box.active {
-    border: 2px solid var(--accent-red);
-  }
-
-  .day-box:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(230,57,70,0.4);
-  }
-
-  .plus-btn {
-    background: none;
-    border: 1px solid var(--muted);
-    border-radius: 50%;
-    color: var(--muted);
-    width: 28px;
-    height: 28px;
-    font-weight: bold;
-    line-height: 1;
-  }
-
-  canvas {
-    width: 100%;
-    height: 280px;
-  }
-
-  .training-list {
-    margin-top: 2rem;
-  }
-
-  .training-item {
-    background: #15171b;
-    border-left: 5px solid var(--accent-blue);
-    padding: 1rem;
-    border-radius: 10px;
-    margin-bottom: 0.8rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .training-item span {
-    font-weight: 600;
-    color: var(--text-light);
-  }
-
-  .training-item small {
-    color: var(--muted);
-  }
-
-  .training-item .btn {
-    font-size: 0.85rem;
-  }
-
-  .see-month {
-    background: none;
-    border: 1px solid var(--muted);
-    color: var(--text-light);
-    border-radius: 12px;
-    padding: 0.4rem 1rem;
-    float: right;
-    transition: 0.3s;
-  }
-
-  .see-month:hover {
-    background: var(--accent-red);
-    border-color: var(--accent-red);
-  }
+  .day-card:hover{transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .day-date{font-weight:700;font-size:1.05rem}
+  .day-week{color:#9aa3ac;font-size:.85rem}
+  .day-select,.day-text{background:#0b0f14;color:#e2e6ea;border:1px solid rgba(255,255,255,.08)}
+  .btn-vir{background:#e63946;border:none;font-weight:700}
+  .btn-vir:hover{background:#be2f3a}
+  .routine-card{background:#10141a;border:1px solid rgba(255,255,255,.06);border-radius:16px}
+  .routine-thumb{border-radius:16px 16px 0 0; height:150px; object-fit:cover}
 </style>
 
-<div class="profile-header">
-  <div>
-    <h2>{{ user.nombre }}</h2>
-    <p class="info-tag">{{ user.email }} &nbsp;•&nbsp; Grupo: {{ user.grupo or "—" }}</p>
+<div class="header-vir mb-4">
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h2 class="mb-1">{{ user.nombre }}</h2>
+      <div class="text-secondary small">{{ user.email }}{% if user.grupo %} • Grupo: {{ user.grupo }}{% endif %}</div>
+    </div>
+    <div>
+      <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.logout') }}"><i class="bi bi-box-arrow-right"></i> Salir</a>
+    </div>
   </div>
 </div>
 
-<div class="section-card training-blocks">
-  <div class="block blue">
-    <h5>Último entrenamiento</h5>
-    <p>No hay entrenamientos anteriores.</p>
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="panel h-100">
+      <div class="title mb-2"><i class="bi bi-clock-history"></i> Último entrenamiento</div>
+      <div class="text-secondary">No hay entrenamientos anteriores.</div>
+    </div>
   </div>
-  <div class="block red">
-    <h5>Próximo entrenamiento</h5>
-    <p>No hay próximos entrenamientos planificados.</p>
+  <div class="col-md-6">
+    <div class="panel h-100">
+      <div class="title mb-2"><i class="bi bi-calendar-event"></i> Próximo entrenamiento</div>
+      <div class="text-secondary">No hay próximos entrenamientos planificados.</div>
+    </div>
   </div>
 </div>
 
-<div class="section-card">
-  <div class="d-flex justify-content-between align-items-center">
-    <h5>Calendario semanal</h5>
-    <button class="see-month">Ver mes completo</button>
+<!-- Calendario semanal -->
+<div class="panel mt-4">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <div class="title"><i class="bi bi-calendar-week"></i> Calendario semanal</div>
+    <button class="btn btn-outline-light btn-sm">Ver mes completo</button>
   </div>
 
-  <div class="calendar-week">
-    {% for d in ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"] %}
-    <div class="day-box {% if loop.index == 4 %}active{% endif %}">
-      <strong>{{ 27 + loop.index }}</strong>
-      <small>{{ d }}</small>
-      <button class="plus-btn">+</button>
+  <div class="row g-3">
+    {% for f in fechas %}
+    {% set plan = planes[f] %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="day-card">
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="day-date">{{ f.strftime("%d/%m") }}</div>
+          <div class="day-week">{{ ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][loop.index0] }}</div>
+        </div>
+
+        <form class="mt-2" method="POST" action="{{ url_for('main.save_day') }}">
+          <input type="hidden" name="user_id" value="{{ user.id }}">
+          <input type="hidden" name="fecha" value="{{ f.strftime('%Y-%m-%d') }}">
+
+          <label class="form-label mt-1 mb-1 small text-secondary">Tipo de día</label>
+          <select class="form-select form-select-sm day-select" name="plan_type">
+            {% for val,label in [("fuerza","Fuerza"),("correr","Correr"),("natacion","Natación"),("bike","Bike"),("fisioterapia","Fisioterapia"),("descanso","Descanso")] %}
+              <option value="{{ val }}" {% if plan.plan_type==val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+
+          <div class="row g-2 mt-2">
+            <div class="col-12">
+              <label class="small text-secondary mb-1">Calentamiento</label>
+              <textarea class="form-control form-control-sm day-text" name="warmup" rows="2" placeholder="Movilidad + activación...">{{ plan.warmup or "" }}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="small text-secondary mb-1">Entrenamiento</label>
+              <textarea class="form-control form-control-sm day-text" name="main" rows="3" placeholder="Bloque principal...">{{ plan.main or "" }}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="small text-secondary mb-1">Bloque final</label>
+              <textarea class="form-control form-control-sm day-text" name="finisher" rows="2" placeholder="Core / movilidad / descarga...">{{ plan.finisher or "" }}</textarea>
+            </div>
+          </div>
+
+          <div class="row g-2 mt-2">
+            <div class="col-6">
+              <label class="small text-secondary mb-1">Propuesto</label>
+              <input type="number" class="form-control form-control-sm day-text" name="propuesto_score" value="{{ plan.propuesto_score or 0 }}">
+            </div>
+            <div class="col-6">
+              <label class="small text-secondary mb-1">Realizado</label>
+              <input type="number" class="form-control form-control-sm day-text" name="realizado_score" value="{{ plan.realizado_score or 0 }}">
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-3">
+            <button class="btn btn-vir btn-sm"><i class="bi bi-save"></i> Guardar</button>
+          </div>
+        </form>
+      </div>
     </div>
     {% endfor %}
   </div>
 </div>
 
-<div class="section-card">
-  <h5>Tu progreso semanal</h5>
-  <canvas id="progresoChart"></canvas>
+<!-- Gráfico: Propuesto vs Realizado (líneas) -->
+<div class="panel mt-4">
+  <div class="title mb-2"><i class="bi bi-graph-up"></i> Propuesto vs Realizado</div>
+  <canvas id="lineChart" height="100"></canvas>
 </div>
 
-<div class="section-card training-list">
-  <h5>Entrenamientos de fuerza propuestos</h5>
-
-  <div class="training-item">
-    <div>
-      <span>Full Body 45’</span><br>
-      <small>Fuerza general + Core</small>
+<!-- Rutinas de fuerza sugeridas -->
+<div class="panel mt-4">
+  <div class="title mb-3"><i class="bi bi-lightning-charge"></i> Rutinas de Fuerza para realizar</div>
+  <div class="row g-3">
+    {% for r in rutinas %}
+    <div class="col-md-6 col-lg-4">
+      <div class="routine-card h-100">
+        <img src="{{ r.imagen_url or 'https://images.unsplash.com/photo-1517963628607-235ccdd5476a?q=80&w=1600&auto=format&fit=crop' }}" class="routine-thumb w-100" alt="rutina">
+        <div class="p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-1">{{ r.titulo }}</h6>
+            <span class="badge badge-vir bg-danger">{{ r.nivel }}</span>
+          </div>
+          <div class="text-secondary small">Duración aprox: {{ r.duracion_min }}’</div>
+          <p class="small mt-2 mb-2">{{ r.descripcion or "Sesión de fuerza completa." }}</p>
+          {% if r.ejercicios %}
+          <ul class="small text-secondary mb-2" style="padding-left: 18px;">
+            {% for e in r.ejercicios[:3] %}
+              <li>{{ e.nombre }} ({{ e.series }} x {{ e.repeticiones }})</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          <a class="btn btn-outline-light btn-sm" href="#" onclick="alert('Pronto: detalle con videos IA 🤖');">Ver rutina</a>
+        </div>
+      </div>
     </div>
-    <button class="btn btn-outline-light btn-sm">Ver rutina</button>
-  </div>
-
-  <div class="training-item">
-    <div>
-      <span>Piernas y glúteos</span><br>
-      <small>Enfocado en tren inferior</small>
-    </div>
-    <button class="btn btn-outline-light btn-sm">Ver rutina</button>
-  </div>
-
-  <div class="training-item">
-    <div>
-      <span>Resistencia + HIIT</span><br>
-      <small>Cardio y estabilidad</small>
-    </div>
-    <button class="btn btn-outline-light btn-sm">Ver rutina</button>
+    {% else %}
+      <div class="text-secondary">Aún no hay rutinas cargadas.</div>
+    {% endfor %}
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('progresoChart');
+const ctx = document.getElementById('lineChart').getContext('2d');
 new Chart(ctx, {
-  type: 'bar',
+  type: 'line',
   data: {
-    labels: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
-    datasets: [{
-      label: 'Cumplimiento semanal (%)',
-      data: [60,70,80,75,50,0,0],
-      backgroundColor: 'rgba(230,57,70,0.8)',
-      borderRadius: 6
-    }]
+    labels: {{ labels|tojson }},
+    datasets: [
+      {
+        label: 'Propuesto',
+        data: {{ propuesto|tojson }},
+        borderColor: '#e63946',
+        backgroundColor: 'rgba(230,57,70,.15)',
+        borderWidth: 3,
+        tension: .35,
+        pointRadius: 3
+      },
+      {
+        label: 'Realizado',
+        data: {{ realizado|tojson }},
+        borderColor: '#12fff7',
+        backgroundColor: 'rgba(18,255,247,.12)',
+        borderWidth: 3,
+        tension: .35,
+        pointRadius: 3
+      }
+    ]
   },
   options: {
-    plugins: { legend: { display: false } },
+    plugins: { legend: { labels: { color: '#cfd4da' } } },
     scales: {
-      y: { beginAtZero: true, grid: { color: '#222' }, ticks:{ color:'#888' } },
-      x: { grid: { display: false }, ticks:{ color:'#ccc' } }
+      x: { ticks:{ color:'#9aa3ac' }, grid:{ color:'rgba(255,255,255,.06)' } },
+      y: { ticks:{ color:'#9aa3ac' }, grid:{ color:'rgba(255,255,255,.06)' }, beginAtZero:true }
     }
   }
 });
 </script>
-
 {% endblock %}

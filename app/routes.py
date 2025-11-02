@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, render_template_string
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import User, DiaPlan, Rutina
 from app.extensions import db
@@ -74,6 +74,7 @@ def perfil_usuario(user_id):
         DiaPlan.fecha.in_(fechas)
     ).all()}
 
+    # Crear placeholders si faltan días
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -90,6 +91,9 @@ def perfil_usuario(user_id):
     except Exception:
         rutinas = []
 
+    # (opcional) semana_str para el título
+    semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+
     return render_template(
         "perfil.html",
         user=user,
@@ -98,7 +102,8 @@ def perfil_usuario(user_id):
         labels=labels,
         propuesto=propuesto,
         realizado=realizado,
-        rutinas=rutinas
+        rutinas=rutinas,
+        semana_str=semana_str
     )
 
 
@@ -110,7 +115,17 @@ def save_day():
         flash("Acceso denegado.", "danger")
         return redirect(url_for("main.perfil"))
 
-    fecha = datetime.strptime(request.form["fecha"], "%Y-%m-%d").date()
+    fecha_str = request.form["fecha"].strip()
+    # Parseo robusto (YYYY-MM-DD o con hora)
+    try:
+        fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+    except ValueError:
+        try:
+            fecha = datetime.fromisoformat(fecha_str).date()
+        except ValueError:
+            flash("Fecha inválida.", "danger")
+            return redirect(url_for("main.perfil_usuario", user_id=user_id))
+
     plan_type = request.form.get("plan_type", "descanso")
     warmup = request.form.get("warmup", "")
     main = request.form.get("main", "")
@@ -143,3 +158,63 @@ def dashboard_entrenador():
         return redirect(url_for("main.perfil"))
     atletas = User.query.filter(User.email != "admin@vir.app").all()
     return render_template("dashboard_entrenador.html", atletas=atletas)
+
+
+# ================================
+# ✅ RUTA FALTANTE: listar_rutinas
+# ================================
+@main_bp.route("/rutinas")
+@login_required
+def listar_rutinas():
+    # No dependemos de un template extra para evitar errores de fichero
+    try:
+        rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
+    except Exception:
+        rutinas = []
+
+    html = """
+    <!doctype html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Rutinas</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-dark text-light">
+      <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="mb-0">📚 Biblioteca de Rutinas</h3>
+          <a href="{{ url_for('main.perfil') }}" class="btn btn-outline-light btn-sm">Volver al perfil</a>
+        </div>
+
+        {% if rutinas %}
+          <div class="row">
+            {% for r in rutinas %}
+            <div class="col-md-4 mb-3">
+              <div class="card bg-secondary text-light h-100">
+                <div class="card-body">
+                  <h5 class="card-title">{{ r.nombre }}</h5>
+                  <p class="card-text">{{ r.descripcion or '' }}</p>
+                  {% if r.items %}
+                    <ul class="small">
+                      {% for it in r.items %}
+                        <li><strong>{{ it.nombre }}</strong>{% if it.reps %} — {{ it.reps }}{% endif %}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p class="small text-dark-emphasis">Sin items todavía.</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="alert alert-secondary">No hay rutinas cargadas.</div>
+        {% endif %}
+      </div>
+    </body>
+    </html>
+    """
+    return render_template_string(html, rutinas=rutinas)

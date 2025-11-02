@@ -23,10 +23,10 @@ def create_app():
     login_manager.login_view = "main.login"
     login_manager.init_app(app)
 
-    # 🔥 Inyectar datetime globalmente para footer y templates
+    # ✅ Inyectamos la clase datetime.datetime, no el módulo
     @app.context_processor
     def inject_datetime():
-        return {"datetime": datetime}
+        return {"datetime_now": datetime.datetime.utcnow}
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -41,7 +41,6 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        # Si rutina no existe, la crea con SQL puro
         try:
             db.session.execute(text("SELECT id FROM rutina LIMIT 1;"))
         except Exception:
@@ -73,7 +72,6 @@ def create_app():
             db.session.commit()
             print("✅ Tablas rutina y rutina_item creadas correctamente.")
 
-        # Crear admin si no existe
         admin = User.query.filter_by(email="admin@vir.app").first()
         if not admin:
             admin = User(nombre="Admin ViR", email="admin@vir.app", grupo="Entrenador")

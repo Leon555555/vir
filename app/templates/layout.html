@@ -4,17 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}ViR — Vital Intelligence & Resilience{% endblock %}</title>
-
-  <!-- Favicon -->
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2729/2729007.png" />
-
-  <!-- Bootstrap -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
-
-  <!-- Google Fonts -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
@@ -26,7 +17,6 @@
       display: flex;
       flex-direction: column;
     }
-
     header.navbar {
       background: linear-gradient(90deg, #111827, #1e293b);
       border-bottom: 1px solid #334155;
@@ -35,72 +25,15 @@
       justify-content: space-between;
       align-items: center;
     }
-
-    header .brand {
-      font-weight: 700;
-      font-size: 1.3rem;
-      color: #22d3ee;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    header a {
-      color: #cbd5e1;
-      margin-left: 1rem;
-      text-decoration: none;
-      transition: color 0.3s ease;
-    }
-
-    header a:hover {
-      color: #22d3ee;
-    }
-
-    main.container {
-      flex: 1;
-      padding-top: 2rem;
-      padding-bottom: 2rem;
-    }
-
-    footer {
-      background: #0f172a;
-      color: #64748b;
-      text-align: center;
-      padding: 0.8rem;
-      font-size: 0.9rem;
-      border-top: 1px solid #1e293b;
-    }
-
-    .btn-vir {
-      background: linear-gradient(90deg, #22d3ee, #0ea5e9);
-      color: #0f172a;
-      border: none;
-      font-weight: 600;
-      transition: transform 0.2s ease;
-    }
-
-    .btn-vir:hover {
-      transform: scale(1.05);
-      color: #0f172a;
-    }
-
-    .flash {
-      animation: fadeIn 0.4s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Scrollbar moderno */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, #22d3ee, #0ea5e9);
-      border-radius: 4px;
-    }
+    header .brand { font-weight: 700; font-size: 1.3rem; color: #22d3ee; text-transform: uppercase; }
+    header a { color: #cbd5e1; margin-left: 1rem; text-decoration: none; }
+    header a:hover { color: #22d3ee; }
+    main.container { flex: 1; padding: 2rem 1rem; }
+    footer { background: #0f172a; color: #64748b; text-align: center; padding: .8rem; font-size: .9rem; border-top: 1px solid #1e293b; }
+    .btn-vir { background: linear-gradient(90deg,#22d3ee,#0ea5e9); color: #0f172a; border: none; font-weight: 600; }
+    .btn-vir:hover { transform: scale(1.05); color: #0f172a; }
   </style>
 </head>
-
 <body>
   <header class="navbar">
     <div class="brand">ViR</div>
@@ -121,19 +54,14 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }} flash mt-2">{{ message }}</div>
+          <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
         {% endfor %}
       {% endif %}
     {% endwith %}
-
     {% block content %}{% endblock %}
   </main>
 
-  <footer>
-    © {{ datetime_now().year }} ViR — Vital Intelligence & Resilience
-  </footer>
-
-  <!-- Bootstrap JS -->
+  <footer>© {{ datetime_now().year }} ViR — Vital Intelligence & Resilience</footer>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

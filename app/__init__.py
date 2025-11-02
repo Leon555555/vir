@@ -23,7 +23,7 @@ def create_app():
     login_manager.login_view = "main.login"
     login_manager.init_app(app)
 
-    # ✅ Inyectamos la clase datetime.datetime, no el módulo
+    # ✅ inyección de fecha para el footer
     @app.context_processor
     def inject_datetime():
         return {"datetime_now": datetime.datetime.utcnow}
@@ -39,6 +39,11 @@ def create_app():
     # CREAR TABLAS AUTOMÁTICAMENTE
     # ===============================
     with app.app_context():
+        # 🔥 Limpieza de tablas mal creadas (soluciona "nombre no existe")
+        db.session.execute(text("DROP TABLE IF EXISTS rutina CASCADE;"))
+        db.session.execute(text("DROP TABLE IF EXISTS rutina_item CASCADE;"))
+        db.session.commit()
+
         db.create_all()
 
         try:
@@ -72,6 +77,7 @@ def create_app():
             db.session.commit()
             print("✅ Tablas rutina y rutina_item creadas correctamente.")
 
+        # Crear admin si no existe
         admin = User.query.filter_by(email="admin@vir.app").first()
         if not admin:
             admin = User(nombre="Admin ViR", email="admin@vir.app", grupo="Entrenador")
@@ -81,5 +87,16 @@ def create_app():
             print("✅ Admin creado: admin@vir.app / vir2025")
         else:
             print("✅ Admin ya existe.")
+
+        # Crear atleta de prueba si no existe
+        viru = User.query.filter_by(email="viru@vir.app").first()
+        if not viru:
+            viru = User(nombre="Viru", email="viru@vir.app", grupo="Atleta")
+            viru.set_password("viru2025")
+            db.session.add(viru)
+            db.session.commit()
+            print("✅ Usuario 'Viru' creado: viru@vir.app / viru2025")
+        else:
+            print("✅ Usuario 'Viru' ya existe.")
 
     return app

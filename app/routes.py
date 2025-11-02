@@ -1,24 +1,22 @@
-import os
-import re
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.utils import secure_filename
-from app.models import User, DiaPlan, Rutina, RutinaItem
+from app.models import User, DiaPlan, Rutina
 from app.extensions import db
 
 main_bp = Blueprint("main", __name__)
 
-# ===================== Helpers =====================
+
 def start_of_week(d: date) -> date:
-    return d - timedelta(days=d.weekday())
+    return d - timedelta(days=(d.weekday() % 7))
+
 
 def week_dates(center: date | None = None):
     base = center or date.today()
     start = start_of_week(base)
     return [start + timedelta(days=i) for i in range(7)]
 
-# ===================== LOGIN =====================
+
 @main_bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -27,12 +25,14 @@ def index():
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
+
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = request.form["email"].strip().lower()
         password = request.form["password"]
         user = User.query.filter_by(email=email).first()
+
         if user and user.check_password(password):
             login_user(user)
             flash(f"Bienvenido {user.nombre} 👋", "success")
@@ -42,6 +42,7 @@ def login():
         flash("❌ Usuario o contraseña incorrectos.", "danger")
     return render_template("login.html")
 
+
 @main_bp.route("/logout")
 @login_required
 def logout():
@@ -49,11 +50,12 @@ def logout():
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("main.login"))
 
-# ===================== PERFIL =====================
+
 @main_bp.route("/perfil")
 @login_required
 def perfil():
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+
 
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
@@ -82,8 +84,11 @@ def perfil_usuario(user_id):
     labels = [f.strftime("%d/%m") for f in fechas]
     propuesto = [planes[f].propuesto_score or 0 for f in fechas]
     realizado = [planes[f].realizado_score or 0 for f in fechas]
-    rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(6).all()
-    semana_str = f"Semana del {fechas[0].strftime('%d/%m')} al {fechas[-1].strftime('%d/%m')}"
+
+    try:
+        rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(6).all()
+    except Exception:
+        rutinas = []
 
     return render_template(
         "perfil.html",
@@ -93,9 +98,9 @@ def perfil_usuario(user_id):
         labels=labels,
         propuesto=propuesto,
         realizado=realizado,
-        rutinas=rutinas,
-        semana_str=semana_str
+        rutinas=rutinas
     )
+
 
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
@@ -129,7 +134,7 @@ def save_day():
     flash("✅ Día actualizado.", "success")
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
-# ===================== DASHBOARD =====================
+
 @main_bp.route("/coach/dashboard")
 @login_required
 def dashboard_entrenador():

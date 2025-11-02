@@ -2,8 +2,10 @@ import os
 import datetime
 from flask import Flask
 from flask_login import LoginManager
+from sqlalchemy import text
 from app.extensions import db, migrate
 from app.models import User, Rutina, RutinaItem, DiaPlan
+
 
 def create_app():
     app = Flask(__name__)
@@ -21,7 +23,7 @@ def create_app():
     login_manager.login_view = "main.login"
     login_manager.init_app(app)
 
-    # ✅ Inyectamos datetime globalmente
+    # 🔥 Inyectar datetime globalmente para footer y templates
     @app.context_processor
     def inject_datetime():
         return {"datetime": datetime}
@@ -33,23 +35,29 @@ def create_app():
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
-    # ✅ Crea todas las tablas automáticamente si no existen
+    # ===============================
+    # CREAR TABLAS AUTOMÁTICAMENTE
+    # ===============================
     with app.app_context():
         db.create_all()
 
-        # ✅ Si la tabla 'rutina' no existe, la crea a mano
+        # Si rutina no existe, la crea con SQL puro
         try:
-            db.session.execute("SELECT id FROM rutina LIMIT 1;")
+            db.session.execute(text("SELECT id FROM rutina LIMIT 1;"))
         except Exception:
-            db.session.execute("""
+            print("⚙️ Creando tablas rutina y rutina_item manualmente...")
+            db.session.execute(
+                text("""
                 CREATE TABLE IF NOT EXISTS rutina (
                     id SERIAL PRIMARY KEY,
                     nombre VARCHAR(120) NOT NULL,
                     descripcion TEXT,
                     created_by INTEGER REFERENCES "user"(id)
                 );
-            """)
-            db.session.execute("""
+                """)
+            )
+            db.session.execute(
+                text("""
                 CREATE TABLE IF NOT EXISTS rutina_item (
                     id SERIAL PRIMARY KEY,
                     rutina_id INTEGER REFERENCES rutina(id),
@@ -60,11 +68,12 @@ def create_app():
                     imagen_url VARCHAR(255),
                     nota TEXT
                 );
-            """)
+                """)
+            )
             db.session.commit()
-            print("✅ Tablas rutina y rutina_item creadas.")
+            print("✅ Tablas rutina y rutina_item creadas correctamente.")
 
-        # ✅ Crea el admin
+        # Crear admin si no existe
         admin = User.query.filter_by(email="admin@vir.app").first()
         if not admin:
             admin = User(nombre="Admin ViR", email="admin@vir.app", grupo="Entrenador")

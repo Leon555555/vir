@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}Rutinas{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="text-light">Rutinas creadas</h3>
+    <a href="{{ url_for('main.nueva_rutina') }}" class="btn btn-danger">➕ Nueva rutina</a>
+  </div>
+
+  <div class="row g-3">
+    {% for r in rutinas %}
+      <div class="col-md-4">
+        <div class="card bg-dark text-light border-0 h-100">
+          <div class="card-body">
+            <h5 class="card-title">{{ r.nombre }}</h5>
+            <p class="text-secondary small">{{ r.descripcion or "—" }}</p>
+            <span class="badge bg-secondary">{{ r.items|length }} ejercicios</span>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <p class="text-secondary">Aún no hay rutinas.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

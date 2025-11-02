@@ -1,150 +1,156 @@
 {% extends "layout.html" %}
-{% block title %}Perfil — {{ user.nombre }}{% endblock %}
-
+{% block title %}Perfil de {{ user.nombre }}{% endblock %}
 {% block content %}
-<style>
-  body{background: radial-gradient(1000px 600px at 10% 0%, rgba(220,30,40,0.15), transparent 50%), #070809;}
-  .panel{background:#0e1116;border-radius:18px;padding:20px;box-shadow:0 8px 26px rgba(0,0,0,.35);color:#e9ecef}
-  .title{font-weight:700;letter-spacing:.3px}
-  .day-button{
-    background:#13181f;border:1px solid rgba(255,255,255,.07);
-    border-radius:12px; padding:16px 12px; color:#eee; font-weight:600;
-    cursor:pointer; transition:.15s; text-align:center;
-  }
-  .day-button:hover{background:#1a1f27}
-  .day-button.fuerza{border-left:4px solid #e63946;}
-  .day-button.correr{border-left:4px solid #12fff7;}
-  .day-button.natacion{border-left:4px solid #1f78ff;}
-  .day-button.bike{border-left:4px solid #f5a623;}
-  .day-button.fisioterapia{border-left:4px solid #a020f0;}
-  .day-button.descanso{border-left:4px solid #555;}
-  .day-title{font-size:1rem;font-weight:600;}
-  .collapse-box{background:#10141a;border-radius:12px;margin-top:10px;padding:14px 18px;border:1px solid rgba(255,255,255,.06);}
-  .form-control-sm{background:#0b0f14;border:none;color:#eee;}
-  .btn-vir{background:#e63946;border:none;font-weight:700}
-  .btn-vir:hover{background:#be2f3a}
-</style>
 
-<!-- Header -->
-<div class="panel mb-4">
-  <div class="d-flex align-items-center justify-content-between">
-    <div>
-      <h3 class="mb-1">{{ user.nombre }}</h3>
-      <div class="text-secondary small">{{ user.email }}{% if user.grupo %} • Grupo: {{ user.grupo }}{% endif %}</div>
-    </div>
-    <a href="{{ url_for('main.logout') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Salir</a>
+<div class="container mt-4">
+  <div class="text-center mb-4">
+    <h2 class="fw-bold text-light">{{ user.nombre }}</h2>
+    <p class="text-muted">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</p>
   </div>
-</div>
 
-<!-- Semana -->
-<div class="panel">
-  <div class="title mb-3"><i class="bi bi-calendar-week"></i> Semana actual</div>
-  <div class="row g-3 text-center">
-    {% for f in fechas %}
-      {% set plan = planes[f] %}
-      <div class="col-6 col-md-3 col-lg-1-7">
-        <div class="day-button {{ plan.plan_type }}" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
-          <div>{{ ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][loop.index0] }}</div>
-          <div class="day-title mt-1">
-            {% if plan.plan_type == "fuerza" %}Fuerza
-            {% elif plan.plan_type == "correr" %}Correr
-            {% elif plan.plan_type == "natacion" %}Natación
-            {% elif plan.plan_type == "bike" %}Bike
-            {% elif plan.plan_type == "fisioterapia" %}Fisio
-            {% else %}Descanso{% endif %}
-          </div>
+  <!-- Último y próximo entrenamiento -->
+  <div class="row mb-4 text-center">
+    <div class="col-md-6">
+      <div class="card bg-dark border-primary text-light shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title text-primary">🏋️‍♂️ Último entrenamiento</h5>
+          <p class="card-text">No hay entrenamientos anteriores.</p>
         </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card bg-dark border-danger text-light shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title text-danger">🏃‍♂️ Próximo entrenamiento</h5>
+          <p class="card-text">No hay próximos entrenamientos planificados.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        <div class="collapse mt-2" id="collapse{{ loop.index }}">
-          <div class="collapse-box text-start">
-            <form method="POST" action="{{ url_for('main.save_day') }}">
+  <!-- Semana actual -->
+  <div class="card bg-dark border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="text-light mb-0">🗓️ {{ semana_str }}</h5>
+        <a href="#" class="btn btn-outline-light btn-sm">Ver mes completo</a>
+      </div>
+
+      <div class="d-flex justify-content-between flex-wrap gap-2">
+        {% for f in fechas %}
+        <div class="day-box text-center bg-secondary text-light rounded-3 p-3 flex-fill" style="min-width: 130px;">
+          <h6 class="fw-bold mb-1">{{ f.strftime('%a')|capitalize }}</h6>
+          <p class="small text-info mb-2">{{ planes[f].plan_type|capitalize }}</p>
+          <button class="btn btn-outline-light btn-sm" data-bs-toggle="collapse" data-bs-target="#dia{{ loop.index }}">Detalles</button>
+          <div id="dia{{ loop.index }}" class="collapse mt-2 text-start">
+            <form action="{{ url_for('main.save_day') }}" method="POST">
               <input type="hidden" name="user_id" value="{{ user.id }}">
-              <input type="hidden" name="fecha" value="{{ f.strftime('%Y-%m-%d') }}">
-              
-              <label class="form-label small text-secondary">Tipo de día</label>
-              <select class="form-select form-select-sm mb-2" name="plan_type">
-                {% for val,label in [("fuerza","Fuerza"),("correr","Correr"),("natacion","Natación"),("bike","Bike"),("fisioterapia","Fisioterapia"),("descanso","Descanso")] %}
-                  <option value="{{ val }}" {% if plan.plan_type==val %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-
-              <label class="small text-secondary">Calentamiento</label>
-              <textarea class="form-control form-control-sm mb-2" name="warmup" rows="2">{{ plan.warmup or "" }}</textarea>
-              <label class="small text-secondary">Entrenamiento</label>
-              <textarea class="form-control form-control-sm mb-2" name="main" rows="3">{{ plan.main or "" }}</textarea>
-              <label class="small text-secondary">Bloque final</label>
-              <textarea class="form-control form-control-sm mb-3" name="finisher" rows="2">{{ plan.finisher or "" }}</textarea>
-              <div class="text-end">
-                <button class="btn btn-vir btn-sm"><i class="bi bi-save"></i> Guardar</button>
+              <input type="hidden" name="fecha" value="{{ f }}">
+              <div class="mb-2">
+                <label class="form-label text-muted small">Calentamiento</label>
+                <textarea name="warmup" class="form-control form-control-sm">{{ planes[f].warmup or '' }}</textarea>
               </div>
+              <div class="mb-2">
+                <label class="form-label text-muted small">Entrenamiento</label>
+                <textarea name="main" class="form-control form-control-sm">{{ planes[f].main or '' }}</textarea>
+              </div>
+              <div class="mb-2">
+                <label class="form-label text-muted small">Bloque final</label>
+                <textarea name="finisher" class="form-control form-control-sm">{{ planes[f].finisher or '' }}</textarea>
+              </div>
+              <button type="submit" class="btn btn-success btn-sm w-100 mt-2">💾 Guardar</button>
             </form>
           </div>
         </div>
+        {% endfor %}
       </div>
-    {% endfor %}
+    </div>
   </div>
-</div>
 
-<!-- Line Chart -->
-<div class="panel mt-4">
-  <div class="title mb-2"><i class="bi bi-graph-up"></i> Propuesto vs Realizado</div>
-  <canvas id="lineChart" height="90"></canvas>
-</div>
+  <!-- Gráfico Propuesto vs Realizado -->
+  <div class="card bg-dark border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="text-light mb-3">📈 Propuesto vs Realizado</h5>
+      <canvas id="graficoProgreso" height="80"></canvas>
+    </div>
+  </div>
 
-<!-- Rutinas de fuerza -->
-<div class="panel mt-4">
-  <div class="title mb-3"><i class="bi bi-lightning-charge"></i> Rutinas de fuerza</div>
-  <div class="row g-3">
-    {% for r in rutinas %}
-      <div class="col-md-4">
-        <div class="card bg-dark text-light border-0 shadow-lg h-100" style="border-radius: 18px;">
-          <img src="{{ r.imagen_url or 'https://images.unsplash.com/photo-1517963628607-235ccdd5476a?q=80&w=1600&auto=format&fit=crop' }}" 
-               class="card-img-top" style="height: 160px; object-fit: cover; border-radius: 18px 18px 0 0;">
-          <div class="card-body">
-            <h5 class="card-title">{{ r.titulo }}</h5>
-            <p class="text-secondary small">{{ r.descripcion or "Sesión de fuerza general." }}</p>
-            <a href="#" class="btn btn-outline-light btn-sm w-100" onclick="alert('Versión IA de rutina con video 🤖');">Ver detalles</a>
+  <!-- Rutinas de fuerza -->
+  <div class="card bg-dark border-0 shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="text-light mb-0">💪 Rutinas de fuerza</h5>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.listar_rutinas') }}">
+          Ver biblioteca
+        </a>
+      </div>
+
+      <div class="row">
+        {% for r in rutinas %}
+        <div class="col-md-4 mb-3">
+          <div class="card bg-secondary text-light shadow-sm h-100" style="border-radius: 16px;">
+            <div class="card-body">
+              <h6 class="fw-bold">{{ r.nombre }}</h6>
+              <p class="small text-light">{{ r.descripcion or "" }}</p>
+              <button class="btn btn-outline-light btn-sm mt-1" data-bs-toggle="collapse" data-bs-target="#rutina{{ r.id }}">
+                Ver ejercicios ({{ r.items|length }})
+              </button>
+
+              <div id="rutina{{ r.id }}" class="collapse mt-3">
+                {% for it in r.items %}
+                <div class="mb-3 p-2" style="background:#0f1319;border-radius:12px;border:1px solid rgba(255,255,255,.08)">
+                  <div class="d-flex align-items-center gap-2">
+                    <strong class="me-auto">{{ it.nombre }}</strong>
+                    {% if it.reps %}<span class="badge bg-dark">{{ it.reps }}</span>{% endif %}
+                  </div>
+
+                  {% if it.video_url %}
+                    {% if 'youtube' in it.video_url %}
+                      <div class="ratio ratio-16x9 mt-2">
+                        <iframe src="{{ it.video_url }}" title="video" allowfullscreen></iframe>
+                      </div>
+                    {% elif it.video_url.endswith('.mp4') %}
+                      <video class="w-100 mt-2" controls>
+                        <source src="{{ it.video_url }}">
+                      </video>
+                    {% endif %}
+                  {% elif it.imagen_url %}
+                    <img src="{{ it.imagen_url }}" class="img-fluid mt-2 rounded">
+                  {% endif %}
+
+                  {% if it.nota %}
+                    <p class="small text-secondary mt-2">{{ it.nota }}</p>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+            </div>
           </div>
         </div>
+        {% else %}
+        <p class="text-secondary">No hay rutinas configuradas todavía.</p>
+        {% endfor %}
       </div>
-    {% else %}
-      <p class="text-secondary">No hay rutinas configuradas.</p>
-    {% endfor %}
+    </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('lineChart').getContext('2d');
+const ctx = document.getElementById("graficoProgreso").getContext("2d");
 new Chart(ctx, {
-  type: 'line',
+  type: "line",
   data: {
     labels: {{ labels|tojson }},
     datasets: [
-      {
-        label: 'Propuesto',
-        data: {{ propuesto|tojson }},
-        borderColor: '#e63946',
-        backgroundColor: 'rgba(230,57,70,.15)',
-        borderWidth: 3,
-        tension: .35
-      },
-      {
-        label: 'Realizado',
-        data: {{ realizado|tojson }},
-        borderColor: '#12fff7',
-        backgroundColor: 'rgba(18,255,247,.12)',
-        borderWidth: 3,
-        tension: .35
-      }
+      { label: "Propuesto", data: {{ propuesto|tojson }}, borderColor: "#ff4b4b", tension: 0.3, fill: false, borderWidth: 2 },
+      { label: "Realizado", data: {{ realizado|tojson }}, borderColor: "#00ffff", tension: 0.3, fill: false, borderWidth: 2 }
     ]
   },
   options: {
-    plugins: { legend: { labels: { color: '#cfd4da' } } },
-    scales: {
-      x: { ticks:{ color:'#9aa3ac' }, grid:{ color:'rgba(255,255,255,.06)' } },
-      y: { ticks:{ color:'#9aa3ac' }, grid:{ color:'rgba(255,255,255,.06)' }, beginAtZero:true }
-    }
+    responsive: true,
+    plugins: { legend: { labels: { color: "#ddd" } } },
+    scales: { x: { ticks: { color: "#ccc" } }, y: { ticks: { color: "#ccc" } } }
   }
 });
 </script>

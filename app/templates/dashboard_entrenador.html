@@ -1,33 +1,41 @@
 {% extends "layout.html" %}
 {% block title %}Dashboard Entrenador{% endblock %}
 {% block content %}
+
 <div class="container mt-4">
-  <h2 class="mb-4 text-light">
-    🧠 Panel del Entrenador — <span class="text-danger">{{ current_user.nombre }}</span>
-  </h2>
+  <h2 class="mb-4 text-light">🏋️‍♂️ Panel del Entrenador — {{ current_user.nombre }}</h2>
 
-  <!-- 🔧 Botón temporal (futuro: crear atleta) -->
-  <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-danger mb-4">
-    👀 Vista general de atletas
-  </a>
-
-  <div class="row g-4">
-    {% for atleta in atletas %}
-    <div class="col-md-4">
-      <div class="card bg-dark text-light border-0 shadow-lg" style="border-radius: 18px;">
-        <div class="card-body">
-          <h5 class="card-title">{{ atleta.nombre }}</h5>
-          <p class="text-secondary small mb-1">{{ atleta.email }}</p>
-          <p class="small text-light">{{ atleta.grupo or "—" }}</p>
-          <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}" class="btn btn-outline-light btn-sm">
-            👁 Ver perfil
-          </a>
-        </div>
-      </div>
-    </div>
-    {% else %}
-    <p class="text-secondary">No hay atletas registrados todavía.</p>
-    {% endfor %}
+  <div class="d-flex gap-2 mb-4">
+    <a href="{{ url_for('main.nueva_rutina') }}" class="btn btn-danger">➕ Crear nueva rutina</a>
+    <a href="{{ url_for('main.listar_rutinas') }}" class="btn btn-outline-light">📚 Ver rutinas</a>
   </div>
+
+  <table class="table table-dark table-bordered text-center align-middle shadow-sm">
+    <thead class="table-secondary text-dark">
+      <tr>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Grupo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for atleta in atletas %}
+      <tr>
+        <td>{{ atleta.nombre }}</td>
+        <td>{{ atleta.email }}</td>
+        <td>{{ atleta.grupo or '—' }}</td>
+        <td>
+          <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}" class="btn btn-outline-light btn-sm">
+            Ver perfil
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4">No hay atletas registrados todavía.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
+
 {% endblock %}

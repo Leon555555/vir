@@ -1,27 +1,52 @@
+import os
+import re
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from werkzeug.utils import secure_filename
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import User, DiaPlan, Rutina, RutinaItem
 from app.extensions import db
 
 main_bp = Blueprint("main", __name__)
 
-
-# ======================================
-# HELPERS
-# ======================================
-
+# -------- helpers semana --------
 def start_of_week(d: date) -> date:
-    """Devuelve el lunes de la semana de la fecha dada."""
     return d - timedelta(days=d.weekday())
 
-
 def week_dates(center: date | None = None):
-    """Devuelve lista de fechas lunes-domingo."""
     base = center or date.today()
     start = start_of_week(base)
     return [start + timedelta(days=i) for i in range(7)]
 
+# -------- helpers media --------
+YOUTUBE_PATTERNS = [
+    r"(?:https?://)?(?:www\.)?youtube\.com/watch\?v=([A-Za-z0-9_\-]+)",
+    r"(?:https?://)?(?:www\.)?youtu\.be/([A-Za-z0-9_\-]+)",
+]
+def to_youtube_embed(url: str) -> str | None:
+    if not url:
+        return None
+    for pat in YOUTUBE_PATTERNS:
+        m = re.match(pat, url)
+        if m:
+            return f"https://www.youtube.com/embed/{m.group(1)}"
+    return None
+
+def allowed_file(filename: str, allowed: set[str]) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
+
+def save_uploaded(file_storage, allowed_set) -> str | None:
+    if not file_storage or file_storage.filename == "":
+        return None
+    if not allowed_file(file_storage.filename, allowed_set):
+        return None
+    filename = secure_filename(file_storage.filename)
+    base, ext = os.path.splitext(filename)
+    unique = f"{base}-{int(datetime.utcnow().timestamp())}{ext.lower()}"
+    path = os.path.join(current_app.config["UPLOAD_FOLDER"], unique)
+    file_storage.save(path)
+    # devolver ruta estática
+    return f"/static/uploads/{unique}"
 
 # ======================================
 # INDEX / LOGIN / LOGOUT
@@ -35,14 +60,12 @@ def index():
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
-
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = request.form["email"].strip().lower()
         password = request.form["password"]
         user = User.query.filter_by(email=email).first()
-
         if user and user.check_password(password):
             login_user(user)
             flash(f"Bienvenido {user.nombre} 👋", "success")
@@ -52,7 +75,6 @@ def login():
         flash("❌ Usuario o contraseña incorrectos.", "danger")
     return render_template("login.html")
 
-
 @main_bp.route("/logout")
 @login_required
 def logout():
@@ -60,9 +82,8 @@ def logout():
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("main.login"))
 
-
 # ======================================
-# PERFIL DEL USUARIO (ATLETA)
+# PERFIL ATLETA
 # ======================================
 
 @main_bp.route("/perfil")
@@ -70,11 +91,10 @@ def logout():
 def perfil():
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id):
-    # Entrenador puede ver cualquiera; atleta solo el suyo
+    # permisos
     if current_user.email == "admin@vir.app":
         user = User.query.get_or_404(user_id)
     else:
@@ -83,19 +103,16 @@ def perfil_usuario(user_id):
             return redirect(url_for("main.perfil"))
         user = current_user
 
-    # Semana actual dinámica (lunes a domingo)
+    # semana dinámica
     hoy = date.today()
     lunes = hoy - timedelta(days=hoy.weekday())
     fechas = [lunes + timedelta(days=i) for i in range(7)]
     semana_str = f"Semana del {lunes.strftime('%d/%m')} al {(lunes + timedelta(days=6)).strftime('%d/%m')}"
 
-    # Planes del atleta
     planes = {p.fecha: p for p in DiaPlan.query.filter(
         DiaPlan.user_id == user.id,
         DiaPlan.fecha.in_(fechas)
     ).all()}
-
-    # Crear días faltantes
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -103,12 +120,10 @@ def perfil_usuario(user_id):
             planes[f] = nuevo
     db.session.commit()
 
-    # Datos del gráfico (Propuesto vs Realizado)
     labels = [f.strftime("%d/%m") for f in fechas]
     propuesto = [planes[f].propuesto_score or 0 for f in fechas]
     realizado = [planes[f].realizado_score or 0 for f in fechas]
 
-    # Rutinas más recientes
     rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(6).all()
 
     return render_template(
@@ -122,11 +137,6 @@ def perfil_usuario(user_id):
         rutinas=rutinas,
         semana_str=semana_str
     )
-
-
-# ======================================
-# GUARDAR PLAN DIARIO
-# ======================================
 
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
@@ -160,7 +170,6 @@ def save_day():
     flash("✅ Día actualizado.", "success")
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
-
 # ======================================
 # DASHBOARD ENTRENADOR
 # ======================================
@@ -171,6 +180,91 @@ def dashboard_entrenador():
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado.", "danger")
         return redirect(url_for("main.perfil"))
-
     atletas = User.query.filter(User.email != "admin@vir.app").all()
     return render_template("dashboard_entrenador.html", atletas=atletas)
+
+# ======================================
+# CREACIÓN DE RUTINAS (ADMIN)
+# ======================================
+
+@main_bp.route("/coach/rutinas")
+@login_required
+def listar_rutinas():
+    if current_user.email != "admin@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
+    rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
+    return render_template("rutinas_list.html", rutinas=rutinas)
+
+@main_bp.route("/coach/nueva_rutina", methods=["GET"])
+@login_required
+def nueva_rutina():
+    if current_user.email != "admin@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
+    return render_template("nueva_rutina.html")
+
+@main_bp.route("/coach/guardar_rutina", methods=["POST"])
+@login_required
+def guardar_rutina():
+    if current_user.email != "admin@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
+
+    nombre = request.form.get("nombre", "").strip()
+    descripcion = request.form.get("descripcion", "").strip()
+    if not nombre:
+        flash("La rutina necesita un nombre.", "danger")
+        return redirect(url_for("main.nueva_rutina"))
+
+    r = Rutina(nombre=nombre, descripcion=descripcion, created_by=current_user.id)
+    db.session.add(r)
+    db.session.flush()  # obtener r.id
+
+    # ejercicios dinámicos
+    total = int(request.form.get("total_items", "0") or 0)
+    for i in range(total):
+        prefix = f"items[{i}]"
+        enombre = request.form.get(f"{prefix}[nombre]", "").strip()
+        if not enombre:
+            continue
+        reps = request.form.get(f"{prefix}[reps]", "").strip()
+        nota = request.form.get(f"{prefix}[nota]", "").strip()
+
+        video_url_input = request.form.get(f"{prefix}[video_url]", "").strip()
+        imagen_url_input = request.form.get(f"{prefix}[imagen_url]", "").strip()
+
+        # Archivos subidos (LOCAL)
+        video_file = request.files.get(f"{prefix}[video_file]")
+        image_file = request.files.get(f"{prefix}[imagen_file]")
+
+        final_video = None
+        final_image = None
+
+        # prioridad: archivo subido > url
+        if video_file:
+            final_video = save_uploaded(video_file, current_app.config["ALLOWED_VIDEO_EXT"])
+        if not final_video and video_url_input:
+            # si es youtube lo convertimos a embed
+            emb = to_youtube_embed(video_url_input)
+            final_video = emb or video_url_input
+
+        if image_file:
+            final_image = save_uploaded(image_file, current_app.config["ALLOWED_IMAGE_EXT"])
+        if not final_image and imagen_url_input:
+            final_image = imagen_url_input
+
+        item = RutinaItem(
+            rutina_id=r.id,
+            orden=i,
+            nombre=enombre,
+            reps=reps,
+            video_url=final_video,
+            imagen_url=final_image,
+            nota=nota,
+        )
+        db.session.add(item)
+
+    db.session.commit()
+    flash("✅ Rutina creada correctamente.", "success")
+    return redirect(url_for("main.listar_rutinas"))

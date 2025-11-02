@@ -1,23 +1,28 @@
+import os
 from flask import Flask
 from flask_login import LoginManager
-from app.extensions import db
+from app.extensions import db, migrate
 from app.models import User
-from datetime import datetime
-
 
 def create_app():
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = "clave-ultra-segura"
-
-    # ⚙️ Conexión PostgreSQL (Render)
-    app.config[
-        "SQLALCHEMY_DATABASE_URI"
-    ] = "postgresql://vir_db_user:bRbsLtpZ3I4rag19scmcAfRyXjZVNsUw@dpg-d3vtoc75r7bs73ch4bc0-a/vir_db"
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "clave-ultra-segura")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+        "DATABASE_URL",
+        "postgresql://vir_db_user:bRbsLtpZ3I4rag19scmcAfRyXjZVNsUw@dpg-d3vtoc75r7bs73ch4bc0-a/vir_db",
+    )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    db.init_app(app)
+    # Uploads (LOCAL dev). En Render: usar URLs (Cloudinary/S3).
+    app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "app/static/uploads")
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200MB
+    app.config["ALLOWED_IMAGE_EXT"] = {"png", "jpg", "jpeg", "webp", "gif"}
+    app.config["ALLOWED_VIDEO_EXT"] = {"mp4", "webm", "mov", "m4v"}
 
-    # 🔐 Configuración Flask-Login
+    db.init_app(app)
+    migrate.init_app(app, db)
+
     login_manager = LoginManager()
     login_manager.login_view = "main.login"
     login_manager.init_app(app)
@@ -26,35 +31,20 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # 🕒 Función 'now()' disponible en templates
-    @app.context_processor
-    def inject_now():
-        return {"now": datetime.utcnow}
-
-    # 🔗 Registrar blueprints
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
-    # =========================================================
-    # 👑 AUTO-CREACIÓN DEL ADMIN AL ARRANCAR
-    # =========================================================
+    # semilla admin
     with app.app_context():
         db.create_all()
-
-        # Admin principal
-        email_admin = "admin@vir.app"
-        password_admin = "AdminViR2025!"
-        nombre_admin = "Admin ViR"
-
-        admin = User.query.filter_by(email=email_admin).first()
+        admin = User.query.filter_by(email="admin@vir.app").first()
         if not admin:
-            print("🟢 Creando usuario administrador principal...")
-            admin = User(nombre=nombre_admin, email=email_admin)
-            admin.set_password(password_admin)
+            admin = User(nombre="Admin ViR", email="admin@vir.app", grupo="Entrenador")
+            admin.set_password("vir2025")
             db.session.add(admin)
             db.session.commit()
-            print(f"✅ Admin creado: {email_admin} / {password_admin}")
+            print("✅ Admin creado: admin@vir.app / vir2025")
         else:
-            print("🔹 Admin ya existente, no se vuelve a crear.")
+            print("✅ Admin ya existe.")
 
     return app

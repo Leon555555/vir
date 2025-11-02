@@ -31,4 +31,24 @@ def create_app():
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
+    # =========================================================
+    # 👑 Crear automáticamente el usuario admin si no existe
+    # =========================================================
+    with app.app_context():
+        db.create_all()
+        email_admin = "viru@vir.app"
+        password_admin = "Viru12345!"
+        nombre_admin = "Viru"
+
+        admin = User.query.filter_by(email=email_admin).first()
+        if not admin:
+            print("🟢 Creando usuario administrador ViR...")
+            admin = User(nombre=nombre_admin, email=email_admin)
+            admin.set_password(password_admin)
+            db.session.add(admin)
+            db.session.commit()
+            print(f"✅ Admin creado: {email_admin} / {password_admin}")
+        else:
+            print("🔹 Usuario admin ya existe, no se crea nuevamente.")
+
     return app

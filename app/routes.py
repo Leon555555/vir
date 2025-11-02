@@ -5,13 +5,9 @@ from app.extensions import db
 
 main_bp = Blueprint("main", __name__)
 
-# ======================================================
-# INDEX Y LOGIN
-# ======================================================
 @main_bp.route("/")
 def index():
     if current_user.is_authenticated:
-        # Si es el entrenador, ir al dashboard
         if current_user.email == "viru@vir.app":
             return redirect(url_for("main.dashboard_entrenador"))
         else:
@@ -38,9 +34,7 @@ def login():
 
     return render_template("login.html")
 
-# ======================================================
-# REGISTRO DE NUEVO USUARIO
-# ======================================================
+
 @main_bp.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -66,9 +60,7 @@ def register():
 
     return render_template("register.html")
 
-# ======================================================
-# PERFIL DE USUARIO (ATLETA o ENTRENADOR)
-# ======================================================
+
 @main_bp.route("/perfil")
 @login_required
 def perfil():
@@ -78,22 +70,16 @@ def perfil():
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id):
-    # El entrenador puede ver cualquier perfil
     if current_user.email == "viru@vir.app":
         user = User.query.get_or_404(user_id)
     else:
-        # Un atleta solo puede ver el suyo
         if current_user.id != user_id:
             flash("Acceso denegado.", "danger")
             return redirect(url_for("main.perfil"))
         user = current_user
-
     return render_template("perfil.html", user=user)
 
 
-# ======================================================
-# DASHBOARD DEL ENTRENADOR
-# ======================================================
 @main_bp.route("/coach/dashboard")
 @login_required
 def dashboard_entrenador():
@@ -105,9 +91,6 @@ def dashboard_entrenador():
     return render_template("dashboard_entrenador.html", atletas=atletas)
 
 
-# ======================================================
-# CREAR NUEVO ATLETA
-# ======================================================
 @main_bp.route("/coach/nuevo", methods=["GET", "POST"])
 @login_required
 def nuevo_atleta():
@@ -133,50 +116,6 @@ def nuevo_atleta():
     return render_template("nuevo_atleta.html")
 
 
-# ======================================================
-# EDITAR ATLETA
-# ======================================================
-@main_bp.route("/coach/editar/<int:atleta_id>", methods=["GET", "POST"])
-@login_required
-def editar_atleta(atleta_id):
-    if current_user.email != "viru@vir.app":
-        flash("Acceso denegado.", "danger")
-        return redirect(url_for("main.perfil"))
-
-    atleta = User.query.get_or_404(atleta_id)
-
-    if request.method == "POST":
-        atleta.nombre = request.form["nombre"]
-        atleta.email = request.form["email"]
-        atleta.grupo = request.form.get("grupo")
-        atleta.calendario_url = request.form.get("calendario_url")
-        db.session.commit()
-        flash("✅ Datos del atleta actualizados.", "success")
-        return redirect(url_for("main.dashboard_entrenador"))
-
-    return render_template("editar_atleta.html", atleta=atleta)
-
-
-# ======================================================
-# ELIMINAR ATLETA
-# ======================================================
-@main_bp.route("/coach/eliminar/<int:atleta_id>", methods=["POST"])
-@login_required
-def eliminar_atleta(atleta_id):
-    if current_user.email != "viru@vir.app":
-        flash("Acceso denegado.", "danger")
-        return redirect(url_for("main.perfil"))
-
-    atleta = User.query.get_or_404(atleta_id)
-    db.session.delete(atleta)
-    db.session.commit()
-    flash(f"❌ Atleta '{atleta.nombre}' eliminado.", "warning")
-    return redirect(url_for("main.dashboard_entrenador"))
-
-
-# ======================================================
-# LOGOUT
-# ======================================================
 @main_bp.route("/logout")
 @login_required
 def logout():

@@ -13,12 +13,9 @@ def create_app():
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Uploads (LOCAL dev). En Render: usar URLs (Cloudinary/S3).
-    app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "app/static/uploads")
+    # Uploads locales (Render no los guarda, pero sirven en desarrollo)
+    app.config["UPLOAD_FOLDER"] = "app/static/uploads"
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-    app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200MB
-    app.config["ALLOWED_IMAGE_EXT"] = {"png", "jpg", "jpeg", "webp", "gif"}
-    app.config["ALLOWED_VIDEO_EXT"] = {"mp4", "webm", "mov", "m4v"}
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -34,7 +31,7 @@ def create_app():
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
-    # semilla admin
+    # Crear admin ViR si no existe
     with app.app_context():
         db.create_all()
         admin = User.query.filter_by(email="admin@vir.app").first()

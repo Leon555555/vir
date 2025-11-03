@@ -82,7 +82,6 @@ def perfil_usuario(user_id):
         DiaPlan.fecha.in_(fechas)
     ).all()}
 
-    # crear placeholders si faltan días
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")

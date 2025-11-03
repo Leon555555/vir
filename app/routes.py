@@ -218,10 +218,30 @@ def admin_delete_user(user_id):
         flash("No podés eliminar al administrador.", "warning")
         return redirect(url_for("main.dashboard_entrenador"))
 
+    # 🧩 Borrar los planes asociados antes del usuario
+    planes = DiaPlan.query.filter_by(user_id=user.id).all()
+    for p in planes:
+        db.session.delete(p)
+
     db.session.delete(user)
     db.session.commit()
-    flash(f"🗑️ Usuario {user.nombre} eliminado.", "info")
+
+    flash(f"🗑️ Usuario {user.nombre} y sus planes fueron eliminados.", "info")
     return redirect(url_for("main.dashboard_entrenador"))
+
+
+# ================================
+# 📚 Listar rutinas (para perfil)
+# ================================
+@main_bp.route("/rutinas")
+@login_required
+def listar_rutinas():
+    try:
+        rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
+    except Exception:
+        rutinas = []
+
+    return render_template("rutinas.html", rutinas=rutinas)
 
 
 # ===========================================

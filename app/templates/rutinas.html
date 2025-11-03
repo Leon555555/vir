@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block title %}Biblioteca de Rutinas{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+  <h3 class="text-light mb-4">📚 Biblioteca de Rutinas</h3>
+
+  {% if rutinas %}
+  <div class="row">
+    {% for r in rutinas %}
+    <div class="col-md-4 mb-3">
+      <div class="card bg-dark text-light h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">{{ r.nombre }}</h5>
+          <p class="card-text small">{{ r.descripcion or "Sin descripción" }}</p>
+
+          {% if r.items %}
+          <ul class="small">
+            {% for it in r.items %}
+            <li>{{ it.nombre }} {% if it.reps %}— {{ it.reps }}{% endif %}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-secondary small">Sin ejercicios cargados.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-secondary">No hay rutinas disponibles.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, date
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy.exc import InternalError
 from app.models import User, DiaPlan, Rutina
 from app.extensions import db
 
@@ -68,49 +69,59 @@ def perfil():
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id):
-    if current_user.email == "admin@vir.app":
-        user = User.query.get_or_404(user_id)
-    else:
-        if current_user.id != user_id:
-            flash("Acceso denegado.", "danger")
-            return redirect(url_for("main.perfil"))
-        user = current_user
-
-    fechas = week_dates()
-    planes = {p.fecha: p for p in DiaPlan.query.filter(
-        DiaPlan.user_id == user.id,
-        DiaPlan.fecha.in_(fechas)
-    ).all()}
-
-    for f in fechas:
-        if f not in planes:
-            nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
-            db.session.add(nuevo)
-            planes[f] = nuevo
-    db.session.commit()
-
-    labels = [f.strftime("%d/%m") for f in fechas]
-    propuesto = [planes[f].propuesto_score or 0 for f in fechas]
-    realizado = [planes[f].realizado_score or 0 for f in fechas]
-
     try:
-        rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(20).all()
-    except Exception:
-        rutinas = []
+        # 🚨 FIX para Render: rollback si la DB está bloqueada
+        if db.session.is_active:
+            db.session.rollback()
 
-    semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+        if current_user.email == "admin@vir.app":
+            user = User.query.get_or_404(user_id)
+        else:
+            if current_user.id != user_id:
+                flash("Acceso denegado.", "danger")
+                return redirect(url_for("main.perfil"))
+            user = current_user
 
-    return render_template(
-        "perfil.html",
-        user=user,
-        fechas=fechas,
-        planes=planes,
-        labels=labels,
-        propuesto=propuesto,
-        realizado=realizado,
-        rutinas=rutinas,
-        semana_str=semana_str
-    )
+        fechas = week_dates()
+        planes = {p.fecha: p for p in DiaPlan.query.filter(
+            DiaPlan.user_id == user.id,
+            DiaPlan.fecha.in_(fechas)
+        ).all()}
+
+        for f in fechas:
+            if f not in planes:
+                nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
+                db.session.add(nuevo)
+                planes[f] = nuevo
+        db.session.commit()
+
+        labels = [f.strftime("%d/%m") for f in fechas]
+        propuesto = [planes[f].propuesto_score or 0 for f in fechas]
+        realizado = [planes[f].realizado_score or 0 for f in fechas]
+
+        try:
+            rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(20).all()
+        except Exception:
+            rutinas = []
+
+        semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+
+        return render_template(
+            "perfil.html",
+            user=user,
+            fechas=fechas,
+            planes=planes,
+            labels=labels,
+            propuesto=propuesto,
+            realizado=realizado,
+            rutinas=rutinas,
+            semana_str=semana_str
+        )
+
+    except InternalError:
+        db.session.rollback()
+        flash("⚠️ Se reinició la conexión con la base de datos. Intentá de nuevo.", "warning")
+        return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
 
 # =======================
@@ -237,6 +248,7 @@ def listar_rutinas():
     try:
         rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
     except Exception:
+        db.session.rollback()
         rutinas = []
     return render_template("rutinas.html", rutinas=rutinas)
 

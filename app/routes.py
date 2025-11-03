@@ -91,7 +91,6 @@ def perfil_usuario(user_id):
     except Exception:
         rutinas = []
 
-    # (opcional) semana_str para el título
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
     return render_template(
@@ -116,7 +115,6 @@ def save_day():
         return redirect(url_for("main.perfil"))
 
     fecha_str = request.form["fecha"].strip()
-    # Parseo robusto (YYYY-MM-DD o con hora)
     try:
         fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
     except ValueError:
@@ -160,61 +158,32 @@ def dashboard_entrenador():
     return render_template("dashboard_entrenador.html", atletas=atletas)
 
 
-# ================================
-# ✅ RUTA FALTANTE: listar_rutinas
-# ================================
-@main_bp.route("/rutinas")
+# ===================================
+# 👑 Ruta para crear usuarios manualmente (solo admin)
+# ===================================
+@main_bp.route("/admin/create_user", methods=["POST"])
 @login_required
-def listar_rutinas():
-    # No dependemos de un template extra para evitar errores de fichero
-    try:
-        rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
-    except Exception:
-        rutinas = []
+def admin_create_user():
+    if current_user.email != "admin@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
 
-    html = """
-    <!doctype html>
-    <html lang="es">
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Rutinas</title>
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-    <body class="bg-dark text-light">
-      <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h3 class="mb-0">📚 Biblioteca de Rutinas</h3>
-          <a href="{{ url_for('main.perfil') }}" class="btn btn-outline-light btn-sm">Volver al perfil</a>
-        </div>
+    nombre = request.form.get("nombre")
+    email = request.form.get("email").lower().strip()
+    grupo = request.form.get("grupo", "Atleta")
+    password = request.form.get("password")
 
-        {% if rutinas %}
-          <div class="row">
-            {% for r in rutinas %}
-            <div class="col-md-4 mb-3">
-              <div class="card bg-secondary text-light h-100">
-                <div class="card-body">
-                  <h5 class="card-title">{{ r.nombre }}</h5>
-                  <p class="card-text">{{ r.descripcion or '' }}</p>
-                  {% if r.items %}
-                    <ul class="small">
-                      {% for it in r.items %}
-                        <li><strong>{{ it.nombre }}</strong>{% if it.reps %} — {{ it.reps }}{% endif %}</li>
-                      {% endfor %}
-                    </ul>
-                  {% else %}
-                    <p class="small text-dark-emphasis">Sin items todavía.</p>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="alert alert-secondary">No hay rutinas cargadas.</div>
-        {% endif %}
-      </div>
-    </body>
-    </html>
-    """
-    return render_template_string(html, rutinas=rutinas)
+    if not (nombre and email and password):
+        flash("Todos los campos son obligatorios.", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    if User.query.filter_by(email=email).first():
+        flash("Ese correo ya existe.", "warning")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    nuevo = User(nombre=nombre, email=email, grupo=grupo)
+    nuevo.set_password(password)
+    db.session.add(nuevo)
+    db.session.commit()
+    flash(f"✅ Usuario {nombre} creado correctamente.", "success")
+    return redirect(url_for("main.dashboard_entrenador"))

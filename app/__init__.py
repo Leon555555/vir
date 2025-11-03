@@ -16,14 +16,16 @@ def create_app():
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)
 
+    # Configurar login
     login_manager = LoginManager()
     login_manager.login_view = "main.login"
     login_manager.init_app(app)
 
-    # ✅ inyección de fecha para el footer
+    # ✅ Inyección de fecha para el footer
     @app.context_processor
     def inject_datetime():
         return {"datetime_now": datetime.datetime.utcnow}
@@ -36,17 +38,12 @@ def create_app():
     app.register_blueprint(main_bp)
 
     # ===============================
-    # CREAR TABLAS Y USUARIOS BASE
+    # CREAR TABLAS SI NO EXISTEN
     # ===============================
     with app.app_context():
-        # 🔥 Limpieza de tablas mal creadas
-        db.session.execute(text("DROP TABLE IF EXISTS rutina CASCADE;"))
-        db.session.execute(text("DROP TABLE IF EXISTS rutina_item CASCADE;"))
-        db.session.commit()
-
         db.create_all()
 
-        # Verificar existencia de tablas rutina / rutina_item
+        # Crear tablas manualmente si faltan
         try:
             db.session.execute(text("SELECT id FROM rutina LIMIT 1;"))
         except Exception:
@@ -78,40 +75,6 @@ def create_app():
             db.session.commit()
             print("✅ Tablas rutina y rutina_item creadas correctamente.")
 
-        # =====================================
-        # 🔐 CREAR / ACTUALIZAR USUARIOS BASE
-        # =====================================
-
-        # --- ADMIN ---
-        admin = User.query.filter_by(email="admin@vir.app").first()
-        if not admin:
-            admin = User(nombre="Admin ViR", email="admin@vir.app", grupo="Entrenador")
-            db.session.add(admin)
-
-        admin.set_password("V!ru_Admin-2025$X9")
-        db.session.commit()
-        print("✅ Admin activo: admin@vir.app / V!ru_Admin-2025$X9")
-
-        # --- VIRU ---
-        viru = User.query.filter_by(email="viru@vir.app").first()
-        if not viru:
-            viru = User(nombre="Viru", email="viru@vir.app", grupo="Atleta")
-            viru.set_password("viru2025")
-            db.session.add(viru)
-            db.session.commit()
-            print("✅ Usuario 'Viru' creado: viru@vir.app / viru2025")
-        else:
-            print("✅ Usuario 'Viru' ya existe.")
-
-        # --- VALE ---
-        vale = User.query.filter_by(email="vale@vir.app").first()
-        if not vale:
-            vale = User(nombre="Valentina", email="vale@vir.app", grupo="Atleta")
-            vale.set_password("Vale_2025")
-            db.session.add(vale)
-            db.session.commit()
-            print("✅ Usuario 'Vale' creado: vale@vir.app / Vale_2025")
-        else:
-            print("✅ Usuario 'Vale' ya existe.")
+        print("✅ Tablas verificadas correctamente.")
 
     return app

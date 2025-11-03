@@ -6,7 +6,6 @@ from app.extensions import db
 
 main_bp = Blueprint("main", __name__)
 
-
 # =======================
 # 📅 Utilidades de fechas
 # =======================
@@ -83,6 +82,7 @@ def perfil_usuario(user_id):
         DiaPlan.fecha.in_(fechas)
     ).all()}
 
+    # crear placeholders si faltan días
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -95,7 +95,7 @@ def perfil_usuario(user_id):
     realizado = [planes[f].realizado_score or 0 for f in fechas]
 
     try:
-        rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(6).all()
+        rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(20).all()
     except Exception:
         rutinas = []
 
@@ -218,7 +218,6 @@ def admin_delete_user(user_id):
         flash("No podés eliminar al administrador.", "warning")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    # 🧩 Borrar los planes asociados antes del usuario
     planes = DiaPlan.query.filter_by(user_id=user.id).all()
     for p in planes:
         db.session.delete(p)
@@ -240,8 +239,70 @@ def listar_rutinas():
         rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
     except Exception:
         rutinas = []
-
     return render_template("rutinas.html", rutinas=rutinas)
+
+
+# =====================================
+# ➕ Crear rutina (solo admin)
+# =====================================
+@main_bp.route("/rutina/crear", methods=["POST"])
+@login_required
+def crear_rutina():
+    if current_user.email != "admin@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
+
+    nombre = request.form.get("nombre")
+    tipo = request.form.get("tipo")
+    descripcion = request.form.get("descripcion")
+
+    if not nombre:
+        flash("El nombre es obligatorio.", "danger")
+        return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+
+    nueva = Rutina(nombre=nombre, descripcion=descripcion, tipo=tipo, created_by=current_user.id)
+    db.session.add(nueva)
+    db.session.commit()
+    flash(f"✅ Rutina '{nombre}' creada correctamente.", "success")
+    return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+
+
+# =====================================
+# ➕ Agregar ejercicio a rutina
+# =====================================
+@main_bp.route("/rutina/<int:rutina_id>/add_ex", methods=["POST"])
+@login_required
+def agregar_ejercicio(rutina_id):
+    if current_user.email != "admin@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+    nombre = request.form.get("nombre")
+    series = request.form.get("series")
+    reps = request.form.get("reps")
+    descanso = request.form.get("descanso")
+    imagen_url = request.form.get("imagen_url")
+    nota = request.form.get("nota")
+
+    if not nombre:
+        flash("Debe tener nombre.", "danger")
+        return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+
+    from app.models import RutinaItem
+    item = RutinaItem(
+        rutina_id=rutina.id,
+        nombre=nombre,
+        reps=reps,
+        series=series,
+        descanso=descanso,
+        imagen_url=imagen_url,
+        nota=nota
+    )
+    db.session.add(item)
+    db.session.commit()
+    flash(f"🏋️‍♂️ Ejercicio '{nombre}' agregado a {rutina.nombre}.", "success")
+    return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
 
 # ===========================================

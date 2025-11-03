@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, redirect, url_for, flash, request, render_template_string
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import User, DiaPlan, Rutina
 from app.extensions import db
@@ -7,6 +7,9 @@ from app.extensions import db
 main_bp = Blueprint("main", __name__)
 
 
+# =======================
+# 📅 Utilidades de fechas
+# =======================
 def start_of_week(d: date) -> date:
     return d - timedelta(days=(d.weekday() % 7))
 
@@ -17,6 +20,9 @@ def week_dates(center: date | None = None):
     return [start + timedelta(days=i) for i in range(7)]
 
 
+# =======================
+# 🔐 Login / Logout
+# =======================
 @main_bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -51,6 +57,9 @@ def logout():
     return redirect(url_for("main.login"))
 
 
+# =======================
+# 👤 Perfiles
+# =======================
 @main_bp.route("/perfil")
 @login_required
 def perfil():
@@ -74,7 +83,6 @@ def perfil_usuario(user_id):
         DiaPlan.fecha.in_(fechas)
     ).all()}
 
-    # Crear placeholders si faltan días
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -106,6 +114,9 @@ def perfil_usuario(user_id):
     )
 
 
+# =======================
+# 💾 Guardar día de plan
+# =======================
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
 def save_day():
@@ -148,6 +159,9 @@ def save_day():
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
 
+# =======================
+# 🧑‍🏫 Dashboard entrenador
+# =======================
 @main_bp.route("/coach/dashboard")
 @login_required
 def dashboard_entrenador():
@@ -159,7 +173,7 @@ def dashboard_entrenador():
 
 
 # ===================================
-# 👑 Ruta para crear usuarios manualmente (solo admin)
+# 👑 Crear usuario (solo admin)
 # ===================================
 @main_bp.route("/admin/create_user", methods=["POST"])
 @login_required
@@ -187,3 +201,43 @@ def admin_create_user():
     db.session.commit()
     flash(f"✅ Usuario {nombre} creado correctamente.", "success")
     return redirect(url_for("main.dashboard_entrenador"))
+
+
+# ===================================
+# ❌ Eliminar usuario (solo admin)
+# ===================================
+@main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
+@login_required
+def admin_delete_user(user_id):
+    if current_user.email != "admin@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil"))
+
+    user = User.query.get_or_404(user_id)
+    if user.email == "admin@vir.app":
+        flash("No podés eliminar al administrador.", "warning")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    db.session.delete(user)
+    db.session.commit()
+    flash(f"🗑️ Usuario {user.nombre} eliminado.", "info")
+    return redirect(url_for("main.dashboard_entrenador"))
+
+
+# ===========================================
+# 🧰 Ruta temporal para crear el admin inicial
+# ===========================================
+@main_bp.route("/setup-admin")
+def setup_admin():
+    admin_email = "admin@vir.app"
+    admin_pass = "V!ru_Admin-2025$X9"
+
+    if User.query.filter_by(email=admin_email).first():
+        return "✅ Admin ya existe. Entrá con admin@vir.app / V!ru_Admin-2025$X9"
+
+    nuevo = User(nombre="Admin ViR", email=admin_email, grupo="Entrenador")
+    nuevo.set_password(admin_pass)
+    db.session.add(nuevo)
+    db.session.commit()
+
+    return f"✅ Admin creado correctamente.<br>Email: {admin_email}<br>Contraseña: {admin_pass}"

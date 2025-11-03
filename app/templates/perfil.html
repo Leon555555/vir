@@ -38,27 +38,58 @@
 
       <div class="d-flex justify-content-between flex-wrap gap-2">
         {% for f in fechas %}
-        <div class="day-box text-center bg-secondary text-light rounded-3 p-3 flex-fill" style="min-width: 130px;">
+        <div class="day-box text-center bg-secondary text-light rounded-3 p-3 flex-fill" style="min-width: 160px;">
           <h6 class="fw-bold mb-1">{{ f.strftime('%a')|capitalize }}</h6>
           <p class="small text-info mb-2">{{ planes[f].plan_type|capitalize }}</p>
-          <button class="btn btn-outline-light btn-sm" data-bs-toggle="collapse" data-bs-target="#dia{{ loop.index }}">Detalles</button>
+
+          <button class="btn btn-outline-light btn-sm w-100" data-bs-toggle="collapse" data-bs-target="#dia{{ loop.index }}">
+            ✏️ Editar día
+          </button>
+
           <div id="dia{{ loop.index }}" class="collapse mt-2 text-start">
             <form action="{{ url_for('main.save_day') }}" method="POST">
               <input type="hidden" name="user_id" value="{{ user.id }}">
-              <!-- 👇 Enviar ISO para que strptime nunca falle -->
               <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
+
+              <div class="mb-2">
+                <label class="form-label text-muted small">Tipo de día</label>
+                <select name="plan_type" class="form-select form-select-sm">
+                  <option value="descanso" {% if planes[f].plan_type == 'descanso' %}selected{% endif %}>Descanso</option>
+                  <option value="entrenamiento" {% if planes[f].plan_type == 'entrenamiento' %}selected{% endif %}>Entrenamiento</option>
+                  <option value="competencia" {% if planes[f].plan_type == 'competencia' %}selected{% endif %}>Competencia</option>
+                </select>
+              </div>
+
               <div class="mb-2">
                 <label class="form-label text-muted small">Calentamiento</label>
-                <textarea name="warmup" class="form-control form-control-sm">{{ planes[f].warmup or '' }}</textarea>
+                <textarea name="warmup" class="form-control form-control-sm" rows="2">{{ planes[f].warmup or '' }}</textarea>
               </div>
+
               <div class="mb-2">
-                <label class="form-label text-muted small">Entrenamiento</label>
-                <textarea name="main" class="form-control form-control-sm">{{ planes[f].main or '' }}</textarea>
+                <label class="form-label text-muted small">Entrenamiento principal</label>
+                <textarea name="main" class="form-control form-control-sm" rows="2">{{ planes[f].main or '' }}</textarea>
               </div>
+
               <div class="mb-2">
                 <label class="form-label text-muted small">Bloque final</label>
-                <textarea name="finisher" class="form-control form-control-sm">{{ planes[f].finisher or '' }}</textarea>
+                <textarea name="finisher" class="form-control form-control-sm" rows="2">{{ planes[f].finisher or '' }}</textarea>
               </div>
+
+              <div class="row mb-2">
+                <div class="col">
+                  <label class="form-label text-muted small">Propuesto (0-10)</label>
+                  <input type="number" name="propuesto_score" min="0" max="10"
+                         class="form-control form-control-sm"
+                         value="{{ planes[f].propuesto_score or 0 }}">
+                </div>
+                <div class="col">
+                  <label class="form-label text-muted small">Realizado (0-10)</label>
+                  <input type="number" name="realizado_score" min="0" max="10"
+                         class="form-control form-control-sm"
+                         value="{{ planes[f].realizado_score or 0 }}">
+                </div>
+              </div>
+
               <button type="submit" class="btn btn-success btn-sm w-100 mt-2">💾 Guardar</button>
             </form>
           </div>
@@ -81,10 +112,7 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h5 class="text-light mb-0">💪 Rutinas de fuerza</h5>
-        <!-- 👇 Este endpoint ahora EXISTE -->
-        <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.listar_rutinas') }}">
-          Ver biblioteca
-        </a>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('main.listar_rutinas') }}">Ver biblioteca</a>
       </div>
 
       <div class="row">
@@ -94,6 +122,7 @@
             <div class="card-body">
               <h6 class="fw-bold">{{ r.nombre }}</h6>
               <p class="small text-light">{{ r.descripcion or "" }}</p>
+
               <button class="btn btn-outline-light btn-sm mt-1" data-bs-toggle="collapse" data-bs-target="#rutina{{ r.id }}">
                 Ver ejercicios ({{ r.items|length }})
               </button>
@@ -105,21 +134,17 @@
                     <strong class="me-auto">{{ it.nombre }}</strong>
                     {% if it.reps %}<span class="badge bg-dark">{{ it.reps }}</span>{% endif %}
                   </div>
-
                   {% if it.video_url %}
                     {% if 'youtube' in it.video_url %}
                       <div class="ratio ratio-16x9 mt-2">
                         <iframe src="{{ it.video_url }}" title="video" allowfullscreen></iframe>
                       </div>
                     {% elif it.video_url.endswith('.mp4') %}
-                      <video class="w-100 mt-2" controls>
-                        <source src="{{ it.video_url }}">
-                      </video>
+                      <video class="w-100 mt-2" controls><source src="{{ it.video_url }}"></video>
                     {% endif %}
                   {% elif it.imagen_url %}
                     <img src="{{ it.imagen_url }}" class="img-fluid mt-2 rounded">
                   {% endif %}
-
                   {% if it.nota %}
                     <p class="small text-secondary mt-2">{{ it.nota }}</p>
                   {% endif %}

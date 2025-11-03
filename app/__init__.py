@@ -4,11 +4,7 @@ from flask import Flask
 from flask_login import LoginManager
 from sqlalchemy import text
 from app.extensions import db, migrate
-from app.models import User, Rutina, Ejercicio, DiaPlan
-from flask import Flask
-from app.extensions import db, migrate, login_manager
-from app.models import User, Rutina, RutinaItem, DiaPlan
-
+from app.models import User, Rutina, DiaPlan  # ✅ limpio, sin imports rotos
 
 
 def create_app():
@@ -29,7 +25,7 @@ def create_app():
     login_manager.login_view = "main.login"
     login_manager.init_app(app)
 
-    # ✅ Inyección de fecha para el footer
+    # ✅ Inyección de fecha global para el footer
     @app.context_processor
     def inject_datetime():
         return {"datetime_now": datetime.datetime.utcnow}
@@ -38,20 +34,21 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # Registrar blueprints
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
     # ===============================
-    # CREAR TABLAS SI NO EXISTEN
+    # ⚙️ CREAR TABLAS SI NO EXISTEN
     # ===============================
     with app.app_context():
         db.create_all()
 
-        # Crear tablas manualmente si faltan
+        # Verificar tabla rutina y rutina_item (por compatibilidad antigua)
         try:
             db.session.execute(text("SELECT id FROM rutina LIMIT 1;"))
         except Exception:
-            print("⚙️ Creando tablas rutina y rutina_item manualmente...")
+            print("⚙️ Creando tabla rutina...")
             db.session.execute(
                 text("""
                 CREATE TABLE IF NOT EXISTS rutina (
@@ -62,22 +59,27 @@ def create_app():
                 );
                 """)
             )
+
+        try:
+            db.session.execute(text("SELECT id FROM rutina_item LIMIT 1;"))
+        except Exception:
+            print("⚙️ Creando tabla rutina_item...")
             db.session.execute(
                 text("""
                 CREATE TABLE IF NOT EXISTS rutina_item (
                     id SERIAL PRIMARY KEY,
                     rutina_id INTEGER REFERENCES rutina(id),
-                    orden INTEGER DEFAULT 0,
                     nombre VARCHAR(120) NOT NULL,
                     reps VARCHAR(80),
-                    video_url VARCHAR(255),
+                    series VARCHAR(80),
+                    descanso VARCHAR(80),
                     imagen_url VARCHAR(255),
+                    video_url VARCHAR(255),
                     nota TEXT
                 );
                 """)
             )
             db.session.commit()
-            print("✅ Tablas rutina y rutina_item creadas correctamente.")
 
         print("✅ Tablas verificadas correctamente.")
 

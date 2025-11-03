@@ -1,22 +1,78 @@
-<form action="{{ url_for('main.admin_create_user') }}" method="POST" class="mb-4 p-3 bg-dark rounded">
-  <div class="row g-2 align-items-center">
-    <div class="col-md-3">
-      <input name="nombre" class="form-control" placeholder="Nombre completo" required>
+{% extends "layout.html" %}
+{% block title %}Dashboard Entrenador{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+  <h2 class="mb-4 text-light">🏋️‍♂️ Panel del Entrenador — {{ current_user.nombre }}</h2>
+
+  <!-- Formulario para crear nuevos usuarios -->
+  <form action="{{ url_for('main.admin_create_user') }}" method="POST" class="mb-4 p-3 bg-dark rounded shadow-sm">
+    <h5 class="text-info mb-3">➕ Crear nuevo usuario</h5>
+    <div class="row g-2 align-items-center">
+      <div class="col-md-3">
+        <input name="nombre" class="form-control" placeholder="Nombre completo" required>
+      </div>
+      <div class="col-md-3">
+        <input name="email" type="email" class="form-control" placeholder="Correo electrónico" required>
+      </div>
+      <div class="col-md-2">
+        <select name="grupo" class="form-select">
+          <option value="Atleta">Atleta</option>
+          <option value="Entrenador">Entrenador</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input name="password" type="text" class="form-control" placeholder="Contraseña" required>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-info w-100 fw-bold">Crear</button>
+      </div>
     </div>
-    <div class="col-md-3">
-      <input name="email" type="email" class="form-control" placeholder="Correo" required>
-    </div>
-    <div class="col-md-2">
-      <select name="grupo" class="form-select">
-        <option value="Atleta">Atleta</option>
-        <option value="Entrenador">Entrenador</option>
-      </select>
-    </div>
-    <div class="col-md-2">
-      <input name="password" type="text" class="form-control" placeholder="Contraseña" required>
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-info w-100">Crear</button>
+  </form>
+
+  <!-- Tabla de usuarios -->
+  <div class="card bg-dark border-0 shadow-sm">
+    <div class="card-body">
+      <h5 class="text-light mb-3">👥 Usuarios registrados</h5>
+      <table class="table table-bordered table-dark table-hover align-middle text-center">
+        <thead class="table-secondary text-dark">
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Grupo</th>
+            <th style="width: 230px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for atleta in atletas %}
+          <tr>
+            <td>{{ atleta.nombre }}</td>
+            <td>{{ atleta.email }}</td>
+            <td>{{ atleta.grupo }}</td>
+            <td>
+              <div class="d-flex justify-content-center gap-2">
+                <!-- Ver perfil -->
+                <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}" class="btn btn-outline-info btn-sm">
+                  👀 Ver perfil
+                </a>
+
+                <!-- Eliminar -->
+                <form action="{{ url_for('main.admin_delete_user', user_id=atleta.id) }}" method="POST"
+                      onsubmit="return confirm('¿Seguro que deseas eliminar a {{ atleta.nombre }}?');">
+                  <button class="btn btn-danger btn-sm">🗑️ Eliminar</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-secondary">No hay usuarios registrados todavía.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
-</form>
+</div>
+
+{% endblock %}

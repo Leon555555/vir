@@ -42,6 +42,8 @@
           <h6 class="fw-bold mb-1">{{ f.strftime('%a')|capitalize }}</h6>
           <p class="small text-info mb-2">{{ planes[f].plan_type|capitalize }}</p>
 
+          {% if current_user.email == 'admin@vir.app' %}
+          <!-- 🔹 SOLO ADMIN: puede editar -->
           <button class="btn btn-outline-light btn-sm w-100" data-bs-toggle="collapse" data-bs-target="#dia{{ loop.index }}">
             ✏️ Editar día
           </button>
@@ -93,6 +95,29 @@
               <button type="submit" class="btn btn-success btn-sm w-100 mt-2">💾 Guardar</button>
             </form>
           </div>
+
+          {% else %}
+          <!-- 🔹 ATLETA: solo lectura -->
+          <div class="text-start small bg-dark rounded p-2">
+            <p><strong>Calentamiento:</strong> {{ planes[f].warmup or '—' }}</p>
+            <p><strong>Entrenamiento:</strong> {{ planes[f].main or '—' }}</p>
+            <p><strong>Bloque final:</strong> {{ planes[f].finisher or '—' }}</p>
+          </div>
+
+          <!-- Botón para registrar feedback -->
+          <button class="btn btn-outline-info btn-sm w-100 mt-2" data-bs-toggle="collapse" data-bs-target="#nota{{ loop.index }}">
+            📝 Registrar entrenamiento
+          </button>
+
+          <div id="nota{{ loop.index }}" class="collapse mt-2">
+            <form action="{{ url_for('main.save_day') }}" method="POST">
+              <input type="hidden" name="user_id" value="{{ user.id }}">
+              <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
+              <textarea name="finisher" placeholder="Comentá cómo te fue hoy..." class="form-control form-control-sm" rows="3"></textarea>
+              <button type="submit" class="btn btn-primary btn-sm w-100 mt-2">💾 Guardar nota</button>
+            </form>
+          </div>
+          {% endif %}
         </div>
         {% endfor %}
       </div>
@@ -107,17 +132,15 @@
     </div>
   </div>
 
-  <!-- ============================ -->
-  <!-- 📚 Rutinas y ejercicios -->
-  <!-- ============================ -->
+  <!-- 📚 Rutinas -->
   <div class="card bg-dark border-0 shadow-sm mt-4">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h5 class="text-light mb-0">🏋️‍♀️ Rutinas</h5>
       </div>
 
-      <!-- Crear nueva rutina -->
       {% if current_user.email == 'admin@vir.app' %}
+      <!-- 🔹 Solo admin puede crear -->
       <form action="{{ url_for('main.crear_rutina') }}" method="POST" class="p-3 bg-secondary rounded mb-4">
         <div class="row g-2 align-items-center">
           <div class="col-md-3">
@@ -140,7 +163,6 @@
       </form>
       {% endif %}
 
-      <!-- Mostrar rutinas agrupadas -->
       {% set tipos = ['Fuerza', 'Estiramientos', 'Movilidad'] %}
       {% for tipo in tipos %}
         <h5 class="text-light mt-4">{{ tipo }}</h5>

@@ -4,7 +4,8 @@ from flask import Flask
 from flask_login import LoginManager
 from sqlalchemy import text
 from app.extensions import db, migrate
-from app.models import User, Rutina, RutinaItem, DiaPlan
+from app.models import User, Rutina, Ejercicio, DiaPlan
+
 
 
 def create_app():

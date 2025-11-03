@@ -70,16 +70,16 @@ def perfil():
 @login_required
 def perfil_usuario(user_id):
     try:
-        # 🚨 FIX para Render: rollback si la DB está bloqueada
         if db.session.is_active:
             db.session.rollback()
 
+        # ✅ FIX: evitamos loop redirección
         if current_user.email == "admin@vir.app":
             user = User.query.get_or_404(user_id)
         else:
             if current_user.id != user_id:
                 flash("Acceso denegado.", "danger")
-                return redirect(url_for("main.perfil"))
+                return redirect(url_for("main.dashboard_entrenador"))
             user = current_user
 
         fechas = week_dates()
@@ -120,8 +120,8 @@ def perfil_usuario(user_id):
 
     except InternalError:
         db.session.rollback()
-        flash("⚠️ Se reinició la conexión con la base de datos. Intentá de nuevo.", "warning")
-        return redirect(url_for("main.perfil_usuario", user_id=user_id))
+        flash("⚠️ Error temporal de conexión con la base de datos. Intentá de nuevo.", "warning")
+        return redirect(url_for("main.dashboard_entrenador"))
 
 
 # =======================

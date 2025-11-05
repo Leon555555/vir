@@ -333,3 +333,15 @@ def setup_admin():
     db.session.commit()
 
     return f"✅ Admin creado correctamente.<br>Email: {admin_email}<br>Contraseña: {admin_pass}"
+@main_bp.route("/fix-db-fecha")
+def fix_db_fecha():
+    try:
+        from sqlalchemy import text
+        from app.extensions import db
+        db.session.execute(text("""
+            ALTER TABLE rutina ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        """))
+        db.session.commit()
+        return "✅ Columna 'fecha_creacion' creada correctamente en la tabla rutina."
+    except Exception as e:
+        return f"❌ Error al ejecutar alter table: {e}"

@@ -14,7 +14,6 @@ main_bp = Blueprint("main", __name__)
 def start_of_week(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
-
 def week_dates(center: date | None = None):
     base = center or date.today()
     start = start_of_week(base)
@@ -70,8 +69,7 @@ def perfil_redirect():
     """Redirige siempre al perfil del usuario actual."""
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-
-# ✅ Alias para compatibilidad con layout.html (url_for('main.perfil'))
+# 🔧 Alias para compatibilidad con layout.html (url_for('main.perfil'))
 main_bp.add_url_rule("/perfil", endpoint="perfil", view_func=perfil_redirect)
 
 
@@ -141,7 +139,6 @@ def perfil_usuario(user_id):
 def save_day():
     user_id = int(request.form["user_id"])
 
-    # Seguridad
     if current_user.email != "admin@vir.app" and current_user.id != user_id:
         flash("Acceso denegado.", "danger")
         return redirect(url_for("main.perfil_redirect"))
@@ -274,6 +271,7 @@ def crear_rutina():
         flash("El nombre es obligatorio.", "danger")
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
+    # ✅ Mantiene created_by (se crea columna si falta)
     nueva = Rutina(nombre=nombre, descripcion=descripcion, tipo=tipo, created_by=current_user.id)
     db.session.add(nueva)
     db.session.commit()
@@ -339,7 +337,7 @@ def setup_admin():
 
 
 # ===========================================
-# 🧱 FIX: Crear columna faltante (Render)
+# 🧱 FIX: Crear columnas faltantes
 # ===========================================
 @main_bp.route("/fix-db")
 def fix_db():
@@ -349,7 +347,22 @@ def fix_db():
             ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
         """))
         db.session.commit()
-        return "✅ Columna 'fecha_creacion' creada correctamente en la tabla rutina."
+        return "✅ Columna 'fecha_creacion' creada correctamente."
     except Exception as e:
         db.session.rollback()
         return f"❌ Error al ejecutar el fix: {str(e)}"
+
+
+# ✅ FIX adicional: agrega created_by si no existe
+@main_bp.route("/fix-rutina-createdby")
+def fix_rutina_createdby():
+    try:
+        db.session.execute(text("""
+            ALTER TABLE rutina
+            ADD COLUMN IF NOT EXISTS created_by INTEGER;
+        """))
+        db.session.commit()
+        return "✅ Columna 'created_by' agregada correctamente."
+    except Exception as e:
+        db.session.rollback()
+        return f"❌ Error al crear columna 'created_by': {e}"

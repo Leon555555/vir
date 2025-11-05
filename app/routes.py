@@ -14,6 +14,7 @@ main_bp = Blueprint("main", __name__)
 def start_of_week(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
+
 def week_dates(center: date | None = None):
     base = center or date.today()
     start = start_of_week(base)
@@ -68,6 +69,10 @@ def logout():
 def perfil_redirect():
     """Redirige siempre al perfil del usuario actual."""
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+
+
+# ✅ Alias para compatibilidad con layout.html (url_for('main.perfil'))
+main_bp.add_url_rule("/perfil", endpoint="perfil", view_func=perfil_redirect)
 
 
 @main_bp.route("/perfil/<int:user_id>")

@@ -128,7 +128,7 @@
   <div class="card bg-dark border-0 shadow-sm mb-4">
     <div class="card-body">
       <h5 class="text-light mb-3">📈 Propuesto vs Realizado</h5>
-      <canvas id="graficoProgreso" height="80"></canvas>
+      <canvas id="graficoProgreso"></canvas>
     </div>
   </div>
 
@@ -244,9 +244,21 @@ new Chart(ctx, {
   },
   options: {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: { legend: { labels: { color: "#ddd" } } },
-    scales: { x: { ticks: { color: "#ccc" } }, y: { ticks: { color: "#ccc" } } }
+    scales: {
+      x: { ticks: { color: "#ccc" } },
+      y: { min: 0, ticks: { color: "#ccc" } }
+    }
   }
 });
 </script>
+
+<style>
+  /* 🔹 Reduce el tamaño visual del gráfico */
+  #graficoProgreso {
+    height: 200px !important;
+  }
+</style>
+
 {% endblock %}

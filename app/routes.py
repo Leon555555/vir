@@ -69,7 +69,7 @@ def perfil_redirect():
     """Redirige siempre al perfil del usuario actual."""
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-# 🔧 Alias para compatibilidad con layout.html (url_for('main.perfil'))
+# Alias para compatibilidad con layout.html (url_for('main.perfil'))
 main_bp.add_url_rule("/perfil", endpoint="perfil", view_func=perfil_redirect)
 
 
@@ -80,7 +80,6 @@ def perfil_usuario(user_id):
         if db.session.is_active:
             db.session.rollback()
 
-        # 🧩 Control de acceso
         user = User.query.get_or_404(user_id)
         if current_user.email != "admin@vir.app" and current_user.id != user.id:
             flash("Acceso denegado a perfil ajeno.", "danger")
@@ -93,7 +92,6 @@ def perfil_usuario(user_id):
         ).all()
         planes = {p.fecha: p for p in planes_db}
 
-        # Crea días faltantes
         for f in fechas:
             if f not in planes:
                 nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -271,7 +269,6 @@ def crear_rutina():
         flash("El nombre es obligatorio.", "danger")
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-    # ✅ Mantiene created_by (se crea columna si falta)
     nueva = Rutina(nombre=nombre, descripcion=descripcion, tipo=tipo, created_by=current_user.id)
     db.session.add(nueva)
     db.session.commit()
@@ -353,7 +350,6 @@ def fix_db():
         return f"❌ Error al ejecutar el fix: {str(e)}"
 
 
-# ✅ FIX adicional: agrega created_by si no existe
 @main_bp.route("/fix-rutina-createdby")
 def fix_rutina_createdby():
     try:
@@ -366,3 +362,22 @@ def fix_rutina_createdby():
     except Exception as e:
         db.session.rollback()
         return f"❌ Error al crear columna 'created_by': {e}"
+
+
+@main_bp.route("/fix-rutinaitem")
+def fix_rutinaitem():
+    try:
+        db.session.execute(text("""
+            ALTER TABLE rutina_item
+            ADD COLUMN IF NOT EXISTS series VARCHAR(50),
+            ADD COLUMN IF NOT EXISTS reps VARCHAR(50),
+            ADD COLUMN IF NOT EXISTS descanso VARCHAR(50),
+            ADD COLUMN IF NOT EXISTS imagen_url TEXT,
+            ADD COLUMN IF NOT EXISTS video_url TEXT,
+            ADD COLUMN IF NOT EXISTS nota TEXT;
+        """))
+        db.session.commit()
+        return "✅ Columnas agregadas correctamente a rutina_item."
+    except Exception as e:
+        db.session.rollback()
+        return f"❌ Error al ejecutar el fix: {str(e)}"

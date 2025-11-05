@@ -323,7 +323,7 @@ def agregar_ejercicio(rutina_id):
 @main_bp.route("/setup-admin")
 def setup_admin():
     admin_email = "admin@vir.app"
-    admin_pass = "V!ru_Admin-2025$X9"
+    admin_pass = "V!ru_Admin"
 
     if User.query.filter_by(email=admin_email).first():
         return "✅ Admin ya existe. Entrá con admin@vir.app / V!ru_Admin-2025$X9"

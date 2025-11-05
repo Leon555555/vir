@@ -12,8 +12,7 @@ main_bp = Blueprint("main", __name__)
 # 📅 Utilidades de fechas
 # =======================
 def start_of_week(d: date) -> date:
-    return d - timedelta(days=(d.weekday() % 7))
-
+    return d - timedelta(days=d.weekday())
 
 def week_dates(center: date | None = None):
     base = center or date.today()
@@ -29,7 +28,8 @@ def index():
     if current_user.is_authenticated:
         if current_user.email == "admin@vir.app":
             return redirect(url_for("main.dashboard_entrenador"))
-        return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+        else:
+            return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
 
@@ -45,8 +45,10 @@ def login():
             flash(f"Bienvenido {user.nombre} 👋", "success")
             if user.email == "admin@vir.app":
                 return redirect(url_for("main.dashboard_entrenador"))
-            return redirect(url_for("main.perfil_usuario", user_id=user.id))
+            else:
+                return redirect(url_for("main.perfil_usuario", user_id=user.id))
         flash("❌ Usuario o contraseña incorrectos.", "danger")
+
     return render_template("login.html")
 
 
@@ -63,7 +65,8 @@ def logout():
 # =======================
 @main_bp.route("/perfil")
 @login_required
-def perfil():
+def perfil_redirect():
+    """Redirige siempre al perfil del usuario actual."""
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
 
@@ -74,21 +77,20 @@ def perfil_usuario(user_id):
         if db.session.is_active:
             db.session.rollback()
 
-        # ✅ FIX: evitamos loop redirección
-        if current_user.email == "admin@vir.app":
-            user = User.query.get_or_404(user_id)
-        else:
-            if current_user.id != user_id:
-                flash("Acceso denegado.", "danger")
-                return redirect(url_for("main.dashboard_entrenador"))
-            user = current_user
+        # 🧩 Control de acceso
+        user = User.query.get_or_404(user_id)
+        if current_user.email != "admin@vir.app" and current_user.id != user.id:
+            flash("Acceso denegado a perfil ajeno.", "danger")
+            return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
         fechas = week_dates()
-        planes = {p.fecha: p for p in DiaPlan.query.filter(
+        planes_db = DiaPlan.query.filter(
             DiaPlan.user_id == user.id,
             DiaPlan.fecha.in_(fechas)
-        ).all()}
+        ).all()
+        planes = {p.fecha: p for p in planes_db}
 
+        # Crea días faltantes
         for f in fechas:
             if f not in planes:
                 nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -103,6 +105,7 @@ def perfil_usuario(user_id):
         try:
             rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(20).all()
         except Exception:
+            db.session.rollback()
             rutinas = []
 
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
@@ -122,7 +125,7 @@ def perfil_usuario(user_id):
     except InternalError:
         db.session.rollback()
         flash("⚠️ Error temporal de conexión con la base de datos. Intentá de nuevo.", "warning")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("main.index"))
 
 
 # =======================
@@ -132,9 +135,11 @@ def perfil_usuario(user_id):
 @login_required
 def save_day():
     user_id = int(request.form["user_id"])
+
+    # Seguridad
     if current_user.email != "admin@vir.app" and current_user.id != user_id:
         flash("Acceso denegado.", "danger")
-        return redirect(url_for("main.perfil"))
+        return redirect(url_for("main.perfil_redirect"))
 
     fecha_str = request.form["fecha"].strip()
     try:
@@ -146,27 +151,20 @@ def save_day():
             flash("Fecha inválida.", "danger")
             return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
-    plan_type = request.form.get("plan_type", "descanso")
-    warmup = request.form.get("warmup", "")
-    main = request.form.get("main", "")
-    finisher = request.form.get("finisher", "")
-    propuesto = int(request.form.get("propuesto_score", "0") or 0)
-    realizado = int(request.form.get("realizado_score", "0") or 0)
-
     plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
     if not plan:
         plan = DiaPlan(user_id=user_id, fecha=fecha)
         db.session.add(plan)
 
-    plan.plan_type = plan_type
-    plan.warmup = warmup
-    plan.main = main
-    plan.finisher = finisher
-    plan.propuesto_score = propuesto
-    plan.realizado_score = realizado
-    db.session.commit()
+    plan.plan_type = request.form.get("plan_type", "descanso")
+    plan.warmup = request.form.get("warmup", "")
+    plan.main = request.form.get("main", "")
+    plan.finisher = request.form.get("finisher", "")
+    plan.propuesto_score = int(request.form.get("propuesto_score", 0) or 0)
+    plan.realizado_score = int(request.form.get("realizado_score", 0) or 0)
 
-    flash("✅ Día actualizado.", "success")
+    db.session.commit()
+    flash("✅ Día actualizado correctamente.", "success")
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
 
@@ -178,7 +176,8 @@ def save_day():
 def dashboard_entrenador():
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado.", "danger")
-        return redirect(url_for("main.perfil"))
+        return redirect(url_for("main.perfil_redirect"))
+
     atletas = User.query.filter(User.email != "admin@vir.app").all()
     return render_template("dashboard_entrenador.html", atletas=atletas)
 
@@ -191,10 +190,10 @@ def dashboard_entrenador():
 def admin_create_user():
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado.", "danger")
-        return redirect(url_for("main.perfil"))
+        return redirect(url_for("main.perfil_redirect"))
 
     nombre = request.form.get("nombre")
-    email = request.form.get("email").lower().strip()
+    email = request.form.get("email", "").lower().strip()
     grupo = request.form.get("grupo", "Atleta")
     password = request.form.get("password")
 
@@ -222,20 +221,18 @@ def admin_create_user():
 def admin_delete_user(user_id):
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado.", "danger")
-        return redirect(url_for("main.perfil"))
+        return redirect(url_for("main.perfil_redirect"))
 
     user = User.query.get_or_404(user_id)
     if user.email == "admin@vir.app":
         flash("No podés eliminar al administrador.", "warning")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    planes = DiaPlan.query.filter_by(user_id=user.id).all()
-    for p in planes:
+    for p in DiaPlan.query.filter_by(user_id=user.id):
         db.session.delete(p)
 
     db.session.delete(user)
     db.session.commit()
-
     flash(f"🗑️ Usuario {user.nombre} y sus planes fueron eliminados.", "info")
     return redirect(url_for("main.dashboard_entrenador"))
 
@@ -262,7 +259,7 @@ def listar_rutinas():
 def crear_rutina():
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado.", "danger")
-        return redirect(url_for("main.perfil"))
+        return redirect(url_for("main.perfil_redirect"))
 
     nombre = request.form.get("nombre")
     tipo = request.form.get("tipo")
@@ -287,7 +284,7 @@ def crear_rutina():
 def agregar_ejercicio(rutina_id):
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado.", "danger")
-        return redirect(url_for("main.perfil"))
+        return redirect(url_for("main.perfil_redirect"))
 
     rutina = Rutina.query.get_or_404(rutina_id)
     nombre = request.form.get("nombre")
@@ -318,7 +315,7 @@ def agregar_ejercicio(rutina_id):
 
 
 # ===========================================
-# 🧰 Ruta temporal para crear el admin inicial
+# 🧰 Setup inicial admin
 # ===========================================
 @main_bp.route("/setup-admin")
 def setup_admin():
@@ -339,7 +336,7 @@ def setup_admin():
 # ===========================================
 # 🧱 FIX: Crear columna faltante (Render)
 # ===========================================
-@main_bp.route("/fix-db", methods=["GET"])
+@main_bp.route("/fix-db")
 def fix_db():
     try:
         db.session.execute(text("""

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, date
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import InternalError
+from sqlalchemy import text
 from app.models import User, DiaPlan, Rutina
 from app.extensions import db
 
@@ -333,15 +334,20 @@ def setup_admin():
     db.session.commit()
 
     return f"✅ Admin creado correctamente.<br>Email: {admin_email}<br>Contraseña: {admin_pass}"
-@main_bp.route("/fix-db-fecha")
-def fix_db_fecha():
+
+
+# ===========================================
+# 🧱 FIX: Crear columna faltante (Render)
+# ===========================================
+@main_bp.route("/fix-db", methods=["GET"])
+def fix_db():
     try:
-        from sqlalchemy import text
-        from app.extensions import db
         db.session.execute(text("""
-            ALTER TABLE rutina ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+            ALTER TABLE rutina
+            ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
         """))
         db.session.commit()
         return "✅ Columna 'fecha_creacion' creada correctamente en la tabla rutina."
     except Exception as e:
-        return f"❌ Error al ejecutar alter table: {e}"
+        db.session.rollback()
+        return f"❌ Error al ejecutar el fix: {str(e)}"

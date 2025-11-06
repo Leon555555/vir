@@ -130,6 +130,95 @@
   </div>
 </div>
 
+<!-- RUTINAS -->
+<div class="card bg-black border-0 shadow-lg">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0 text-light"><i class="bi bi-badge-dumbbell me-2 text-info"></i>Rutinas</h5>
+    </div>
+
+    {% if current_user.email == 'admin@vir.app' %}
+    <form action="{{ url_for('main.crear_rutina') }}" method="POST" class="p-3 bg-dark rounded mb-4 border border-info">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-3"><input name="nombre" class="form-control form-control-sm" placeholder="Nombre de rutina" required></div>
+        <div class="col-md-3">
+          <select name="tipo" class="form-select form-select-sm">
+            <option value="Fuerza">Fuerza</option>
+            <option value="Estiramientos">Estiramientos</option>
+            <option value="Movilidad">Movilidad</option>
+          </select>
+        </div>
+        <div class="col-md-4"><input name="descripcion" class="form-control form-control-sm" placeholder="Descripción breve"></div>
+        <div class="col-md-2"><button class="btn btn-glow btn-sm w-100"><i class="bi bi-plus-circle me-1"></i>Crear</button></div>
+      </div>
+    </form>
+    {% endif %}
+
+    {% set tipos = ['Fuerza', 'Estiramientos', 'Movilidad'] %}
+    {% for tipo in tipos %}
+      <h5 class="mt-3 text-info">{{ tipo }}</h5>
+      <div class="row">
+        {% for r in rutinas if r.tipo == tipo %}
+        <div class="col-md-4 mb-3">
+          <div class="card bg-dark text-light h-100 border border-secondary">
+            <div class="card-body">
+              <h6 class="fw-bold">{{ r.nombre }}</h6>
+              <p class="small text-secondary">{{ r.descripcion or "" }}</p>
+
+              <button class="btn btn-outline-light btn-sm mt-1" data-bs-toggle="collapse" data-bs-target="#rutina{{ r.id }}">
+                <i class="bi bi-list-ul me-1"></i>Ver ejercicios ({{ r.items|length }})
+              </button>
+
+              <div id="rutina{{ r.id }}" class="collapse mt-3">
+                {% for it in r.items %}
+                <div class="mb-3 p-2 bg-black border border-secondary rounded">
+                  <div class="d-flex align-items-center gap-2">
+                    <strong class="me-auto">{{ it.nombre }}</strong>
+                    {% if it.reps %}<span class="badge bg-dark">{{ it.reps }}</span>{% endif %}
+                    {% if it.series %}<span class="badge bg-info text-dark">{{ it.series }}x</span>{% endif %}
+                    {% if it.descanso %}<span class="badge bg-secondary">{{ it.descanso }}</span>{% endif %}
+                  </div>
+
+                  {% if it.video_url %}
+                    {% if 'youtube' in it.video_url %}
+                      <div class="ratio ratio-16x9 mt-2">
+                        <iframe src="{{ it.video_url }}" title="video" allowfullscreen></iframe>
+                      </div>
+                    {% elif it.video_url.endswith('.mp4') %}
+                      <video class="w-100 mt-2" controls><source src="{{ it.video_url }}"></video>
+                    {% endif %}
+                  {% elif it.imagen_url %}
+                    <img src="{{ it.imagen_url }}" class="img-fluid mt-2 rounded">
+                  {% endif %}
+
+                  {% if it.nota %}<p class="small text-secondary mt-2">{{ it.nota }}</p>{% endif %}
+                </div>
+                {% endfor %}
+
+                {% if current_user.email == 'admin@vir.app' %}
+                <form action="{{ url_for('main.agregar_ejercicio', rutina_id=r.id) }}" method="POST" class="mt-3 p-2 bg-black border border-info rounded">
+                  <input type="text" name="nombre" class="form-control form-control-sm mb-2" placeholder="Nombre del ejercicio" required>
+                  <input type="text" name="series" class="form-control form-control-sm mb-2" placeholder="Series">
+                  <input type="text" name="reps" class="form-control form-control-sm mb-2" placeholder="Repeticiones">
+                  <input type="text" name="descanso" class="form-control form-control-sm mb-2" placeholder="Descanso">
+                  <input type="text" name="imagen_url" class="form-control form-control-sm mb-2" placeholder="URL de imagen (opcional)">
+                  <input type="text" name="video_url" class="form-control form-control-sm mb-2" placeholder="URL de video (opcional)">
+                  <textarea name="nota" class="form-control form-control-sm mb-2" placeholder="Notas o técnica"></textarea>
+                  <button class="btn btn-glow btn-sm w-100"><i class="bi bi-plus-circle me-1"></i>Agregar ejercicio</button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+          <p class="text-secondary">No hay rutinas de {{ tipo.lower() }} todavía.</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}

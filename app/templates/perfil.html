@@ -1,151 +1,137 @@
 {% extends "layout.html" %}
-{% block title %}Perfil de {{ user.nombre }}{% endblock %}
+{% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
+
 {% block content %}
 
-<div class="container mt-4">
-  <div class="text-center mb-4">
-    <h2 class="fw-bold text-light">{{ user.nombre }}</h2>
-    <p class="text-muted">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</p>
-  </div>
+<!-- Encabezado -->
+<div class="text-center mb-4">
+  <img src="{{ url_for('static', filename='logo_negro_vr_training.png') }}" alt="VR" style="height:40px; opacity:.9;">
+  <h2 class="fw-bold mt-2">{{ user.nombre }}</h2>
+  <div class="small-muted">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
+</div>
 
-  <!-- Último y próximo entrenamiento -->
-  <div class="row mb-4 text-center">
-    <div class="col-md-6">
-      <div class="card bg-dark border-primary text-light shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title text-primary">🏋️‍♂️ Último entrenamiento</h5>
-          <p class="card-text">No hay entrenamientos anteriores.</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="card bg-dark border-danger text-light shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title text-danger">🏃‍♂️ Próximo entrenamiento</h5>
-          <p class="card-text">No hay próximos entrenamientos planificados.</p>
-        </div>
+<!-- Último / Próximo -->
+<div class="row mb-4 text-center g-3">
+  <div class="col-md-6">
+    <div class="card bg-dark text-light" style="border:1px solid rgba(34,211,238,.2);">
+      <div class="card-body">
+        <h5 class="card-title text-info"><i class="bi bi-activity me-2"></i>Último entrenamiento</h5>
+        <p class="small-muted mb-0">No hay entrenamientos anteriores.</p>
       </div>
     </div>
   </div>
-
-  <!-- Semana actual -->
-  <div class="card bg-dark border-0 shadow-sm mb-4">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="text-light mb-0">🗓️ {{ semana_str }}</h5>
-        <a href="#" class="btn btn-outline-light btn-sm">Ver mes completo</a>
+  <div class="col-md-6">
+    <div class="card bg-dark text-light" style="border:1px solid rgba(239,68,68,.25);">
+      <div class="card-body">
+        <h5 class="card-title text-danger"><i class="bi bi-lightning-charge me-2"></i>Próximo entrenamiento</h5>
+        <p class="small-muted mb-0">No hay próximos entrenamientos planificados.</p>
       </div>
+    </div>
+  </div>
+</div>
 
-      <div class="d-flex justify-content-between flex-wrap gap-2">
-        {% for f in fechas %}
-        <div class="day-box text-center bg-secondary text-light rounded-3 p-3 flex-fill" style="min-width: 160px;">
-          <h6 class="fw-bold mb-1">{{ f.strftime('%a')|capitalize }}</h6>
-          <p class="small text-info mb-2">{{ planes[f].plan_type|capitalize }}</p>
+<!-- Semana actual -->
+<div class="card bg-dark border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0"><i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}</h5>
+      <!-- ¡IMPORTANTE! type="button" evita navegar/submit -->
+      <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="collapse" data-bs-target="#mesCompleto">
+        <i class="bi bi-calendar3-range me-1"></i> Ver mes completo
+      </button>
+    </div>
 
-          {% if current_user.email == 'admin@vir.app' %}
-          <!-- 🔹 SOLO ADMIN: puede editar -->
+    <!-- SIETE DÍAS EN UNA SOLA FILA (GRID 7 COLS) -->
+    <div class="week-grid">
+      {% for f in fechas %}
+      <div class="day-card">
+        <div class="hdr">
+          <div class="fw-bold">{{ f.strftime('%a')|capitalize }}</div>
+          <span class="badge-chip">{{ planes[f].plan_type|capitalize }}</span>
+        </div>
+
+        {% if current_user.email == 'admin@vir.app' %}
           <button class="btn btn-outline-light btn-sm w-100" data-bs-toggle="collapse" data-bs-target="#dia{{ loop.index }}">
-            ✏️ Editar día
+            <i class="bi bi-pencil-square me-1"></i>Editar día
           </button>
 
-          <div id="dia{{ loop.index }}" class="collapse mt-2 text-start">
+          <div id="dia{{ loop.index }}" class="collapse mt-2">
             <form action="{{ url_for('main.save_day') }}" method="POST">
               <input type="hidden" name="user_id" value="{{ user.id }}">
               <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
 
-              <div class="mb-2">
-                <label class="form-label text-muted small">Tipo de día</label>
-                <select name="plan_type" class="form-select form-select-sm">
-                  <option value="descanso" {% if planes[f].plan_type == 'descanso' %}selected{% endif %}>Descanso</option>
-                  <option value="entrenamiento" {% if planes[f].plan_type == 'entrenamiento' %}selected{% endif %}>Entrenamiento</option>
-                  <option value="competencia" {% if planes[f].plan_type == 'competencia' %}selected{% endif %}>Competencia</option>
-                </select>
+              <label class="small-muted">Tipo</label>
+              <select name="plan_type" class="form-select form-select-sm mb-2">
+                <option value="descanso" {% if planes[f].plan_type == 'descanso' %}selected{% endif %}>Descanso</option>
+                <option value="entrenamiento" {% if planes[f].plan_type == 'entrenamiento' %}selected{% endif %}>Entrenamiento</option>
+                <option value="competencia" {% if planes[f].plan_type == 'competencia' %}selected{% endif %}>Competencia</option>
+              </select>
+
+              <textarea name="warmup" class="form-control form-control-sm mb-2" placeholder="Calentamiento" rows="2">{{ planes[f].warmup or '' }}</textarea>
+              <textarea name="main" class="form-control form-control-sm mb-2" placeholder="Entrenamiento" rows="2">{{ planes[f].main or '' }}</textarea>
+              <textarea name="finisher" class="form-control form-control-sm mb-2" placeholder="Bloque final" rows="2">{{ planes[f].finisher or '' }}</textarea>
+
+              <div class="d-flex gap-2">
+                <input type="number" name="propuesto_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].propuesto_score or 0 }}">
+                <input type="number" name="realizado_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].realizado_score or 0 }}">
               </div>
 
-              <div class="mb-2">
-                <label class="form-label text-muted small">Calentamiento</label>
-                <textarea name="warmup" class="form-control form-control-sm" rows="2">{{ planes[f].warmup or '' }}</textarea>
-              </div>
-
-              <div class="mb-2">
-                <label class="form-label text-muted small">Entrenamiento principal</label>
-                <textarea name="main" class="form-control form-control-sm" rows="2">{{ planes[f].main or '' }}</textarea>
-              </div>
-
-              <div class="mb-2">
-                <label class="form-label text-muted small">Bloque final</label>
-                <textarea name="finisher" class="form-control form-control-sm" rows="2">{{ planes[f].finisher or '' }}</textarea>
-              </div>
-
-              <div class="row mb-2">
-                <div class="col">
-                  <label class="form-label text-muted small">Propuesto (0-10)</label>
-                  <input type="number" name="propuesto_score" min="0" max="10"
-                         class="form-control form-control-sm"
-                         value="{{ planes[f].propuesto_score or 0 }}">
-                </div>
-                <div class="col">
-                  <label class="form-label text-muted small">Realizado (0-10)</label>
-                  <input type="number" name="realizado_score" min="0" max="10"
-                         class="form-control form-control-sm"
-                         value="{{ planes[f].realizado_score or 0 }}">
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-success btn-sm w-100 mt-2">💾 Guardar</button>
+              <button class="btn btn-success btn-sm w-100 mt-2"><i class="bi bi-save2 me-1"></i>Guardar</button>
             </form>
           </div>
-
-          {% else %}
-          <!-- 🔹 ATLETA: solo lectura -->
-          <div class="text-start small bg-dark rounded p-2">
-            <p><strong>Calentamiento:</strong> {{ planes[f].warmup or '—' }}</p>
-            <p><strong>Entrenamiento:</strong> {{ planes[f].main or '—' }}</p>
-            <p><strong>Bloque final:</strong> {{ planes[f].finisher or '—' }}</p>
+        {% else %}
+          <div class="small bg-secondary rounded p-2">
+            <div><strong>Calentamiento:</strong> {{ planes[f].warmup or '—' }}</div>
+            <div><strong>Entrenamiento:</strong> {{ planes[f].main or '—' }}</div>
+            <div><strong>Bloque final:</strong> {{ planes[f].finisher or '—' }}</div>
           </div>
 
-          <!-- Botón para registrar feedback -->
           <button class="btn btn-outline-info btn-sm w-100 mt-2" data-bs-toggle="collapse" data-bs-target="#nota{{ loop.index }}">
-            📝 Registrar entrenamiento
+            <i class="bi bi-clipboard2-check me-1"></i> Registrar
           </button>
 
           <div id="nota{{ loop.index }}" class="collapse mt-2">
             <form action="{{ url_for('main.save_day') }}" method="POST">
               <input type="hidden" name="user_id" value="{{ user.id }}">
               <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
-              <textarea name="finisher" placeholder="Comentá cómo te fue hoy..." class="form-control form-control-sm" rows="3"></textarea>
-              <button type="submit" class="btn btn-primary btn-sm w-100 mt-2">💾 Guardar nota</button>
+              <textarea name="finisher" class="form-control form-control-sm" rows="2" placeholder="Comentá cómo te fue hoy..."></textarea>
+              <button class="btn btn-primary btn-sm w-100 mt-2"><i class="bi bi-save me-1"></i>Guardar nota</button>
             </form>
           </div>
-          {% endif %}
-        </div>
-        {% endfor %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- DESPLEGABLE: MES COMPLETO -->
+    <div class="collapse mt-4" id="mesCompleto">
+      <div class="bg-secondary rounded p-3 text-light">
+        <h6 class="mb-1"><i class="bi bi-calendar3-range me-2"></i>Mes completo</h6>
+        <p class="small-muted mb-0">Aquí mostraremos el calendario mensual (placeholder).</p>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Gráfico Propuesto vs Realizado -->
-  <div class="card bg-dark border-0 shadow-sm mb-4">
-    <div class="card-body">
-      <h5 class="text-light mb-3">📈 Propuesto vs Realizado</h5>
-      <canvas id="graficoProgreso"></canvas>
-    </div>
+<!-- Gráfico -->
+<div class="card bg-dark border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="mb-3"><i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado</h5>
+    <canvas id="graficoProgreso"></canvas>
   </div>
+</div>
 
-  <!-- 📚 Rutinas -->
-  <div class="card bg-dark border-0 shadow-sm mt-4">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="text-light mb-0">🏋️‍♀️ Rutinas</h5>
-      </div>
+<!-- Rutinas -->
+<div class="card bg-dark border-0 shadow-sm">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0"><i class="bi bi-badge-dumbbell me-2"></i>Rutinas</h5>
+    </div>
 
-      {% if current_user.email == 'admin@vir.app' %}
-      <!-- 🔹 Solo admin puede crear -->
+    {% if current_user.email == 'admin@vir.app' %}
       <form action="{{ url_for('main.crear_rutina') }}" method="POST" class="p-3 bg-secondary rounded mb-4">
         <div class="row g-2 align-items-center">
-          <div class="col-md-3">
-            <input name="nombre" class="form-control" placeholder="Nombre de rutina" required>
-          </div>
+          <div class="col-md-3"><input name="nombre" class="form-control" placeholder="Nombre de rutina" required></div>
           <div class="col-md-3">
             <select name="tipo" class="form-select">
               <option value="Fuerza">Fuerza</option>
@@ -153,83 +139,80 @@
               <option value="Movilidad">Movilidad</option>
             </select>
           </div>
-          <div class="col-md-4">
-            <input name="descripcion" class="form-control" placeholder="Descripción breve">
-          </div>
-          <div class="col-md-2">
-            <button class="btn btn-info w-100">➕ Crear rutina</button>
-          </div>
+          <div class="col-md-4"><input name="descripcion" class="form-control" placeholder="Descripción breve"></div>
+          <div class="col-md-2"><button class="btn btn-info w-100"><i class="bi bi-plus-circle me-1"></i>Crear</button></div>
         </div>
       </form>
-      {% endif %}
+    {% endif %}
 
-      {% set tipos = ['Fuerza', 'Estiramientos', 'Movilidad'] %}
-      {% for tipo in tipos %}
-        <h5 class="text-light mt-4">{{ tipo }}</h5>
-        <div class="row">
-          {% for r in rutinas if r.tipo == tipo %}
-          <div class="col-md-4 mb-3">
-            <div class="card bg-secondary text-light shadow-sm h-100" style="border-radius: 16px;">
-              <div class="card-body">
-                <h6 class="fw-bold">{{ r.nombre }}</h6>
-                <p class="small text-light">{{ r.descripcion or "" }}</p>
+    {% set tipos = ['Fuerza', 'Estiramientos', 'Movilidad'] %}
+    {% for tipo in tipos %}
+      <h5 class="mt-3">{{ tipo }}</h5>
+      <div class="row">
+        {% for r in rutinas if r.tipo == tipo %}
+        <div class="col-md-4 mb-3">
+          <div class="card bg-secondary text-light h-100" style="border-radius:16px;">
+            <div class="card-body">
+              <h6 class="fw-bold">{{ r.nombre }}</h6>
+              <p class="small">{{ r.descripcion or "" }}</p>
 
-                <button class="btn btn-outline-light btn-sm mt-1" data-bs-toggle="collapse" data-bs-target="#rutina{{ r.id }}">
-                  Ver ejercicios ({{ r.items|length }})
-                </button>
+              <button class="btn btn-outline-light btn-sm mt-1" data-bs-toggle="collapse" data-bs-target="#rutina{{ r.id }}">
+                <i class="bi bi-list-ul me-1"></i>Ver ejercicios ({{ r.items|length }})
+              </button>
 
-                <div id="rutina{{ r.id }}" class="collapse mt-3">
-                  {% for it in r.items %}
-                  <div class="mb-3 p-2" style="background:#0f1319;border-radius:12px;border:1px solid rgba(255,255,255,.08)">
-                    <div class="d-flex align-items-center gap-2">
-                      <strong class="me-auto">{{ it.nombre }}</strong>
-                      {% if it.reps %}<span class="badge bg-dark">{{ it.reps }}</span>{% endif %}
-                      {% if it.series %}<span class="badge bg-info text-dark">{{ it.series }}x</span>{% endif %}
-                      {% if it.descanso %}<span class="badge bg-secondary">{{ it.descanso }}</span>{% endif %}
-                    </div>
-
-                    {% if it.video_url %}
-                      {% if 'youtube' in it.video_url %}
-                        <div class="ratio ratio-16x9 mt-2">
-                          <iframe src="{{ it.video_url }}" title="video" allowfullscreen></iframe>
-                        </div>
-                      {% elif it.video_url.endswith('.mp4') %}
-                        <video class="w-100 mt-2" controls><source src="{{ it.video_url }}"></video>
-                      {% endif %}
-                    {% elif it.imagen_url %}
-                      <img src="{{ it.imagen_url }}" class="img-fluid mt-2 rounded">
-                    {% endif %}
-
-                    {% if it.nota %}
-                      <p class="small text-secondary mt-2">{{ it.nota }}</p>
-                    {% endif %}
+              <div id="rutina{{ r.id }}" class="collapse mt-3">
+                {% for it in r.items %}
+                <div class="mb-3 p-2" style="background:#0f1319;border-radius:12px;border:1px solid rgba(255,255,255,.08)">
+                  <div class="d-flex align-items-center gap-2">
+                    <strong class="me-auto">{{ it.nombre }}</strong>
+                    {% if it.reps %}<span class="badge bg-dark">{{ it.reps }}</span>{% endif %}
+                    {% if it.series %}<span class="badge bg-info text-dark">{{ it.series }}x</span>{% endif %}
+                    {% if it.descanso %}<span class="badge bg-secondary">{{ it.descanso }}</span>{% endif %}
                   </div>
-                  {% endfor %}
 
-                  {% if current_user.email == 'admin@vir.app' %}
-                  <form action="{{ url_for('main.agregar_ejercicio', rutina_id=r.id) }}" method="POST" class="mt-3 p-2 bg-dark rounded">
-                    <input type="text" name="nombre" class="form-control form-control-sm mb-2" placeholder="Nombre del ejercicio" required>
-                    <input type="text" name="series" class="form-control form-control-sm mb-2" placeholder="Series">
-                    <input type="text" name="reps" class="form-control form-control-sm mb-2" placeholder="Repeticiones">
-                    <input type="text" name="descanso" class="form-control form-control-sm mb-2" placeholder="Descanso">
-                    <input type="text" name="imagen_url" class="form-control form-control-sm mb-2" placeholder="URL de imagen (opcional)">
-                    <textarea name="nota" class="form-control form-control-sm mb-2" placeholder="Notas o técnica"></textarea>
-                    <button class="btn btn-success btn-sm w-100">💾 Agregar ejercicio</button>
-                  </form>
+                  {% if it.video_url %}
+                    {% if 'youtube' in it.video_url %}
+                      <div class="ratio ratio-16x9 mt-2">
+                        <iframe src="{{ it.video_url }}" title="video" allowfullscreen></iframe>
+                      </div>
+                    {% elif it.video_url.endswith('.mp4') %}
+                      <video class="w-100 mt-2" controls><source src="{{ it.video_url }}"></video>
+                    {% endif %}
+                  {% elif it.imagen_url %}
+                    <img src="{{ it.imagen_url }}" class="img-fluid mt-2 rounded">
                   {% endif %}
+
+                  {% if it.nota %}<p class="small text-secondary mt-2">{{ it.nota }}</p>{% endif %}
                 </div>
+                {% endfor %}
+
+                {% if current_user.email == 'admin@vir.app' %}
+                <form action="{{ url_for('main.agregar_ejercicio', rutina_id=r.id) }}" method="POST" class="mt-3 p-2 bg-dark rounded">
+                  <input type="text" name="nombre" class="form-control form-control-sm mb-2" placeholder="Nombre del ejercicio" required>
+                  <input type="text" name="series" class="form-control form-control-sm mb-2" placeholder="Series">
+                  <input type="text" name="reps" class="form-control form-control-sm mb-2" placeholder="Repeticiones">
+                  <input type="text" name="descanso" class="form-control form-control-sm mb-2" placeholder="Descanso">
+                  <input type="text" name="imagen_url" class="form-control form-control-sm mb-2" placeholder="URL de imagen (opcional)">
+                  <input type="text" name="video_url" class="form-control form-control-sm mb-2" placeholder="URL de video (opcional)">
+                  <textarea name="nota" class="form-control form-control-sm mb-2" placeholder="Notas o técnica"></textarea>
+                  <button class="btn btn-success btn-sm w-100"><i class="bi bi-plus-circle me-1"></i>Agregar ejercicio</button>
+                </form>
+                {% endif %}
               </div>
             </div>
           </div>
-          {% else %}
-          <p class="text-secondary">No hay rutinas de {{ tipo.lower() }} todavía.</p>
-          {% endfor %}
         </div>
-      {% endfor %}
-    </div>
+        {% else %}
+          <p class="text-secondary">No hay rutinas de {{ tipo.lower() }} todavía.</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const ctx = document.getElementById("graficoProgreso").getContext("2d");
@@ -238,8 +221,8 @@ new Chart(ctx, {
   data: {
     labels: {{ labels|tojson }},
     datasets: [
-      { label: "Propuesto", data: {{ propuesto|tojson }}, borderColor: "#ff4b4b", tension: 0.3, fill: false, borderWidth: 2 },
-      { label: "Realizado", data: {{ realizado|tojson }}, borderColor: "#00ffff", tension: 0.3, fill: false, borderWidth: 2 }
+      { label: "Propuesto", data: {{ propuesto|tojson }}, borderColor: "#22d3ee", tension: 0.3, fill: false, borderWidth: 2 },
+      { label: "Realizado", data: {{ realizado|tojson }}, borderColor: "#0ea5e9", tension: 0.3, fill: false, borderWidth: 2 }
     ]
   },
   options: {
@@ -248,17 +231,9 @@ new Chart(ctx, {
     plugins: { legend: { labels: { color: "#ddd" } } },
     scales: {
       x: { ticks: { color: "#ccc" } },
-      y: { min: 0, ticks: { color: "#ccc" } }
+      y: { min: 0, ticks: { color: "#ccc" } }   // sin negativos
     }
   }
 });
 </script>
-
-<style>
-  /* 🔹 Reduce el tamaño visual del gráfico */
-  #graficoProgreso {
-    height: 200px !important;
-  }
-</style>
-
 {% endblock %}

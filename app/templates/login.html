@@ -1,61 +1,26 @@
 {% extends "layout.html" %}
-{% block title %}Iniciar sesión — ViR{% endblock %}
+{% block title %}Ingresar — VR Training{% endblock %}
 
 {% block content %}
-<div class="container d-flex justify-content-center align-items-center" style="min-height: 85vh;">
-  <div class="card shadow-lg p-4" style="background: rgba(20, 20, 20, 0.9); border-radius: 15px; width: 420px;">
-    <h2 class="text-center text-danger mb-4 fw-bold">
-      🧠 ViR — Login
-    </h2>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+<div class="d-flex justify-content-center align-items-center" style="min-height:78vh;">
+  <div class="card shadow-lg p-4" style="background:#0f172a;border:1px solid rgba(255,255,255,.08); border-radius:16px; width:420px;">
+    <div class="text-center mb-3">
+      <img src="{{ url_for('static', filename='logo_negro_vr_training.png') }}" alt="VR" style="height:54px;">
+      <h2 class="mt-2 fw-bold" style="letter-spacing:.06em;">VR TRAINING</h2>
+      <div class="small-muted">Accedé a tu perfil o al panel</div>
+    </div>
 
     <form method="POST" action="{{ url_for('main.login') }}">
       <div class="mb-3">
-        <label for="email" class="form-label text-light">Correo electrónico</label>
-        <input
-          type="email"
-          class="form-control bg-dark text-light border-secondary"
-          id="email"
-          name="email"
-          placeholder="admin@vir.app"
-          required
-        />
+        <label class="form-label">Correo</label>
+        <input type="email" class="form-control bg-dark text-light border-secondary" name="email" placeholder="admin@vir.app" required>
       </div>
-
       <div class="mb-4">
-        <label for="password" class="form-label text-light">Contraseña</label>
-        <input
-          type="password"
-          class="form-control bg-dark text-light border-secondary"
-          id="password"
-          name="password"
-          placeholder="********"
-          required
-        />
+        <label class="form-label">Contraseña</label>
+        <input type="password" class="form-control bg-dark text-light border-secondary" name="password" placeholder="********" required>
       </div>
-
-      <button
-        type="submit"
-        class="btn btn-danger w-100 py-2 fw-bold"
-        style="letter-spacing: 0.5px;"
-      >
-        Iniciar sesión
-      </button>
+      <button type="submit" class="btn btn-primary w-100 py-2"><i class="bi bi-box-arrow-in-right me-1"></i>Entrar</button>
     </form>
-
-    <p class="text-center mt-4 text-secondary" style="font-size: 0.9rem;">
-      © 2025 ViR — Vital Intelligence & Resilience
-    </p>
   </div>
 </div>
 {% endblock %}

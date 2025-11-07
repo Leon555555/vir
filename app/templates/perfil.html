@@ -45,92 +45,88 @@
     <!-- 7 días en una fila -->
     <div class="week-grid">
       {% for f in fechas %}
-      <div class="day-card text-light p-3 rounded shadow-sm">
+      <div class="day-card text-light p-3 rounded shadow-sm"
+           data-bs-toggle="modal" data-bs-target="#modalDia{{ loop.index }}"
+           style="cursor:pointer; transition:transform .2s ease;">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <strong>{{ f.strftime('%a')|capitalize }}</strong>
           <span class="badge bg-info text-dark">{{ planes[f].plan_type|capitalize }}</span>
         </div>
+        <div class="small bg-dark rounded p-2 border border-secondary">
+          <div><strong>Calentamiento:</strong> {{ planes[f].warmup or '—' }}</div>
+          <div><strong>Entrenamiento:</strong> {{ planes[f].main or '—' }}</div>
+          <div><strong>Bloque final:</strong> {{ planes[f].finisher or '—' }}</div>
+        </div>
+      </div>
 
-        {% if current_user.email == 'admin@vir.app' %}
-          <!-- Botón abrir modal edición -->
-          <button class="btn btn-glow btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#modalEditar{{ loop.index }}">
-            <i class="bi bi-pencil-square me-1"></i>Editar día
-          </button>
+      <!-- MODAL AMPLIADO -->
+      <div class="modal fade" id="modalDia{{ loop.index }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content bg-dark text-light border border-info" 
+               style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.4); transform:scale(0.95); transition:transform .3s ease;">
+            <div class="modal-header border-info">
+              <h5 class="modal-title text-info"><i class="bi bi-calendar-event me-2"></i>{{ f.strftime('%A %d/%m')|capitalize }}</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <form action="{{ url_for('main.save_day') }}" method="POST">
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
 
-          <!-- MODAL EDICIÓN -->
-          <div class="modal fade" id="modalEditar{{ loop.index }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-              <div class="modal-content bg-dark text-light border border-info" style="border-radius:14px; box-shadow:0 0 25px rgba(34,211,238,0.4);">
-                <div class="modal-header border-info">
-                  <h5 class="modal-title text-info"><i class="bi bi-calendar-event me-2"></i>{{ f.strftime('%A %d/%m')|capitalize }}</h5>
-                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                  <form action="{{ url_for('main.save_day') }}" method="POST">
-                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                    <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
-                    <label class="form-label text-info">Tipo</label>
-                    <select name="plan_type" class="form-select form-select-sm mb-3">
-                      <option value="descanso" {% if planes[f].plan_type == 'descanso' %}selected{% endif %}>Descanso</option>
-                      <option value="entrenamiento" {% if planes[f].plan_type == 'entrenamiento' %}selected{% endif %}>Entrenamiento</option>
-                      <option value="competencia" {% if planes[f].plan_type == 'competencia' %}selected{% endif %}>Competencia</option>
+                {% if current_user.email == 'admin@vir.app' %}
+                  <label class="form-label text-info">Tipo</label>
+                  <select name="plan_type" class="form-select form-select-sm mb-3">
+                    <option value="descanso" {% if planes[f].plan_type == 'descanso' %}selected{% endif %}>Descanso</option>
+                    <option value="entrenamiento" {% if planes[f].plan_type == 'entrenamiento' %}selected{% endif %}>Entrenamiento</option>
+                    <option value="competencia" {% if planes[f].plan_type == 'competencia' %}selected{% endif %}>Competencia</option>
+                  </select>
+
+                  <label class="form-label text-info">Calentamiento</label>
+                  <textarea name="warmup" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].warmup or '' }}</textarea>
+
+                  <label class="form-label text-info">Entrenamiento</label>
+                  <textarea name="main" class="form-control form-control-sm mb-3" rows="4">{{ planes[f].main or '' }}</textarea>
+
+                  <label class="form-label text-info">Bloque final</label>
+                  <textarea name="finisher" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].finisher or '' }}</textarea>
+
+                  <div class="d-flex gap-3">
+                    <input type="number" name="propuesto_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].propuesto_score or 0 }}">
+                    <input type="number" name="realizado_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].realizado_score or 0 }}">
+                  </div>
+
+                  <button class="btn btn-glow w-100 mt-3"><i class="bi bi-save2 me-1"></i>Guardar</button>
+
+                {% else %}
+                  <label class="form-label text-info">Comentario / Bloque final</label>
+                  <textarea name="finisher" class="form-control form-control-sm mb-3" rows="4" placeholder="Comentá cómo te fue hoy..."></textarea>
+
+                  <!-- NUEVO BLOQUE INTERACTIVO -->
+                  <div class="mb-3">
+                    <label class="form-label text-info">¿Has realizado el entrenamiento?</label>
+                    <select class="form-select form-select-sm" id="realizado{{ loop.index }}" onchange="toggleCansancio({{ loop.index }})">
+                      <option value="">Seleccionar</option>
+                      <option value="no">No</option>
+                      <option value="si">Sí</option>
                     </select>
+                  </div>
 
-                    <label class="form-label text-info">Calentamiento</label>
-                    <textarea name="warmup" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].warmup or '' }}</textarea>
+                  <div class="mb-3" id="cansancioDiv{{ loop.index }}" style="display:none;">
+                    <label class="form-label text-info">¿Cómo te has sentido al terminar? (1-10)</label>
+                    <select class="form-select form-select-sm" name="nivel_cansancio">
+                      <option value="">Seleccionar</option>
+                      {% for i in range(1,11) %}
+                      <option value="{{ i }}">{{ i }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
 
-                    <label class="form-label text-info">Entrenamiento</label>
-                    <textarea name="main" class="form-control form-control-sm mb-3" rows="4">{{ planes[f].main or '' }}</textarea>
-
-                    <label class="form-label text-info">Bloque final</label>
-                    <textarea name="finisher" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].finisher or '' }}</textarea>
-
-                    <div class="d-flex gap-3">
-                      <input type="number" name="propuesto_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].propuesto_score or 0 }}">
-                      <input type="number" name="realizado_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].realizado_score or 0 }}">
-                    </div>
-                    <button class="btn btn-glow w-100 mt-3"><i class="bi bi-save2 me-1"></i>Guardar</button>
-                  </form>
-                </div>
-              </div>
+                  <button class="btn btn-glow w-100 mt-3"><i class="bi bi-save2 me-1"></i>Guardar nota</button>
+                {% endif %}
+              </form>
             </div>
           </div>
-
-        {% else %}
-          <div class="small bg-dark rounded p-2 mb-2 border border-secondary">
-            <div><strong>Calentamiento:</strong> {{ planes[f].warmup or '—' }}</div>
-            <div><strong>Entrenamiento:</strong> {{ planes[f].main or '—' }}</div>
-            <div><strong>Bloque final:</strong> {{ planes[f].finisher or '—' }}</div>
-          </div>
-
-          <!-- Botón modal registro -->
-          <button class="btn btn-glow btn-sm w-100" data-bs-toggle="modal" data-bs-target="#modal{{ loop.index }}">
-            <i class="bi bi-clipboard2-check me-1"></i>Registrar
-          </button>
-
-          <!-- MODAL DETALLE GRANDE -->
-          <div class="modal fade" id="modal{{ loop.index }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-              <div class="modal-content bg-dark text-light border border-info" style="border-radius:14px; box-shadow:0 0 25px rgba(34,211,238,0.4);">
-                <div class="modal-header border-info">
-                  <h5 class="modal-title text-info"><i class="bi bi-calendar-event me-2"></i>{{ f.strftime('%A %d/%m')|capitalize }}</h5>
-                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                  <form action="{{ url_for('main.save_day') }}" method="POST">
-                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                    <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
-
-                    <label class="form-label text-info">Bloque final / Comentario</label>
-                    <textarea name="finisher" class="form-control form-control-sm" rows="5" placeholder="Comentá cómo te fue hoy..."></textarea>
-
-                    <button class="btn btn-glow w-100 mt-3"><i class="bi bi-save2 me-1"></i>Guardar nota</button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        {% endif %}
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -230,6 +226,12 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+function toggleCansancio(id) {
+  const select = document.getElementById('realizado' + id);
+  const div = document.getElementById('cansancioDiv' + id);
+  div.style.display = (select.value === 'si') ? 'block' : 'none';
+}
+
 const ctx = document.getElementById("graficoProgreso").getContext("2d");
 new Chart(ctx, {
   type: "line",

@@ -65,7 +65,7 @@
           <div class="modal-content bg-dark text-light border border-info" 
                style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.4); transform:scale(0.95); transition:transform .3s ease;">
             <div class="modal-header border-info">
-              <h5 class="modal-title text-info"><i class="bi bi-calendar-event me-2"></i>{{ f.strftime('%A %d/%m')|capitalize }}</h5>
+              <h5 class="modal-title text-info fw-bold"><i class="bi bi-calendar-event me-2"></i>{{ f.strftime('%A %d/%m')|capitalize }}</h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -73,45 +73,57 @@
                 <input type="hidden" name="user_id" value="{{ user.id }}">
                 <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
 
-                {% if current_user.email == 'admin@vir.app' %}
-                  <label class="form-label text-info">Tipo</label>
-                  <select name="plan_type" class="form-select form-select-sm mb-3">
-                    <option value="descanso" {% if planes[f].plan_type == 'descanso' %}selected{% endif %}>Descanso</option>
-                    <option value="entrenamiento" {% if planes[f].plan_type == 'entrenamiento' %}selected{% endif %}>Entrenamiento</option>
-                    <option value="competencia" {% if planes[f].plan_type == 'competencia' %}selected{% endif %}>Competencia</option>
-                  </select>
+                <!-- BOTONES DE SECCIÓN -->
+                <div class="d-flex justify-content-center gap-3 mb-4">
+                  <button type="button" class="btn btn-outline-info fw-bold px-3 py-2" onclick="showSection({{ loop.index }}, 'warmup')">🔥 Calentamiento</button>
+                  <button type="button" class="btn btn-outline-primary fw-bold px-3 py-2" onclick="showSection({{ loop.index }}, 'main')">💪 Bloque Principal</button>
+                  <button type="button" class="btn btn-outline-light fw-bold px-3 py-2" onclick="showSection({{ loop.index }}, 'finisher')">🧘 Bloque Final</button>
+                </div>
 
+                <!-- SECCIONES -->
+                <div id="warmup{{ loop.index }}" class="training-section">
                   <label class="form-label text-info">Calentamiento</label>
-                  <textarea name="warmup" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].warmup or '' }}</textarea>
+                  {% if current_user.email == 'admin@vir.app' %}
+                    <textarea name="warmup" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].warmup or '' }}</textarea>
+                  {% else %}
+                    <p class="bg-black border border-secondary p-3 rounded">{{ planes[f].warmup or '—' }}</p>
+                  {% endif %}
+                </div>
 
-                  <label class="form-label text-info">Entrenamiento</label>
-                  <textarea name="main" class="form-control form-control-sm mb-3" rows="4">{{ planes[f].main or '' }}</textarea>
+                <div id="main{{ loop.index }}" class="training-section" style="display:none;">
+                  <label class="form-label text-info">Bloque Principal</label>
+                  {% if current_user.email == 'admin@vir.app' %}
+                    <textarea name="main" class="form-control form-control-sm mb-3" rows="4">{{ planes[f].main or '' }}</textarea>
+                  {% else %}
+                    <p class="bg-black border border-secondary p-3 rounded">{{ planes[f].main or '—' }}</p>
+                  {% endif %}
+                </div>
 
-                  <label class="form-label text-info">Bloque final</label>
-                  <textarea name="finisher" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].finisher or '' }}</textarea>
+                <div id="finisher{{ loop.index }}" class="training-section" style="display:none;">
+                  <label class="form-label text-info">Bloque Final</label>
+                  {% if current_user.email == 'admin@vir.app' %}
+                    <textarea name="finisher" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].finisher or '' }}</textarea>
+                  {% else %}
+                    <p class="bg-black border border-secondary p-3 rounded">{{ planes[f].finisher or '—' }}</p>
+                  {% endif %}
+                </div>
 
-                  <div class="d-flex gap-3">
+                {% if current_user.email == 'admin@vir.app' %}
+                  <div class="d-flex gap-3 mt-3">
                     <input type="number" name="propuesto_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].propuesto_score or 0 }}">
                     <input type="number" name="realizado_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].realizado_score or 0 }}">
                   </div>
-
                   <button class="btn btn-glow w-100 mt-3"><i class="bi bi-save2 me-1"></i>Guardar</button>
 
                 {% else %}
-                  <label class="form-label text-info">Comentario / Bloque final</label>
-                  <textarea name="finisher" class="form-control form-control-sm mb-3" rows="4" placeholder="Comentá cómo te fue hoy..."></textarea>
-
-                  <!-- NUEVO BLOQUE INTERACTIVO -->
-                  <div class="mb-3">
-                    <label class="form-label text-info">¿Has realizado el entrenamiento?</label>
-                    <select class="form-select form-select-sm" id="realizado{{ loop.index }}" onchange="toggleCansancio({{ loop.index }})">
-                      <option value="">Seleccionar</option>
-                      <option value="no">No</option>
-                      <option value="si">Sí</option>
-                    </select>
-                  </div>
-
-                  <div class="mb-3" id="cansancioDiv{{ loop.index }}" style="display:none;">
+                  <hr class="border-info my-4">
+                  <label class="form-label text-info">¿Has realizado el entrenamiento?</label>
+                  <select class="form-select form-select-sm" id="realizado{{ loop.index }}" onchange="toggleCansancio({{ loop.index }})">
+                    <option value="">Seleccionar</option>
+                    <option value="no">No</option>
+                    <option value="si">Sí</option>
+                  </select>
+                  <div class="mt-3" id="cansancioDiv{{ loop.index }}" style="display:none;">
                     <label class="form-label text-info">¿Cómo te has sentido al terminar? (1-10)</label>
                     <select class="form-select form-select-sm" name="nivel_cansancio">
                       <option value="">Seleccionar</option>
@@ -120,7 +132,7 @@
                       {% endfor %}
                     </select>
                   </div>
-
+                  <textarea name="finisher" class="form-control form-control-sm bg-dark text-light mt-3" rows="3" placeholder="Comentá cómo te fue hoy..."></textarea>
                   <button class="btn btn-glow w-100 mt-3"><i class="bi bi-save2 me-1"></i>Guardar nota</button>
                 {% endif %}
               </form>
@@ -230,6 +242,12 @@ function toggleCansancio(id) {
   const select = document.getElementById('realizado' + id);
   const div = document.getElementById('cansancioDiv' + id);
   div.style.display = (select.value === 'si') ? 'block' : 'none';
+}
+
+function showSection(id, section) {
+  ['warmup', 'main', 'finisher'].forEach(s => {
+    document.getElementById(s + id).style.display = (s === section) ? 'block' : 'none';
+  });
 }
 
 const ctx = document.getElementById("graficoProgreso").getContext("2d");

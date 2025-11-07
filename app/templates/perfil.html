@@ -5,7 +5,8 @@
 
 <!-- ENCABEZADO -->
 <div class="text-center mb-5">
-  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" alt="VR" style="height:70px;filter:drop-shadow(0 0 15px #22d3ee);">
+  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" alt="VR"
+       style="height:70px;filter:drop-shadow(0 0 15px #22d3ee);">
   <h2 class="fw-bold mt-2 text-light">{{ user.nombre }}</h2>
   <div class="text-secondary">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
 </div>
@@ -62,7 +63,7 @@
       <!-- MODAL AMPLIADO -->
       <div class="modal fade" id="modalDia{{ loop.index }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-          <div class="modal-content bg-dark text-light border border-info" 
+          <div class="modal-content bg-dark text-light border border-info"
                style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.5); font-family:'Rajdhani', sans-serif;">
             <div class="modal-header border-info">
               <h5 class="modal-title text-info fw-bold">
@@ -79,16 +80,16 @@
                 <!-- BOTONES -->
                 <div class="d-flex flex-column gap-3 mb-4">
                   <button type="button" class="btn btn-outline-info fw-bold py-2 w-100"
-                          onclick="toggleSection({{ loop.index }}, 'warmup')">Calentamiento</button>
+                          onclick="toggleSection({{ loop.index }}, 'warmup')">🔥 Calentamiento</button>
                   <button type="button" class="btn btn-outline-primary fw-bold py-2 w-100"
-                          onclick="toggleSection({{ loop.index }}, 'main')">Bloque Principal</button>
+                          onclick="toggleSection({{ loop.index }}, 'main')">💪 Bloque Principal</button>
                   <button type="button" class="btn btn-outline-light fw-bold py-2 w-100"
-                          onclick="toggleSection({{ loop.index }}, 'finisher')">Bloque Final</button>
+                          onclick="toggleSection({{ loop.index }}, 'finisher')">🧘 Bloque Final</button>
                 </div>
 
                 <!-- BLOQUES -->
                 <div id="warmup{{ loop.index }}" class="training-section">
-                  <label class="form-label text-info">Calentamiento</label>
+                  <h5 class="fw-bold text-info mb-3"><i class="bi bi-fire me-2"></i>Calentamiento</h5>
                   {% if current_user.email == 'admin@vir.app' %}
                     <textarea name="warmup" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].warmup or '' }}</textarea>
                   {% else %}
@@ -97,7 +98,7 @@
                 </div>
 
                 <div id="main{{ loop.index }}" class="training-section">
-                  <label class="form-label text-info">Bloque Principal</label>
+                  <h5 class="fw-bold text-primary mb-3"><i class="bi bi-lightning-charge me-2"></i>Bloque Principal</h5>
                   {% if current_user.email == 'admin@vir.app' %}
                     <textarea name="main" class="form-control form-control-sm mb-3" rows="4">{{ planes[f].main or '' }}</textarea>
                   {% else %}
@@ -106,7 +107,7 @@
                 </div>
 
                 <div id="finisher{{ loop.index }}" class="training-section">
-                  <label class="form-label text-info">Bloque Final</label>
+                  <h5 class="fw-bold text-light mb-3"><i class="bi bi-peace me-2"></i>Bloque Final</h5>
                   {% if current_user.email == 'admin@vir.app' %}
                     <textarea name="finisher" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].finisher or '' }}</textarea>
                   {% else %}
@@ -197,7 +198,6 @@ function toggleCansancio(id) {
   div.style.display = (select.value === 'si') ? 'block' : 'none';
 }
 
-// Animación expand/collapse
 function toggleSection(id, section) {
   ['warmup', 'main', 'finisher'].forEach(s => {
     const el = document.getElementById(s + id);
@@ -242,20 +242,35 @@ new Chart(ctx, {
   max-height: 0;
   opacity: 0;
   overflow: hidden;
-  transition: all 0.5s ease-in-out;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  transition: all 0.6s ease-in-out;
+  border-radius: 12px;
+  margin-bottom: 12px;
   transform: translateY(-10px);
 }
 
 .active-glow {
   border: 1px solid #22d3ee !important;
-  box-shadow: 0 0 20px rgba(34,211,238,0.5), 0 0 30px rgba(120,0,255,0.4);
-  max-height: 600px !important;
+  box-shadow: 0 0 25px rgba(34,211,238,0.6), 0 0 35px rgba(120,0,255,0.5);
+  max-height: 900px !important;
   opacity: 1 !important;
   transform: translateY(0);
-  padding: 10px;
+  padding: 20px;
+  background: radial-gradient(circle at top left, #000814, #001122);
   animation: glowPulse 3s infinite alternate;
+}
+
+.training-section textarea,
+.training-section .bg-black {
+  width: 100%;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  padding: 18px;
+  background-color: #000;
+  border: 1px solid rgba(34,211,238,0.3);
+  border-radius: 10px;
+  color: #e0faff;
+  min-height: 180px;
+  box-shadow: inset 0 0 15px rgba(34,211,238,0.25);
 }
 
 @keyframes glowPulse {

@@ -63,21 +63,27 @@
       <div class="modal fade" id="modalDia{{ loop.index }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
           <div class="modal-content bg-dark text-light border border-info" 
-               style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.4); transform:scale(0.95); transition:transform .3s ease;">
+               style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.5); font-family:'Rajdhani', sans-serif;">
             <div class="modal-header border-info">
-              <h5 class="modal-title text-info fw-bold"><i class="bi bi-calendar-event me-2"></i>{{ f.strftime('%A %d/%m')|capitalize }}</h5>
+              <h5 class="modal-title text-info fw-bold">
+                <i class="bi bi-calendar-event me-2"></i>{{ f.strftime('%A %d/%m')|capitalize }}
+              </h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+
             <div class="modal-body">
               <form action="{{ url_for('main.save_day') }}" method="POST">
                 <input type="hidden" name="user_id" value="{{ user.id }}">
                 <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
 
-                <!-- BOTONES DE SECCIÓN -->
-                <div class="d-flex justify-content-center gap-3 mb-4">
-                  <button type="button" class="btn btn-outline-info fw-bold px-3 py-2" onclick="showSection({{ loop.index }}, 'warmup')">🔥 Calentamiento</button>
-                  <button type="button" class="btn btn-outline-primary fw-bold px-3 py-2" onclick="showSection({{ loop.index }}, 'main')">💪 Bloque Principal</button>
-                  <button type="button" class="btn btn-outline-light fw-bold px-3 py-2" onclick="showSection({{ loop.index }}, 'finisher')">🧘 Bloque Final</button>
+                <!-- BOTONES DE SECCIÓN (VERTICALES) -->
+                <div class="d-flex flex-column gap-3 mb-4">
+                  <button type="button" class="btn btn-outline-info fw-bold py-2 w-100"
+                          onclick="showSection({{ loop.index }}, 'warmup')">🔥 Calentamiento</button>
+                  <button type="button" class="btn btn-outline-primary fw-bold py-2 w-100"
+                          onclick="showSection({{ loop.index }}, 'main')">💪 Bloque Principal</button>
+                  <button type="button" class="btn btn-outline-light fw-bold py-2 w-100"
+                          onclick="showSection({{ loop.index }}, 'finisher')">🧘 Bloque Final</button>
                 </div>
 
                 <!-- SECCIONES -->
@@ -86,7 +92,7 @@
                   {% if current_user.email == 'admin@vir.app' %}
                     <textarea name="warmup" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].warmup or '' }}</textarea>
                   {% else %}
-                    <p class="bg-black border border-secondary p-3 rounded">{{ planes[f].warmup or '—' }}</p>
+                    <div class="bg-black border border-info p-3 rounded shadow-sm">{{ planes[f].warmup or '—' }}</div>
                   {% endif %}
                 </div>
 
@@ -95,7 +101,7 @@
                   {% if current_user.email == 'admin@vir.app' %}
                     <textarea name="main" class="form-control form-control-sm mb-3" rows="4">{{ planes[f].main or '' }}</textarea>
                   {% else %}
-                    <p class="bg-black border border-secondary p-3 rounded">{{ planes[f].main or '—' }}</p>
+                    <div class="bg-black border border-info p-3 rounded shadow-sm">{{ planes[f].main or '—' }}</div>
                   {% endif %}
                 </div>
 
@@ -104,25 +110,33 @@
                   {% if current_user.email == 'admin@vir.app' %}
                     <textarea name="finisher" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].finisher or '' }}</textarea>
                   {% else %}
-                    <p class="bg-black border border-secondary p-3 rounded">{{ planes[f].finisher or '—' }}</p>
+                    <div class="bg-black border border-info p-3 rounded shadow-sm">{{ planes[f].finisher or '—' }}</div>
                   {% endif %}
                 </div>
 
                 {% if current_user.email == 'admin@vir.app' %}
                   <div class="d-flex gap-3 mt-3">
-                    <input type="number" name="propuesto_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].propuesto_score or 0 }}">
-                    <input type="number" name="realizado_score" min="0" max="10" class="form-control form-control-sm" value="{{ planes[f].realizado_score or 0 }}">
+                    <input type="number" name="propuesto_score" min="0" max="10"
+                           class="form-control form-control-sm"
+                           value="{{ planes[f].propuesto_score or 0 }}">
+                    <input type="number" name="realizado_score" min="0" max="10"
+                           class="form-control form-control-sm"
+                           value="{{ planes[f].realizado_score or 0 }}">
                   </div>
-                  <button class="btn btn-glow w-100 mt-3"><i class="bi bi-save2 me-1"></i>Guardar</button>
+                  <button class="btn btn-glow w-100 mt-3">
+                    <i class="bi bi-save2 me-1"></i>Guardar
+                  </button>
 
                 {% else %}
                   <hr class="border-info my-4">
                   <label class="form-label text-info">¿Has realizado el entrenamiento?</label>
-                  <select class="form-select form-select-sm" id="realizado{{ loop.index }}" onchange="toggleCansancio({{ loop.index }})">
+                  <select class="form-select form-select-sm" id="realizado{{ loop.index }}"
+                          onchange="toggleCansancio({{ loop.index }})">
                     <option value="">Seleccionar</option>
                     <option value="no">No</option>
                     <option value="si">Sí</option>
                   </select>
+
                   <div class="mt-3" id="cansancioDiv{{ loop.index }}" style="display:none;">
                     <label class="form-label text-info">¿Cómo te has sentido al terminar? (1-10)</label>
                     <select class="form-select form-select-sm" name="nivel_cansancio">
@@ -132,8 +146,12 @@
                       {% endfor %}
                     </select>
                   </div>
-                  <textarea name="finisher" class="form-control form-control-sm bg-dark text-light mt-3" rows="3" placeholder="Comentá cómo te fue hoy..."></textarea>
-                  <button class="btn btn-glow w-100 mt-3"><i class="bi bi-save2 me-1"></i>Guardar nota</button>
+
+                  <textarea name="finisher" class="form-control form-control-sm bg-dark text-light mt-3"
+                            rows="3" placeholder="Comentá cómo te fue hoy..."></textarea>
+                  <button class="btn btn-glow w-100 mt-3">
+                    <i class="bi bi-save2 me-1"></i>Guardar nota
+                  </button>
                 {% endif %}
               </form>
             </div>
@@ -156,7 +174,9 @@
 <!-- GRÁFICO -->
 <div class="card bg-black border-0 shadow-lg mb-4">
   <div class="card-body">
-    <h5 class="mb-3 text-light"><i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado</h5>
+    <h5 class="mb-3 text-light">
+      <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
+    </h5>
     <canvas id="graficoProgreso"></canvas>
   </div>
 </div>
@@ -165,7 +185,9 @@
 <div class="card bg-black border-0 shadow-lg">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0 text-light"><i class="bi bi-badge-dumbbell me-2 text-info"></i>Rutinas</h5>
+      <h5 class="mb-0 text-light">
+        <i class="bi bi-badge-dumbbell me-2 text-info"></i>Rutinas
+      </h5>
     </div>
 
     {% if current_user.email == 'admin@vir.app' %}

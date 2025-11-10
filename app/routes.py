@@ -66,10 +66,8 @@ def logout():
 @main_bp.route("/perfil")
 @login_required
 def perfil_redirect():
-    """Redirige siempre al perfil del usuario actual."""
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-# Alias para compatibilidad con layout.html (url_for('main.perfil'))
 main_bp.add_url_rule("/perfil", endpoint="perfil", view_func=perfil_redirect)
 
 
@@ -180,6 +178,37 @@ def dashboard_entrenador():
 
     atletas = User.query.filter(User.email != "admin@vir.app").all()
     return render_template("dashboard_entrenador.html", atletas=atletas)
+
+
+# ==========================
+# ⚙️ Asignar tipo entrenamiento
+# ==========================
+@main_bp.route("/admin/asignar_tipo_entrenamiento", methods=["POST"])
+@login_required
+def asignar_tipo_entrenamiento():
+    if current_user.email != "admin@vir.app":
+        flash("Acceso denegado.", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    user_id = int(request.form["user_id"])
+    plan_type = request.form["plan_type"].strip().lower()
+    fecha_str = request.form.get("fecha") or str(date.today())
+
+    try:
+        fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+    except ValueError:
+        fecha = date.today()
+
+    plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
+    if not plan:
+        plan = DiaPlan(user_id=user_id, fecha=fecha)
+        db.session.add(plan)
+
+    plan.plan_type = plan_type
+    db.session.commit()
+
+    flash(f"✅ Tipo de entrenamiento '{plan_type}' asignado correctamente.", "success")
+    return redirect(url_for("main.dashboard_entrenador"))
 
 
 # ===================================
@@ -388,7 +417,6 @@ def fix_rutinaitem():
 # ===========================================
 @main_bp.route("/reset_admin")
 def reset_admin():
-    """Crea o resetea el usuario admin (seguro y funcional)."""
     try:
         if db.session.is_active:
             db.session.rollback()

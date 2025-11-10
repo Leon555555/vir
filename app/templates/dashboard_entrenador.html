@@ -2,36 +2,28 @@
 {% block title %}Dashboard Entrenador{% endblock %}
 {% block content %}
 
-<div class="container mt-4">
+<div class="container-fluid mt-4">
   <h2 class="mb-4 text-light">🏋️‍♂️ Panel del Entrenador — {{ current_user.nombre }}</h2>
 
-  <!-- Formulario para crear nuevos usuarios -->
-  <form action="{{ url_for('main.admin_create_user') }}" method="POST" class="mb-4 p-3 bg-dark rounded shadow-sm">
+  <!-- 🧍 CREAR NUEVO USUARIO -->
+  <form action="{{ url_for('main.admin_create_user') }}" method="POST" class="mb-5 p-3 bg-dark rounded shadow-sm">
     <h5 class="text-info mb-3">➕ Crear nuevo usuario</h5>
     <div class="row g-2 align-items-center">
-      <div class="col-md-3">
-        <input name="nombre" class="form-control" placeholder="Nombre completo" required>
-      </div>
-      <div class="col-md-3">
-        <input name="email" type="email" class="form-control" placeholder="Correo electrónico" required>
-      </div>
+      <div class="col-md-3"><input name="nombre" class="form-control" placeholder="Nombre completo" required></div>
+      <div class="col-md-3"><input name="email" type="email" class="form-control" placeholder="Correo electrónico" required></div>
       <div class="col-md-2">
         <select name="grupo" class="form-select">
           <option value="Atleta">Atleta</option>
           <option value="Entrenador">Entrenador</option>
         </select>
       </div>
-      <div class="col-md-2">
-        <input name="password" type="text" class="form-control" placeholder="Contraseña" required>
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-info w-100 fw-bold">Crear</button>
-      </div>
+      <div class="col-md-2"><input name="password" type="text" class="form-control" placeholder="Contraseña" required></div>
+      <div class="col-md-2"><button class="btn btn-info w-100 fw-bold">Crear</button></div>
     </div>
   </form>
 
-  <!-- Tabla de usuarios -->
-  <div class="card bg-dark border-0 shadow-sm">
+  <!-- 👥 LISTA DE USUARIOS -->
+  <div class="card bg-dark border-0 shadow-sm mb-5">
     <div class="card-body">
       <h5 class="text-light mb-3">👥 Usuarios registrados</h5>
       <table class="table table-bordered table-dark table-hover align-middle text-center">
@@ -51,12 +43,7 @@
             <td>{{ atleta.grupo }}</td>
             <td>
               <div class="d-flex justify-content-center gap-2">
-                <!-- Ver perfil -->
-                <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}" class="btn btn-outline-info btn-sm">
-                  👀 Ver perfil
-                </a>
-
-                <!-- Eliminar -->
+                <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}" class="btn btn-outline-info btn-sm">👀 Ver perfil</a>
                 <form action="{{ url_for('main.admin_delete_user', user_id=atleta.id) }}" method="POST"
                       onsubmit="return confirm('¿Seguro que deseas eliminar a {{ atleta.nombre }}?');">
                   <button class="btn btn-danger btn-sm">🗑️ Eliminar</button>
@@ -65,14 +52,205 @@
             </td>
           </tr>
           {% else %}
-          <tr>
-            <td colspan="4" class="text-secondary">No hay usuarios registrados todavía.</td>
-          </tr>
+          <tr><td colspan="4" class="text-secondary">No hay usuarios registrados todavía.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
+  <!-- ================================ -->
+  <!-- 📦 BLOQUES (RUTINAS) Y CALENDARIO -->
+  <!-- ================================ -->
+  <div class="row">
+    <!-- BLOQUES -->
+    <div class="col-md-3">
+      <div class="card bg-dark border-0 shadow-lg p-3 mb-4">
+        <h5 class="text-info mb-3"><i class="bi bi-collection me-2"></i>Rutinas disponibles</h5>
+        {% for r in rutinas %}
+        <div class="bloque-entrenamiento mb-2 text-light p-2 rounded"
+             draggable="true"
+             ondragstart="drag(event)"
+             data-id="{{ r.id }}"
+             data-tipo="{{ r.tipo or 'fuerza' }}"
+             data-nombre="{{ r.nombre }}"
+             style="cursor:grab;">
+          <strong>{{ r.nombre }}</strong><br>
+          <small class="text-secondary">{{ r.tipo|capitalize }}</small>
+        </div>
+        {% else %}
+        <p class="text-secondary small">No hay rutinas creadas aún.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- CALENDARIO -->
+    <div class="col-md-9">
+      <div class="card bg-black border-0 shadow-lg p-3">
+        <h5 class="text-info mb-3"><i class="bi bi-calendar-week me-2"></i>Calendario mensual</h5>
+        <div id="calendar" class="calendar-grid">
+          {% for d in range(1,32) %}
+          <div class="calendar-day"
+               ondrop="drop(event)"
+               ondragover="allowDrop(event)"
+               data-date="{{ hoy.year }}-{{ hoy.month }}-{{ '%02d' % d }}">
+            <div class="date-number text-secondary">{{ d }}</div>
+            <div class="day-content" id="day-{{ hoy.year }}-{{ hoy.month }}-{{ '%02d' % d }}"></div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<!-- ================= -->
+<!-- ESTILOS -->
+<!-- ================= -->
+<style>
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.calendar-day {
+  border: 1px solid rgba(34,211,238,0.2);
+  min-height: 160px;
+  background: #050608;
+  border-radius: 8px;
+  padding: 6px;
+  position: relative;
+}
+.calendar-day:hover {
+  box-shadow: 0 0 12px rgba(34,211,238,0.4);
+}
+.date-number {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 0.9rem;
+}
+.day-content {
+  margin-top: 18px;
+}
+
+/* Bloque ya asignado dentro del día */
+.rutina-asignada {
+  background: rgba(10,10,10,0.9);
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 4px solid rgba(255,255,255,0.3);
+}
+
+/* Colores según tipo */
+.rutina-asignada.tipo-fuerza {
+  border-left-color: gold;
+  box-shadow: 0 0 10px rgba(255,215,0,0.5);
+}
+.rutina-asignada.tipo-bike {
+  border-left-color: #22c55e;
+  box-shadow: 0 0 10px rgba(34,197,94,0.5);
+}
+.rutina-asignada.tipo-pista {
+  border-left-color: #ef4444;
+  box-shadow: 0 0 10px rgba(239,68,68,0.5);
+}
+.rutina-asignada.tipo-natacion {
+  border-left-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59,130,246,0.5);
+}
+
+.rutina-asignada img {
+  height: 20px;
+}
+
+.bloque-entrenamiento {
+  background: rgba(15,23,42,0.8);
+  border-radius: 8px;
+  border-left: 4px solid rgba(34,211,238,0.6);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.bloque-entrenamiento:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(34,211,238,0.5);
+  background: rgba(15,23,42,1);
+}
+.bloque-entrenamiento:active {
+  opacity: 0.6;
+  transform: scale(0.97);
+}
+</style>
+
+<!-- ================= -->
+<!-- SCRIPTS -->
+<!-- ================= -->
+<script>
+function allowDrop(ev) { ev.preventDefault(); }
+
+function drag(ev) {
+  ev.dataTransfer.setData("id", ev.target.dataset.id);
+  ev.dataTransfer.setData("tipo", (ev.target.dataset.tipo || "").toLowerCase());
+  ev.dataTransfer.setData("nombre", ev.target.dataset.nombre);
+}
+
+function drop(ev) {
+  ev.preventDefault();
+  const rutina_id = ev.dataTransfer.getData("id");
+  const tipo = ev.dataTransfer.getData("tipo");
+  const nombre = ev.dataTransfer.getData("nombre");
+  const fecha = ev.currentTarget.dataset.date;
+
+  // Asignar a TODOS los atletas (como pediste "todos a la vez" en vista general)
+  const atletas = {{ atletas|tojson }};
+  atletas.forEach(a => asignarBloque(a.id, rutina_id, fecha));
+
+  // Mostrar visualmente en el día (icono + borde color)
+  agregarVisualDia(fecha, tipo, nombre);
+}
+
+function asignarBloque(user_id, rutina_id, fecha) {
+  fetch("{{ url_for('main.asignar_bloque') }}", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, rutina_id, fecha })
+  })
+  .then(r => r.json())
+  .then(res => console.log(res.msg || res.status))
+  .catch(e => console.error(e));
+}
+
+function agregarVisualDia(fecha, tipo, nombre) {
+  const cont = document.getElementById("day-" + fecha);
+  if (!cont) return;
+
+  const iconos = {
+    "fuerza": "{{ url_for('static', filename='icons/fuerza.png') }}",
+    "bike": "{{ url_for('static', filename='icons/bike.png') }}",
+    "pista": "{{ url_for('static', filename='icons/pista.png') }}",
+    "natacion": "{{ url_for('static', filename='icons/natacion.png') }}"
+  };
+
+  const icon = iconos[tipo] || "";
+
+  const div = document.createElement("div");
+  div.classList.add("rutina-asignada");
+  if (tipo) {
+    div.classList.add("tipo-" + tipo);   // 👈 esto dispara el color/borde según tipo
+  }
+
+  if (icon) {
+    div.innerHTML = `<img src="${icon}" alt="${tipo}"><span>${nombre}</span>`;
+  } else {
+    div.innerHTML = `<span>${nombre}</span>`;
+  }
+
+  cont.appendChild(div);
+}
+</script>
 
 {% endblock %}

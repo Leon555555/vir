@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import InternalError
 from sqlalchemy import text
@@ -68,6 +68,7 @@ def logout():
 def perfil_redirect():
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
+# Alias para compatibilidad con layout.html (url_for('main.perfil'))
 main_bp.add_url_rule("/perfil", endpoint="perfil", view_func=perfil_redirect)
 
 
@@ -177,7 +178,8 @@ def dashboard_entrenador():
         return redirect(url_for("main.perfil_redirect"))
 
     atletas = User.query.filter(User.email != "admin@vir.app").all()
-    return render_template("dashboard_entrenador.html", atletas=atletas)
+    rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
+    return render_template("dashboard_entrenador.html", atletas=atletas, rutinas=rutinas)
 
 
 # ==========================
@@ -209,6 +211,50 @@ def asignar_tipo_entrenamiento():
 
     flash(f"✅ Tipo de entrenamiento '{plan_type}' asignado correctamente.", "success")
     return redirect(url_for("main.dashboard_entrenador"))
+
+
+# ==========================
+# 🧱 Asignar bloque (Rutina → DiaPlan)
+# ==========================
+@main_bp.route("/asignar_bloque", methods=["POST"])
+@login_required
+def asignar_bloque():
+    """
+    Endpoint para asignar una Rutina (bloque) a un atleta y fecha concreta.
+    Pensado para usarse vía fetch/JS (drag & drop en el dashboard).
+    Espera JSON: { "user_id": ..., "rutina_id": ..., "fecha": "YYYY-MM-DD" }
+    """
+    if current_user.email != "admin@vir.app":
+        return jsonify({"status": "error", "msg": "Acceso denegado"}), 403
+
+    data = request.get_json() or {}
+    atleta_id = data.get("user_id")
+    rutina_id = data.get("rutina_id")
+    fecha_str = data.get("fecha")
+
+    if not (atleta_id and rutina_id and fecha_str):
+        return jsonify({"status": "error", "msg": "Faltan datos"}), 400
+
+    try:
+        fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+    except Exception:
+        return jsonify({"status": "error", "msg": "Fecha inválida"}), 400
+
+    rutina = Rutina.query.get(rutina_id)
+    if not rutina:
+        return jsonify({"status": "error", "msg": "Rutina no encontrada"}), 404
+
+    plan = DiaPlan.query.filter_by(user_id=atleta_id, fecha=fecha).first()
+    if not plan:
+        plan = DiaPlan(user_id=atleta_id, fecha=fecha)
+        db.session.add(plan)
+
+    # Usamos el tipo de la rutina para el icono, y la descripción como bloque principal
+    plan.plan_type = (rutina.tipo or "fuerza").lower()
+    plan.main = rutina.descripcion or ""
+
+    db.session.commit()
+    return jsonify({"status": "ok", "msg": "Bloque asignado correctamente"})
 
 
 # ===================================
@@ -417,6 +463,7 @@ def fix_rutinaitem():
 # ===========================================
 @main_bp.route("/reset_admin")
 def reset_admin():
+    """Crea o resetea el usuario admin (seguro y funcional)."""
     try:
         if db.session.is_active:
             db.session.rollback()

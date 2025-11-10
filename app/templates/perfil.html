@@ -49,7 +49,17 @@
       <div class="day-card text-light p-3 rounded shadow-sm"
            data-bs-toggle="modal" data-bs-target="#modalDia{{ loop.index }}"
            style="cursor:pointer; transition:transform .2s ease;">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+        {% set tipo = planes[f].plan_type|lower %}
+        {% if tipo == "fuerza" %}
+          <img src="{{ url_for('static', filename='icons/fuerza.png') }}" class="icono-dia" alt="Fuerza">
+        {% elif tipo in ["pista", "running", "run"] %}
+          <img src="{{ url_for('static', filename='icons/pista.png') }}" class="icono-dia" alt="Pista">
+        {% elif tipo == "bike" %}
+          <img src="{{ url_for('static', filename='icons/bike.png') }}" class="icono-dia" alt="Bike">
+        {% elif tipo == "natacion" %}
+          <img src="{{ url_for('static', filename='icons/natacion.png') }}" class="icono-dia" alt="Natación">
+        {% endif %}
+        <div class="d-flex justify-content-between align-items-center mb-2 mt-1">
           <strong>{{ f.strftime('%a')|capitalize }}</strong>
           <span class="badge bg-info text-dark">{{ planes[f].plan_type|capitalize }}</span>
         </div>
@@ -67,7 +77,16 @@
                style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.5); font-family:'Rajdhani', sans-serif;">
             <div class="modal-header border-info">
               <h5 class="modal-title text-info fw-bold">
-                <i class="bi bi-calendar-event me-2"></i>{{ f.strftime('%A %d/%m')|capitalize }}
+                {% if tipo == "fuerza" %}
+                  <img src="{{ url_for('static', filename='icons/fuerza.png') }}" class="icono-modal me-2" alt="Fuerza">
+                {% elif tipo in ["pista", "running", "run"] %}
+                  <img src="{{ url_for('static', filename='icons/pista.png') }}" class="icono-modal me-2" alt="Pista">
+                {% elif tipo == "bike" %}
+                  <img src="{{ url_for('static', filename='icons/bike.png') }}" class="icono-modal me-2" alt="Bike">
+                {% elif tipo == "natacion" %}
+                  <img src="{{ url_for('static', filename='icons/natacion.png') }}" class="icono-modal me-2" alt="Natación">
+                {% endif %}
+                {{ f.strftime('%A %d/%m')|capitalize }}
               </h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -165,8 +184,34 @@
     <!-- DESPLEGABLE MES COMPLETO -->
     <div class="collapse mt-4" id="mesCompleto">
       <div class="bg-dark rounded p-3 border border-info">
-        <h6 class="mb-1 text-info"><i class="bi bi-calendar3-range me-2"></i>Mes completo</h6>
-        <p class="text-secondary small mb-0">Aquí mostraremos el calendario mensual (placeholder).</p>
+        <h6 class="mb-3 text-info"><i class="bi bi-calendar3-range me-2"></i>Mes completo</h6>
+
+        <div class="calendar-grid mb-3">
+          {% for f in fechas %}
+          <div class="calendar-day text-light border border-secondary rounded p-2 text-center">
+            <small class="text-info">{{ f.strftime('%d/%m') }}</small><br>
+            {% set tipo = planes[f].plan_type|lower %}
+            {% if tipo == "fuerza" %}
+              <img src="{{ url_for('static', filename='icons/fuerza.png') }}" class="icono-mes" alt="Fuerza">
+            {% elif tipo in ["pista", "running", "run"] %}
+              <img src="{{ url_for('static', filename='icons/pista.png') }}" class="icono-mes" alt="Pista">
+            {% elif tipo == "bike" %}
+              <img src="{{ url_for('static', filename='icons/bike.png') }}" class="icono-mes" alt="Bike">
+            {% elif tipo == "natacion" %}
+              <img src="{{ url_for('static', filename='icons/natacion.png') }}" class="icono-mes" alt="Natación">
+            {% endif %}
+            <div class="small text-secondary">{{ planes[f].plan_type|capitalize }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- LEYENDA -->
+        <div class="d-flex justify-content-center flex-wrap gap-4 mt-3">
+          <div><img src="{{ url_for('static', filename='icons/pista.png') }}" height="20" class="me-1"> <span class="text-danger fw-bold">Pista / Running</span></div>
+          <div><img src="{{ url_for('static', filename='icons/bike.png') }}" height="20" class="me-1"> <span class="text-success fw-bold">Bike</span></div>
+          <div><img src="{{ url_for('static', filename='icons/natacion.png') }}" height="20" class="me-1"> <span class="text-primary fw-bold">Natación</span></div>
+          <div><img src="{{ url_for('static', filename='icons/fuerza.png') }}" height="20" class="me-1"> <span class="text-warning fw-bold">Fuerza</span></div>
+        </div>
       </div>
     </div>
   </div>
@@ -238,6 +283,15 @@ new Chart(ctx, {
 </script>
 
 <style>
+.week-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 15px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 10px; }
+.icono-dia { display: block; margin: 0 auto 6px auto; height: 45px; width: auto; filter: drop-shadow(0 0 8px rgba(255,255,255,0.15)); transition: transform 0.3s ease; }
+.day-card:hover .icono-dia { transform: scale(1.05); }
+.icono-modal { height: 35px; width: auto; vertical-align: middle; }
+.icono-mes { height: 35px; margin-top: 6px; }
+.btn-glow { background: linear-gradient(90deg, #22d3ee, #00bfff); color: #000; font-weight: bold; transition: 0.3s ease; }
+.btn-glow:hover { opacity: 0.8; }
+
 .training-section {
   max-height: 0;
   opacity: 0;
@@ -247,7 +301,6 @@ new Chart(ctx, {
   margin-bottom: 12px;
   transform: translateY(-10px);
 }
-
 .active-glow {
   border: 1px solid #22d3ee !important;
   box-shadow: 0 0 25px rgba(34,211,238,0.6), 0 0 35px rgba(120,0,255,0.5);
@@ -258,7 +311,6 @@ new Chart(ctx, {
   background: radial-gradient(circle at top left, #000814, #001122);
   animation: glowPulse 3s infinite alternate;
 }
-
 .training-section textarea,
 .training-section .bg-black {
   width: 100%;
@@ -272,7 +324,6 @@ new Chart(ctx, {
   min-height: 180px;
   box-shadow: inset 0 0 15px rgba(34,211,238,0.25);
 }
-
 @keyframes glowPulse {
   0% { box-shadow: 0 0 18px rgba(34,211,238,0.6); }
   50% { box-shadow: 0 0 25px rgba(120,0,255,0.6); }

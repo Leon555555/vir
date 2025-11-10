@@ -381,3 +381,41 @@ def fix_rutinaitem():
     except Exception as e:
         db.session.rollback()
         return f"❌ Error al ejecutar el fix: {str(e)}"
+
+
+# ===========================================
+# 🔑 NUEVO: Reset Admin funcional
+# ===========================================
+@main_bp.route("/reset_admin")
+def reset_admin():
+    """Crea o resetea el usuario admin (seguro y funcional)."""
+    try:
+        if db.session.is_active:
+            db.session.rollback()
+
+        admin_email = "admin@vir.app"
+        admin_pass = "admin123"
+
+        admin = User.query.filter_by(email=admin_email).first()
+        if admin:
+            admin.set_password(admin_pass)
+            db.session.commit()
+            msg = "✅ Contraseña del admin restablecida correctamente."
+        else:
+            nuevo = User(nombre="Admin ViR", email=admin_email, grupo="Entrenador")
+            nuevo.set_password(admin_pass)
+            db.session.add(nuevo)
+            db.session.commit()
+            msg = "🆕 Usuario admin creado correctamente."
+
+        return f"""
+        <html><body style='background:black;color:#22d3ee;text-align:center;font-family:Rajdhani;padding-top:50px;'>
+        <h2>{msg}</h2>
+        <p>Email: {admin_email}</p>
+        <p>Contraseña: <b>{admin_pass}</b></p>
+        <a href='/login' style='color:#22d3ee;'>Ir al login</a>
+        </body></html>
+        """
+    except Exception as e:
+        db.session.rollback()
+        return f"❌ Error al restablecer admin: {str(e)}"

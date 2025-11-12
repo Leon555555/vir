@@ -179,7 +179,8 @@ def dashboard_entrenador():
 
     atletas = User.query.filter(User.email != "admin@vir.app").all()
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
-    return render_template("dashboard_entrenador.html", atletas=atletas, rutinas=rutinas)
+    hoy = date.today()
+    return render_template("dashboard_entrenador.html", atletas=atletas, rutinas=rutinas, hoy=hoy)
 
 
 # ==========================
@@ -219,11 +220,7 @@ def asignar_tipo_entrenamiento():
 @main_bp.route("/asignar_bloque", methods=["POST"])
 @login_required
 def asignar_bloque():
-    """
-    Endpoint para asignar una Rutina (bloque) a un atleta y fecha concreta.
-    Pensado para usarse vía fetch/JS (drag & drop en el dashboard).
-    Espera JSON: { "user_id": ..., "rutina_id": ..., "fecha": "YYYY-MM-DD" }
-    """
+    """Asigna una rutina (bloque) a un atleta y una fecha concreta."""
     if current_user.email != "admin@vir.app":
         return jsonify({"status": "error", "msg": "Acceso denegado"}), 403
 
@@ -249,7 +246,6 @@ def asignar_bloque():
         plan = DiaPlan(user_id=atleta_id, fecha=fecha)
         db.session.add(plan)
 
-    # Usamos el tipo de la rutina para el icono, y la descripción como bloque principal
     plan.plan_type = (rutina.tipo or "fuerza").lower()
     plan.main = rutina.descripcion or ""
 

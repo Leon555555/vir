@@ -262,92 +262,6 @@ def asignar_bloque():
 
     return jsonify({"status": "ok", "msg": "Bloque asignado", "plan": serialize_plan(plan)})
 
-@main_bp.route("/mover_bloque", methods=["POST"])
-@login_required
-def mover_bloque():
-    if current_user.email != "admin@vir.app":
-        return jsonify({"status": "error", "msg": "Acceso denegado"}), 403
-
-    data = request.get_json() or {}
-    user_id = data.get("user_id")
-    f_from = safe_parse_ymd(data.get("from", ""), fallback=None)
-    f_to = safe_parse_ymd(data.get("to", ""), fallback=None)
-    if not (user_id and f_from and f_to):
-        return jsonify({"status": "error", "msg": "Faltan datos"}), 400
-
-    plan = DiaPlan.query.filter_by(user_id=user_id, fecha=f_from).first()
-    if not plan:
-        return jsonify({"status": "error", "msg": "No existe bloque origen"}), 404
-
-    dest = DiaPlan.query.filter_by(user_id=user_id, fecha=f_to).first()
-    if not dest:
-        dest = DiaPlan(user_id=user_id, fecha=f_to)
-        db.session.add(dest)
-
-    dest.plan_type = plan.plan_type
-    dest.warmup = plan.warmup
-    dest.main = plan.main
-    dest.finisher = plan.finisher
-    dest.propuesto_score = plan.propuesto_score
-    dest.realizado_score = plan.realizado_score
-
-    db.session.delete(plan)
-    db.session.commit()
-
-    return jsonify({"status": "ok", "msg": "Bloque movido", "plan": serialize_plan(dest)})
-
-@main_bp.route("/clonar_bloque", methods=["POST"])
-@login_required
-def clonar_bloque():
-    if current_user.email != "admin@vir.app":
-        return jsonify({"status": "error", "msg": "Acceso denegado"}), 403
-
-    data = request.get_json() or {}
-    user_id = data.get("user_id")
-    f_from = safe_parse_ymd(data.get("from", ""), fallback=None)
-    f_to = safe_parse_ymd(data.get("to", ""), fallback=None)
-    if not (user_id and f_from and f_to):
-        return jsonify({"status": "error", "msg": "Faltan datos"}), 400
-
-    src = DiaPlan.query.filter_by(user_id=user_id, fecha=f_from).first()
-    if not src:
-        return jsonify({"status": "error", "msg": "No existe bloque origen"}), 404
-
-    dst = DiaPlan.query.filter_by(user_id=user_id, fecha=f_to).first()
-    if not dst:
-        dst = DiaPlan(user_id=user_id, fecha=f_to)
-        db.session.add(dst)
-
-    dst.plan_type = src.plan_type
-    dst.warmup = src.warmup
-    dst.main = src.main
-    dst.finisher = src.finisher
-    dst.propuesto_score = src.propuesto_score
-    dst.realizado_score = src.realizado_score
-
-    db.session.commit()
-    return jsonify({"status": "ok", "msg": "Bloque clonado", "plan": serialize_plan(dst)})
-
-@main_bp.route("/borrar_bloque", methods=["POST"])
-@login_required
-def borrar_bloque():
-    if current_user.email != "admin@vir.app":
-        return jsonify({"status": "error", "msg": "Acceso denegado"}), 403
-
-    data = request.get_json() or {}
-    user_id = data.get("user_id")
-    f = safe_parse_ymd(data.get("fecha", ""), fallback=None)
-    if not (user_id and f):
-        return jsonify({"status": "error", "msg": "Faltan datos"}), 400
-
-    plan = DiaPlan.query.filter_by(user_id=user_id, fecha=f).first()
-    if not plan:
-        return jsonify({"status": "error", "msg": "No existe bloque"}), 404
-
-    db.session.delete(plan)
-    db.session.commit()
-    return jsonify({"status": "ok", "msg": "Bloque eliminado"})
-
 # =============================================================================
 # API y administración
 # =============================================================================
@@ -415,6 +329,37 @@ def admin_delete_user(user_id: int):
     db.session.commit()
     flash(f"🗑️ Usuario {user.nombre} eliminado.", "info")
     return redirect(url_for("main.dashboard_entrenador"))
+
+# =============================================================================
+# Crear rutina (faltante para perfil.html)
+# =============================================================================
+@main_bp.route("/crear_rutina", methods=["POST"])
+@login_required
+def crear_rutina():
+    """Permite crear rutinas desde el perfil de atleta o desde el panel."""
+    if current_user.email != "admin@vir.app" and current_user.grupo.lower() != "entrenador":
+        flash("No tienes permiso para crear rutinas.", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    nombre = request.form.get("nombre", "").strip()
+    tipo = request.form.get("tipo", "").strip().lower() or "fuerza"
+    descripcion = request.form.get("descripcion", "").strip()
+
+    if not nombre:
+        flash("El nombre de la rutina es obligatorio.", "warning")
+        return redirect(request.referrer or url_for("main.dashboard_entrenador"))
+
+    nueva = Rutina(
+        nombre=nombre,
+        tipo=tipo,
+        descripcion=descripcion,
+        created_by=current_user.id
+    )
+    db.session.add(nueva)
+    db.session.commit()
+
+    flash(f"✅ Rutina '{nombre}' creada correctamente.", "success")
+    return redirect(request.referrer or url_for("main.dashboard_entrenador"))
 
 # =============================================================================
 # Setup rápido y fixes de base de datos

@@ -33,15 +33,18 @@ def start_of_week(d: date) -> date:
     """Lunes como inicio de semana."""
     return d - timedelta(days=d.weekday())
 
+
 def week_dates(center: date | None = None) -> List[date]:
     base = center or date.today()
     start = start_of_week(base)
     return [start + timedelta(days=i) for i in range(7)]
 
+
 def month_dates(year: int, month: int) -> List[date]:
     """Todas las fechas (1..último) del mes."""
     _, last = monthrange(year, month)
     return [date(year, month, d) for d in range(1, last + 1)]
+
 
 def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
     try:
@@ -51,6 +54,7 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
             return datetime.fromisoformat(s).date()
         except Exception:
             return fallback or date.today()
+
 
 # =============================================================================
 # Serializadores simples (para evitar errores JSON)
@@ -63,6 +67,7 @@ def serialize_user(u: User) -> Dict[str, Any]:
         "grupo": getattr(u, "grupo", "") or "",
     }
 
+
 def serialize_rutina(r: Rutina) -> Dict[str, Any]:
     return {
         "id": r.id,
@@ -71,6 +76,7 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
         "descripcion": getattr(r, "descripcion", "") or "",
         "created_by": getattr(r, "created_by", None),
     }
+
 
 def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
     return {
@@ -85,6 +91,7 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
         "realizado_score": p.realizado_score or 0,
     }
 
+
 # =============================================================================
 # Home / Auth
 # =============================================================================
@@ -95,6 +102,7 @@ def index():
             return redirect(url_for("main.dashboard_entrenador"))
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
+
 
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -111,12 +119,14 @@ def login():
         flash("❌ Usuario o contraseña incorrectos.", "danger")
     return render_template("login.html")
 
+
 @main_bp.route("/logout")
 @login_required
 def logout():
     logout_user()
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("main.login"))
+
 
 # =============================================================================
 # Perfil (Atleta)
@@ -126,7 +136,9 @@ def logout():
 def perfil_redirect():
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
+
 main_bp.add_url_rule("/perfil", endpoint="perfil", view_func=perfil_redirect)
+
 
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
@@ -136,19 +148,21 @@ def perfil_usuario(user_id: int):
             db.session.rollback()
 
         user = User.query.get_or_404(user_id)
+
+        # Seguridad: solo admin o el propio usuario
         if current_user.email != "admin@vir.app" and current_user.id != user.id:
             flash("Acceso denegado a perfil ajeno.", "danger")
             return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
+        # Semana actual
         fechas = week_dates()
-        hoy = date.today()  # 👈 FIX PARA EL CALENDARIO MENSUAL EN perfil.html
-
         planes_db = DiaPlan.query.filter(
             DiaPlan.user_id == user.id,
-            DiaPlan.fecha.in_(fechas)
+            DiaPlan.fecha.in_(fechas),
         ).all()
         planes = {p.fecha: p for p in planes_db}
 
+        # Aseguramos que todos los días de la semana existan
         for f in fechas:
             if f not in planes:
                 nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -160,6 +174,7 @@ def perfil_usuario(user_id: int):
         propuesto = [planes[f].propuesto_score or 0 for f in fechas]
         realizado = [planes[f].realizado_score or 0 for f in fechas]
 
+        # Rutinas disponibles (para el panel lateral y drag & drop)
         try:
             rutinas = Rutina.query.order_by(Rutina.id.desc()).limit(50).all()
         except Exception:
@@ -167,6 +182,9 @@ def perfil_usuario(user_id: int):
             rutinas = []
 
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+
+        # ⚠️ IMPORTANTE: 'hoy' para el calendario mensual en perfil.html
+        hoy = date.today()
 
         return render_template(
             "perfil.html",
@@ -178,12 +196,13 @@ def perfil_usuario(user_id: int):
             realizado=realizado,
             rutinas=rutinas,
             semana_str=semana_str,
-            hoy=hoy,   # 👈 SE PASA AL TEMPLATE
+            hoy=hoy,
         )
     except InternalError:
         db.session.rollback()
         flash("⚠️ Error temporal con la base de datos.", "warning")
         return redirect(url_for("main.index"))
+
 
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
@@ -210,8 +229,9 @@ def save_day():
     flash("✅ Día actualizado correctamente.", "success")
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
+
 # =============================================================================
-# Dashboard Entrenador (JSON seguro)
+# Dashboard Entrenador
 # =============================================================================
 @main_bp.route("/coach/dashboard")
 @login_required
@@ -234,12 +254,14 @@ def dashboard_entrenador():
         hoy=hoy,
     )
 
+
 # =============================================================================
 # Bloques / Rutinas → DiaPlan (drag & drop)
 # =============================================================================
 @main_bp.route("/asignar_bloque", methods=["POST"])
 @login_required
 def asignar_bloque():
+    """Asignar una rutina a un día concreto de un atleta (desde drag&drop)."""
     if current_user.email != "admin@vir.app":
         return jsonify({"status": "error", "msg": "Acceso denegado"}), 403
 
@@ -247,6 +269,7 @@ def asignar_bloque():
     atleta_id = data.get("user_id")
     rutina_id = data.get("rutina_id")
     fecha = safe_parse_ymd(data.get("fecha", ""), fallback=None)
+
     if not (atleta_id and rutina_id and fecha):
         return jsonify({"status": "error", "msg": "Faltan datos"}), 400
 
@@ -265,8 +288,9 @@ def asignar_bloque():
 
     return jsonify({"status": "ok", "msg": "Bloque asignado", "plan": serialize_plan(plan)})
 
+
 # =============================================================================
-# API y administración
+# API y administración (JSON)
 # =============================================================================
 @main_bp.route("/api/atletas")
 @login_required
@@ -276,6 +300,7 @@ def api_atletas():
     atletas = User.query.filter(User.email != "admin@vir.app").all()
     return jsonify([serialize_user(a) for a in atletas])
 
+
 @main_bp.route("/api/rutinas")
 @login_required
 def api_rutinas():
@@ -283,6 +308,7 @@ def api_rutinas():
         return jsonify([])
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
     return jsonify([serialize_rutina(r) for r in rutinas])
+
 
 # =============================================================================
 # Administración de usuarios y fixes
@@ -314,6 +340,7 @@ def admin_create_user():
     flash(f"✅ Usuario {nombre} creado correctamente.", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
+
 @main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required
 def admin_delete_user(user_id: int):
@@ -333,20 +360,26 @@ def admin_delete_user(user_id: int):
     flash(f"🗑️ Usuario {user.nombre} eliminado.", "info")
     return redirect(url_for("main.dashboard_entrenador"))
 
+
 # =============================================================================
-# Crear rutina (faltante para perfil.html)
+# Crear rutina (usado por partials/rutinas.html)
 # =============================================================================
 @main_bp.route("/crear_rutina", methods=["POST"])
 @login_required
 def crear_rutina():
-    """Permite crear rutinas desde el perfil de atleta o desde el panel."""
-    if current_user.email != "admin@vir.app" and current_user.grupo.lower() != "entrenador":
+    """
+    Permite crear rutinas desde el perfil de atleta o desde el panel.
+    Debe corresponder con url_for('main.crear_rutina') en partials/rutinas.html.
+    """
+    es_admin = current_user.email == "admin@vir.app"
+    grupo = (getattr(current_user, "grupo", "") or "").lower()
+    if not es_admin and grupo != "entrenador":
         flash("No tienes permiso para crear rutinas.", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
-    nombre = request.form.get("nombre", "").strip()
-    tipo = request.form.get("tipo", "").strip().lower() or "fuerza"
-    descripcion = request.form.get("descripcion", "").strip()
+    nombre = (request.form.get("nombre") or "").strip()
+    tipo = (request.form.get("tipo") or "").strip().lower() or "fuerza"
+    descripcion = (request.form.get("descripcion") or "").strip()
 
     if not nombre:
         flash("El nombre de la rutina es obligatorio.", "warning")
@@ -356,13 +389,14 @@ def crear_rutina():
         nombre=nombre,
         tipo=tipo,
         descripcion=descripcion,
-        created_by=current_user.id
+        created_by=current_user.id,
     )
     db.session.add(nueva)
     db.session.commit()
 
     flash(f"✅ Rutina '{nombre}' creada correctamente.", "success")
     return redirect(request.referrer or url_for("main.dashboard_entrenador"))
+
 
 # =============================================================================
 # Setup rápido y fixes de base de datos
@@ -379,18 +413,24 @@ def setup_admin():
     db.session.commit()
     return f"✅ Admin creado.<br>Email: {admin_email}<br>Contraseña: {admin_pass}"
 
+
 @main_bp.route("/fix-db")
 def fix_db():
     try:
-        db.session.execute(text("""
+        db.session.execute(
+            text(
+                """
             ALTER TABLE rutina
             ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-        """))
+        """
+            )
+        )
         db.session.commit()
         return "✅ Fix aplicado."
     except Exception as e:
         db.session.rollback()
         return f"❌ Error: {str(e)}"
+
 
 @main_bp.route("/reset_admin")
 def reset_admin():
@@ -409,6 +449,7 @@ def reset_admin():
     except Exception as e:
         db.session.rollback()
         return f"❌ Error al resetear: {str(e)}"
+
 
 # =============================================================================
 # Otros endpoints

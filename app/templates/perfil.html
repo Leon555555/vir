@@ -43,7 +43,6 @@
       </button>
     </div>
 
-    <!-- 7 días -->
     <div class="week-grid">
       {% for f in fechas %}
       <div class="day-card text-light p-3 rounded shadow-sm"
@@ -70,109 +69,22 @@
         </div>
       </div>
 
-      <!-- MODAL AMPLIADO -->
+      <!-- MODAL DÍA -->
       <div class="modal fade" id="modalDia{{ loop.index }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-          <div class="modal-content bg-dark text-light border border-info"
-               style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.5); font-family:'Rajdhani', sans-serif;">
+          <div class="modal-content bg-dark text-light border border-info">
             <div class="modal-header border-info">
               <h5 class="modal-title text-info fw-bold">
-                {% if tipo == "fuerza" %}
-                  <img src="{{ url_for('static', filename='icons/fuerza.png') }}" class="icono-modal me-2" alt="Fuerza">
-                {% elif tipo in ["pista", "running", "run"] %}
-                  <img src="{{ url_for('static', filename='icons/pista.png') }}" class="icono-modal me-2" alt="Pista">
-                {% elif tipo == "bike" %}
-                  <img src="{{ url_for('static', filename='icons/bike.png') }}" class="icono-modal me-2" alt="Bike">
-                {% elif tipo == "natacion" %}
-                  <img src="{{ url_for('static', filename='icons/natacion.png') }}" class="icono-modal me-2" alt="Natación">
-                {% endif %}
                 {{ f.strftime('%A %d/%m')|capitalize }}
               </h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-
             <div class="modal-body">
               <form action="{{ url_for('main.save_day') }}" method="POST">
                 <input type="hidden" name="user_id" value="{{ user.id }}">
                 <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
-
-                <!-- BOTONES -->
-                <div class="d-flex flex-column gap-3 mb-4">
-                  <button type="button" class="btn btn-outline-info fw-bold py-2 w-100"
-                          onclick="toggleSection({{ loop.index }}, 'warmup')">🔥 Calentamiento</button>
-                  <button type="button" class="btn btn-outline-primary fw-bold py-2 w-100"
-                          onclick="toggleSection({{ loop.index }}, 'main')">💪 Bloque Principal</button>
-                  <button type="button" class="btn btn-outline-light fw-bold py-2 w-100"
-                          onclick="toggleSection({{ loop.index }}, 'finisher')">🧘 Bloque Final</button>
-                </div>
-
-                <!-- BLOQUES -->
-                <div id="warmup{{ loop.index }}" class="training-section">
-                  <h5 class="fw-bold text-info mb-3"><i class="bi bi-fire me-2"></i>Calentamiento</h5>
-                  {% if current_user.email == 'admin@vir.app' %}
-                    <textarea name="warmup" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].warmup or '' }}</textarea>
-                  {% else %}
-                    <div class="bg-black border border-info p-3 rounded shadow-sm">{{ planes[f].warmup or '—' }}</div>
-                  {% endif %}
-                </div>
-
-                <div id="main{{ loop.index }}" class="training-section">
-                  <h5 class="fw-bold text-primary mb-3"><i class="bi bi-lightning-charge me-2"></i>Bloque Principal</h5>
-                  {% if current_user.email == 'admin@vir.app' %}
-                    <textarea name="main" class="form-control form-control-sm mb-3" rows="4">{{ planes[f].main or '' }}</textarea>
-                  {% else %}
-                    <div class="bg-black border border-info p-3 rounded shadow-sm">{{ planes[f].main or '—' }}</div>
-                  {% endif %}
-                </div>
-
-                <div id="finisher{{ loop.index }}" class="training-section">
-                  <h5 class="fw-bold text-light mb-3"><i class="bi bi-peace me-2"></i>Bloque Final</h5>
-                  {% if current_user.email == 'admin@vir.app' %}
-                    <textarea name="finisher" class="form-control form-control-sm mb-3" rows="3">{{ planes[f].finisher or '' }}</textarea>
-                  {% else %}
-                    <div class="bg-black border border-info p-3 rounded shadow-sm">{{ planes[f].finisher or '—' }}</div>
-                  {% endif %}
-                </div>
-
-                {% if current_user.email == 'admin@vir.app' %}
-                  <div class="d-flex gap-3 mt-3">
-                    <input type="number" name="propuesto_score" min="0" max="10"
-                           class="form-control form-control-sm"
-                           value="{{ planes[f].propuesto_score or 0 }}">
-                    <input type="number" name="realizado_score" min="0" max="10"
-                           class="form-control form-control-sm"
-                           value="{{ planes[f].realizado_score or 0 }}">
-                  </div>
-                  <button class="btn btn-glow w-100 mt-3">
-                    <i class="bi bi-save2 me-1"></i>Guardar
-                  </button>
-
-                {% else %}
-                  <hr class="border-info my-4">
-                  <label class="form-label text-info">¿Has realizado el entrenamiento?</label>
-                  <select class="form-select form-select-sm" id="realizado{{ loop.index }}"
-                          onchange="toggleCansancio({{ loop.index }})">
-                    <option value="">Seleccionar</option>
-                    <option value="no">No</option>
-                    <option value="si">Sí</option>
-                  </select>
-
-                  <div class="mt-3" id="cansancioDiv{{ loop.index }}" style="display:none;">
-                    <label class="form-label text-info">¿Cómo te has sentido al terminar? (1-10)</label>
-                    <select class="form-select form-select-sm" name="nivel_cansancio">
-                      <option value="">Seleccionar</option>
-                      {% for i in range(1,11) %}
-                      <option value="{{ i }}">{{ i }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
-
-                  <textarea name="finisher" class="form-control form-control-sm bg-dark text-light mt-3"
-                            rows="3" placeholder="Comentá cómo te fue hoy..."></textarea>
-                  <button class="btn btn-glow w-100 mt-3">
-                    <i class="bi bi-save2 me-1"></i>Guardar nota
-                  </button>
-                {% endif %}
+                <textarea name="main" class="form-control bg-black text-light mb-3" rows="5">{{ planes[f].main or '' }}</textarea>
+                <button class="btn btn-info w-100 fw-bold">Guardar</button>
               </form>
             </div>
           </div>
@@ -180,55 +92,61 @@
       </div>
       {% endfor %}
     </div>
+  </div>
+</div>
 
-    <!-- DESPLEGABLE MES COMPLETO -->
-    <div class="collapse mt-4" id="mesCompleto">
-      <div class="bg-dark rounded p-3 border border-info">
-        <h6 class="mb-3 text-info"><i class="bi bi-calendar3-range me-2"></i>Mes completo</h6>
+<!-- GRÁFICO -->
+<div class="card bg-black border-0 shadow-lg mb-5">
+  <div class="card-body">
+    <h5 class="mb-3 text-light"><i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado</h5>
+    <canvas id="graficoProgreso"></canvas>
+  </div>
+</div>
 
-        <div class="calendar-grid mb-3">
-          {% for f in fechas %}
-          <div class="calendar-day text-light border border-secondary rounded p-2 text-center">
-            <small class="text-info">{{ f.strftime('%d/%m') }}</small><br>
-            {% set tipo = planes[f].plan_type|lower %}
-            {% if tipo == "fuerza" %}
-              <img src="{{ url_for('static', filename='icons/fuerza.png') }}" class="icono-mes" alt="Fuerza">
-            {% elif tipo in ["pista", "running", "run"] %}
-              <img src="{{ url_for('static', filename='icons/pista.png') }}" class="icono-mes" alt="Pista">
-            {% elif tipo == "bike" %}
-              <img src="{{ url_for('static', filename='icons/bike.png') }}" class="icono-mes" alt="Bike">
-            {% elif tipo == "natacion" %}
-              <img src="{{ url_for('static', filename='icons/natacion.png') }}" class="icono-mes" alt="Natación">
-            {% endif %}
-            <div class="small text-secondary">{{ planes[f].plan_type|capitalize }}</div>
-          </div>
-          {% endfor %}
+<!-- ===================================================== -->
+<!-- 📅 NUEVO: CALENDARIO MENSUAL CON DRAG & DROP -->
+<!-- ===================================================== -->
+<div class="row mb-5">
+  <div class="col-md-3">
+    <div class="card bg-dark border-0 shadow p-3">
+      <h5 class="text-info mb-3"><i class="bi bi-collection me-2"></i>Rutinas disponibles</h5>
+      {% for r in rutinas %}
+      <div class="bloque-entrenamiento mb-2 text-light p-2 rounded"
+           draggable="true"
+           ondragstart="drag(event)"
+           data-id="{{ r.id }}"
+           data-tipo="{{ r.tipo or 'fuerza' }}"
+           data-nombre="{{ r.nombre }}"
+           style="cursor:grab;">
+        <strong>{{ r.nombre }}</strong><br>
+        <small class="text-secondary">{{ r.tipo|capitalize }}</small>
+      </div>
+      {% else %}
+      <p class="text-secondary small">No hay rutinas creadas aún.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    <div class="card bg-black border-0 shadow-lg p-3">
+      <h5 class="text-info mb-3"><i class="bi bi-calendar-week me-2"></i>Calendario mensual de {{ user.nombre }}</h5>
+      <div id="calendar" class="calendar-grid">
+        {% for d in range(1,32) %}
+        <div class="calendar-day"
+             ondrop="drop(event)"
+             ondragover="allowDrop(event)"
+             data-date="{{ hoy.year }}-{{ hoy.month }}-{{ '%02d' % d }}">
+          <div class="date-number text-secondary">{{ d }}</div>
+          <div class="day-content" id="day-{{ hoy.year }}-{{ hoy.month }}-{{ '%02d' % d }}"></div>
         </div>
-
-        <!-- LEYENDA -->
-        <div class="d-flex justify-content-center flex-wrap gap-4 mt-3">
-          <div><img src="{{ url_for('static', filename='icons/pista.png') }}" height="20" class="me-1"> <span class="text-danger fw-bold">Pista / Running</span></div>
-          <div><img src="{{ url_for('static', filename='icons/bike.png') }}" height="20" class="me-1"> <span class="text-success fw-bold">Bike</span></div>
-          <div><img src="{{ url_for('static', filename='icons/natacion.png') }}" height="20" class="me-1"> <span class="text-primary fw-bold">Natación</span></div>
-          <div><img src="{{ url_for('static', filename='icons/fuerza.png') }}" height="20" class="me-1"> <span class="text-warning fw-bold">Fuerza</span></div>
-        </div>
+        {% endfor %}
       </div>
     </div>
   </div>
 </div>
 
-<!-- GRÁFICO -->
-<div class="card bg-black border-0 shadow-lg mb-4">
-  <div class="card-body">
-    <h5 class="mb-3 text-light">
-      <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
-    </h5>
-    <canvas id="graficoProgreso"></canvas>
-  </div>
-</div>
-
 <!-- RUTINAS -->
-<div class="card bg-black border-0 shadow-lg">
+<div class="card bg-black border-0 shadow-lg mb-5">
   <div class="card-body">{% include 'partials/rutinas.html' %}</div>
 </div>
 
@@ -236,30 +154,53 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-function toggleCansancio(id) {
-  const select = document.getElementById('realizado' + id);
-  const div = document.getElementById('cansancioDiv' + id);
-  div.style.display = (select.value === 'si') ? 'block' : 'none';
+const userId = {{ user.id }};
+function allowDrop(ev) { ev.preventDefault(); }
+function drag(ev) {
+  ev.dataTransfer.setData("id", ev.target.dataset.id);
+  ev.dataTransfer.setData("tipo", (ev.target.dataset.tipo || "").toLowerCase());
+  ev.dataTransfer.setData("nombre", ev.target.dataset.nombre);
 }
-
-function toggleSection(id, section) {
-  ['warmup', 'main', 'finisher'].forEach(s => {
-    const el = document.getElementById(s + id);
-    if (s === section) {
-      el.classList.add('active-glow');
-      el.style.maxHeight = el.scrollHeight + 'px';
-      el.style.opacity = '1';
-      el.style.transform = 'translateY(0)';
-    } else {
-      el.classList.remove('active-glow');
-      el.style.maxHeight = '0';
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(-10px)';
-    }
-  });
+function drop(ev) {
+  ev.preventDefault();
+  const rutina_id = ev.dataTransfer.getData("id");
+  const tipo = ev.dataTransfer.getData("tipo");
+  const nombre = ev.dataTransfer.getData("nombre");
+  const fecha = ev.currentTarget.dataset.date;
+  asignarBloque(userId, rutina_id, fecha);
+  agregarVisualDia(fecha, tipo, nombre);
 }
+function asignarBloque(user_id, rutina_id, fecha) {
+  fetch("{{ url_for('main.asignar_bloque') }}", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, rutina_id, fecha })
+  })
+  .then(r => r.json())
+  .then(res => console.log(res.msg || res.status))
+  .catch(e => console.error(e));
+}
+function agregarVisualDia(fecha, tipo, nombre) {
+  const cont = document.getElementById("day-" + fecha);
+  if (!cont) return;
+  const iconos = {
+    "fuerza": "{{ url_for('static', filename='icons/fuerza.png') }}",
+    "bike": "{{ url_for('static', filename='icons/bike.png') }}",
+    "pista": "{{ url_for('static', filename='icons/pista.png') }}",
+    "natacion": "{{ url_for('static', filename='icons/natacion.png') }}"
+  };
+  const icon = iconos[tipo] || "";
+  const div = document.createElement("div");
+  div.classList.add("rutina-asignada");
+  if (tipo) div.classList.add("tipo-" + tipo);
+  div.innerHTML = icon ? `<img src="${icon}" alt="${tipo}" height="20"><span>${nombre}</span>` : `<span>${nombre}</span>`;
+  cont.appendChild(div);
+}
+</script>
 
+<script>
 const ctx = document.getElementById("graficoProgreso").getContext("2d");
 new Chart(ctx, {
   type: "line",
@@ -274,60 +215,22 @@ new Chart(ctx, {
     responsive: true,
     maintainAspectRatio: false,
     plugins: { legend: { labels: { color: "#ccc" } } },
-    scales: {
-      x: { ticks: { color: "#aaa" } },
-      y: { min: 0, ticks: { color: "#aaa" } }
-    }
+    scales: { x: { ticks: { color: "#aaa" } }, y: { min: 0, ticks: { color: "#aaa" } } }
   }
 });
 </script>
 
 <style>
-.week-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 15px; }
-.calendar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 10px; }
-.icono-dia { display: block; margin: 0 auto 6px auto; height: 45px; width: auto; filter: drop-shadow(0 0 8px rgba(255,255,255,0.15)); transition: transform 0.3s ease; }
-.day-card:hover .icono-dia { transform: scale(1.05); }
-.icono-modal { height: 35px; width: auto; vertical-align: middle; }
-.icono-mes { height: 35px; margin-top: 6px; }
-.btn-glow { background: linear-gradient(90deg, #22d3ee, #00bfff); color: #000; font-weight: bold; transition: 0.3s ease; }
-.btn-glow:hover { opacity: 0.8; }
-
-.training-section {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: all 0.6s ease-in-out;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  transform: translateY(-10px);
-}
-.active-glow {
-  border: 1px solid #22d3ee !important;
-  box-shadow: 0 0 25px rgba(34,211,238,0.6), 0 0 35px rgba(120,0,255,0.5);
-  max-height: 900px !important;
-  opacity: 1 !important;
-  transform: translateY(0);
-  padding: 20px;
-  background: radial-gradient(circle at top left, #000814, #001122);
-  animation: glowPulse 3s infinite alternate;
-}
-.training-section textarea,
-.training-section .bg-black {
-  width: 100%;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  padding: 18px;
-  background-color: #000;
-  border: 1px solid rgba(34,211,238,0.3);
-  border-radius: 10px;
-  color: #e0faff;
-  min-height: 180px;
-  box-shadow: inset 0 0 15px rgba(34,211,238,0.25);
-}
-@keyframes glowPulse {
-  0% { box-shadow: 0 0 18px rgba(34,211,238,0.6); }
-  50% { box-shadow: 0 0 25px rgba(120,0,255,0.6); }
-  100% { box-shadow: 0 0 18px rgba(34,211,238,0.6); }
-}
+.calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+.calendar-day { border:1px solid rgba(34,211,238,0.2); min-height:160px; background:#050608; border-radius:8px; padding:6px; position:relative; }
+.date-number { position:absolute; top:4px; right:6px; font-size:0.9rem; }
+.day-content { margin-top:18px; }
+.rutina-asignada { background:rgba(10,10,10,0.9); border-radius:6px; padding:4px 6px; margin-bottom:4px; font-size:0.8rem; display:flex; align-items:center; gap:6px; border-left:4px solid rgba(255,255,255,0.3); }
+.rutina-asignada.tipo-fuerza { border-left-color:gold; }
+.rutina-asignada.tipo-bike { border-left-color:#22c55e; }
+.rutina-asignada.tipo-pista { border-left-color:#ef4444; }
+.rutina-asignada.tipo-natacion { border-left-color:#3b82f6; }
+.bloque-entrenamiento { background:rgba(15,23,42,0.8); border-radius:8px; border-left:4px solid rgba(34,211,238,0.6); }
+.bloque-entrenamiento:hover { transform:translateY(-2px); box-shadow:0 0 12px rgba(34,211,238,0.5); }
 </style>
 {% endblock %}

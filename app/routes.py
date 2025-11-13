@@ -141,6 +141,8 @@ def perfil_usuario(user_id: int):
             return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
         fechas = week_dates()
+        hoy = date.today()  # 👈 FIX PARA EL CALENDARIO MENSUAL EN perfil.html
+
         planes_db = DiaPlan.query.filter(
             DiaPlan.user_id == user.id,
             DiaPlan.fecha.in_(fechas)
@@ -176,6 +178,7 @@ def perfil_usuario(user_id: int):
             realizado=realizado,
             rutinas=rutinas,
             semana_str=semana_str,
+            hoy=hoy,   # 👈 SE PASA AL TEMPLATE
         )
     except InternalError:
         db.session.rollback()

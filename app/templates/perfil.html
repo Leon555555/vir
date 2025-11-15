@@ -36,11 +36,27 @@
 <!-- SEMANA ACTUAL -->
 <div class="card bg-black border-0 shadow-lg mb-4">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0 text-light"><i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}</h5>
-      <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="collapse" data-bs-target="#mesCompleto">
-        <i class="bi bi-calendar3-range me-1"></i>Ver mes completo
-      </button>
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h5 class="mb-0 text-light">
+        <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
+      </h5>
+      <div class="btn-group btn-group-sm" role="group">
+        <button id="btnToggleGrafico" type="button"
+                class="btn btn-outline-info"
+                onclick="toggleSectionVisibility('cardGrafico','btnToggleGrafico','Ver gráfico','Ocultar gráfico')">
+          <i class="bi bi-graph-up me-1"></i><span class="d-none d-md-inline">Ver gráfico</span>
+        </button>
+        <button id="btnToggleMes" type="button"
+                class="btn btn-outline-light"
+                onclick="toggleSectionVisibility('cardMesCompleto','btnToggleMes','Ver mes completo','Ocultar mes completo')">
+          <i class="bi bi-calendar3-range me-1"></i><span class="d-none d-md-inline">Ver mes completo</span>
+        </button>
+        <button id="btnToggleComentarios" type="button"
+                class="btn btn-outline-secondary"
+                onclick="toggleSectionVisibility('cardComentarios','btnToggleComentarios','Ver comentarios','Ocultar comentarios')">
+          <i class="bi bi-chat-dots me-1"></i><span class="d-none d-md-inline">Ver comentarios</span>
+        </button>
+      </div>
     </div>
 
     <div class="week-grid">
@@ -133,7 +149,7 @@
                   </select>
                 </div>
 
-                <div class="training-section active-glow">
+                <div class="training-section">
                   <h5 class="fw-bold text-info mb-2"><i class="bi bi-fire me-2"></i>Calentamiento</h5>
                   <textarea name="warmup" class="form-control form-control-sm bg-black text-light mb-3"
                             rows="3">{{ plan.warmup or '' }}</textarea>
@@ -260,8 +276,8 @@
       {% endfor %}
     </div>
 
-    <!-- GRÁFICO -->
-    <div class="card bg-black border-0 shadow-lg mt-4">
+    <!-- GRÁFICO (sección colapsable por JS) -->
+    <div id="cardGrafico" class="card bg-black border-0 shadow-lg mt-4 collapsed-section">
       <div class="card-body">
         <h5 class="mb-3 text-light">
           <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
@@ -274,67 +290,86 @@
   </div>
 </div>
 
-<!-- DESPLEGABLE MES COMPLETO -->
-<div class="card bg-black border-0 shadow-lg mb-4">
+<!-- CALENDARIO MENSUAL (colapsable por JS) -->
+<div id="cardMesCompleto" class="card bg-black border-0 shadow-lg mb-4 collapsed-section">
   <div class="card-body">
-    <div class="collapse show" id="mesCompleto">
-      <h6 class="mb-3 text-info">
-        <i class="bi bi-calendar3-range me-2"></i>Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
-      </h6>
+    <h6 class="mb-3 text-info">
+      <i class="bi bi-calendar3-range me-2"></i>Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
+    </h6>
 
-      <div class="calendar-grid mb-3">
-        {% for f in dias_mes %}
-        {% set plan_mes = planes_mes.get(f) %}
-        {% set tipo_mes = plan_mes.plan_type|lower if plan_mes else 'descanso' %}
-        <div class="calendar-day text-light rounded p-2 text-start
-                    {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
-          <div class="date-number text-secondary">{{ f.day }}</div>
-          <div class="mt-4 small">
-            {% if plan_mes %}
-              <div class="fw-bold">
-                {% if tipo_mes == 'fuerza' %}Fuerza
-                {% elif tipo_mes in ['pista','running','run'] %}Pista
-                {% elif tipo_mes == 'bike' %}Bike
-                {% elif tipo_mes == 'natacion' %}Natación
-                {% else %}Descanso{% endif %}
-              </div>
-              {% if plan_mes.puede_entrenar == 'no' %}
-                <span class="badge bg-danger mt-1">No puede entrenar</span>
-              {% elif plan_mes.puede_entrenar == 'si' %}
-                <span class="badge bg-success mt-1">OK para entrenar</span>
-              {% endif %}
-            {% else %}
-              <span class="text-secondary">Sin plan</span>
+    <div class="calendar-grid mb-3">
+      {% for f in dias_mes %}
+      {% set plan_mes = planes_mes.get(f) %}
+      {% set tipo_mes = plan_mes.plan_type|lower if plan_mes else 'descanso' %}
+      <div class="calendar-day text-light rounded p-2 text-start
+                  {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
+        <div class="date-number text-secondary">{{ f.day }}</div>
+        <div class="mt-4 small">
+          {% if plan_mes %}
+            <div class="fw-bold">
+              {% if tipo_mes == 'fuerza' %}Fuerza
+              {% elif tipo_mes in ['pista','running','run'] %}Pista
+              {% elif tipo_mes == 'bike' %}Bike
+              {% elif tipo_mes == 'natacion' %}Natación
+              {% else %}Descanso{% endif %}
+            </div>
+            {% if plan_mes.puede_entrenar == 'no' %}
+              <span class="badge bg-danger mt-1">No puede entrenar</span>
+            {% elif plan_mes.puede_entrenar == 'si' %}
+              <span class="badge bg-success mt-1">OK para entrenar</span>
             {% endif %}
-          </div>
+          {% else %}
+            <span class="text-secondary">Sin plan</span>
+          {% endif %}
         </div>
-        {% endfor %}
       </div>
+      {% endfor %}
+    </div>
 
-      <div class="d-flex justify-content-center flex-wrap gap-3 mt-2 small">
-        <span><span class="leyenda-box fuerza"></span> Fuerza</span>
-        <span><span class="leyenda-box pista"></span> Pista/Running</span>
-        <span><span class="leyenda-box bike"></span> Bike</span>
-        <span><span class="leyenda-box natacion"></span> Natación</span>
-        <span><span class="leyenda-box descanso"></span> Descanso</span>
-        <span><span class="leyenda-box no-entrena"></span> No puede entrenar</span>
-      </div>
+    <div class="d-flex justify-content-center flex-wrap gap-3 mt-2 small">
+      <span><span class="leyenda-box fuerza"></span> Fuerza</span>
+      <span><span class="leyenda-box pista"></span> Pista/Running</span>
+      <span><span class="leyenda-box bike"></span> Bike</span>
+      <span><span class="leyenda-box natacion"></span> Natación</span>
+      <span><span class="leyenda-box descanso"></span> Descanso</span>
+      <span><span class="leyenda-box no-entrena"></span> No puede entrenar</span>
     </div>
   </div>
 </div>
 
-<!-- RUTINAS (creación rápida) -->
+<!-- COMENTARIOS / FEEDBACK (placeholder, colapsable) -->
+<div id="cardComentarios" class="card bg-black border-0 shadow-lg mb-5 collapsed-section">
+  <div class="card-body">
+    <h5 class="mb-3 text-light">
+      <i class="bi bi-chat-heart text-info me-2"></i>Comentarios y sensaciones
+    </h5>
+    <p class="small text-secondary mb-1">
+      Próximamente: resumen automático de cómo se sintió {{ user.nombre }} en la semana
+      (energía, dificultad, molestias, etc.) + actividades importadas desde <span class="text-info">Strava</span>.
+    </p>
+    <p class="small text-secondary mb-0">
+      De momento, podés ver o editar los comentarios día por día desde cada tarjeta de la semana.
+    </p>
+  </div>
+</div>
+
+<!-- RUTINAS (creación rápida, solo visible para admin) -->
+{% if current_user.email == 'admin@vir.app' %}
 <div class="card bg-black border-0 shadow-lg mb-5">
   <div class="card-body">
     {% include 'partials/rutinas.html' %}
   </div>
 </div>
+{% endif %}
 
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// ==========================
+// Gráfico Propuesto vs Realizado
+// ==========================
 const ctx = document.getElementById("graficoProgreso").getContext("2d");
 new Chart(ctx, {
   type: "line",
@@ -355,6 +390,29 @@ new Chart(ctx, {
     }
   }
 });
+
+// ==========================
+// Toggles con animación PRO
+// ==========================
+function toggleSectionVisibility(sectionId, buttonId, showText, hideText) {
+  const section = document.getElementById(sectionId);
+  const button  = document.getElementById(buttonId);
+  if (!section || !button) return;
+
+  const isCollapsed = section.classList.contains("collapsed-section");
+
+  if (isCollapsed) {
+    section.classList.remove("collapsed-section");
+    section.classList.add("expanded-section");
+    button.classList.add("active-toggle");
+    button.innerHTML = button.innerHTML.replace(showText, hideText);
+  } else {
+    section.classList.remove("expanded-section");
+    section.classList.add("collapsed-section");
+    button.classList.remove("active-toggle");
+    button.innerHTML = button.innerHTML.replace(hideText, showText);
+  }
+}
 </script>
 
 <style>
@@ -418,5 +476,30 @@ new Chart(ctx, {
 .leyenda-box.natacion { background:#3b82f6; }
 .leyenda-box.descanso { background:#4b5563; }
 .leyenda-box.no-entrena { background:#ef4444; border:2px solid #ffffff; }
+
+/* Animación de secciones colapsables */
+.collapsed-section {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: scaleY(0.95);
+  transform-origin: top;
+  transition: max-height 0.35s ease, opacity 0.35s ease, transform 0.35s ease, margin 0.35s ease;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+.expanded-section {
+  max-height: 2000px;
+  opacity: 1;
+  transform: scaleY(1);
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Botones toggle activos */
+.active-toggle {
+  box-shadow: 0 0 14px rgba(34,211,238,0.8);
+  transform: translateY(-1px);
+}
 </style>
 {% endblock %}

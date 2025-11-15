@@ -1,3 +1,4 @@
+
 {% extends "layout.html" %}
 {% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
 
@@ -11,7 +12,7 @@
   <div class="text-secondary">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
 </div>
 
-<!-- BLOQUE RESUMEN -->
+<!-- BLOQUES RESUMEN -->
 <div class="row mb-4 text-center g-3">
   <div class="col-md-6">
     <div class="card text-light border-0 shadow-lg"
@@ -36,35 +37,47 @@
 <!-- SEMANA ACTUAL -->
 <div class="card bg-black border-0 shadow-lg mb-4">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+    <!-- Barra de controles -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
       <h5 class="mb-0 text-light">
         <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
       </h5>
-      <div class="btn-group btn-group-sm" role="group">
-        <button id="btnToggleGrafico" type="button"
-                class="btn btn-outline-info"
-                onclick="toggleSectionVisibility('cardGrafico','btnToggleGrafico','Ver gráfico','Ocultar gráfico')">
-          <i class="bi bi-graph-up me-1"></i><span class="d-none d-md-inline">Ver gráfico</span>
+      <div class="d-flex flex-wrap gap-2">
+        <button id="graficoBtn"
+                type="button"
+                class="btn btn-outline-info btn-sm toggle-btn"
+                data-target="graficoWrapper"
+                data-open-text="Ver gráfica"
+                data-close-text="Ocultar gráfica">
+          <i class="bi bi-graph-up-arrow me-1"></i>Ver gráfica
         </button>
-        <button id="btnToggleMes" type="button"
-                class="btn btn-outline-light"
-                onclick="toggleSectionVisibility('cardMesCompleto','btnToggleMes','Ver mes completo','Ocultar mes completo')">
-          <i class="bi bi-calendar3-range me-1"></i><span class="d-none d-md-inline">Ver mes completo</span>
+        <button id="mesBtn"
+                type="button"
+                class="btn btn-outline-light btn-sm toggle-btn"
+                data-target="mesCompletoCard"
+                data-open-text="Ver mes completo"
+                data-close-text="Ocultar mes completo">
+          <i class="bi bi-calendar3-range me-1"></i>Ver mes completo
         </button>
-        <button id="btnToggleComentarios" type="button"
-                class="btn btn-outline-secondary"
-                onclick="toggleSectionVisibility('cardComentarios','btnToggleComentarios','Ver comentarios','Ocultar comentarios')">
-          <i class="bi bi-chat-dots me-1"></i><span class="d-none d-md-inline">Ver comentarios</span>
+        <button id="comentariosBtn"
+                type="button"
+                class="btn btn-outline-secondary btn-sm toggle-btn"
+                data-target="commentsPanel"
+                data-open-text="Ver comentarios"
+                data-close-text="Ocultar comentarios">
+          <i class="bi bi-chat-text me-1"></i>Ver comentarios
         </button>
       </div>
     </div>
 
+    <!-- GRID SEMANAL -->
     <div class="week-grid">
       {% for f in fechas %}
       {% set plan = planes[f] %}
       {% set tipo = (plan.plan_type or 'descanso')|lower %}
 
-      <div class="day-card text-light p-3 rounded shadow-sm"
+      <div class="day-card text-light p-3 rounded shadow-sm day-tipo-{{ tipo }}"
            data-bs-toggle="modal"
            {% if current_user.email == 'admin@vir.app' %}
              data-bs-target="#modalAdmin{{ loop.index }}"
@@ -96,7 +109,7 @@
           </span>
         </div>
 
-        <div class="small bg-dark rounded p-2 border border-secondary">
+        <div class="small bg-dark rounded p-2 border border-secondary day-card-body">
           <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
           <div><strong>Entrenamiento:</strong> {{ plan.main or '—' }}</div>
           <div><strong>Bloque final:</strong> {{ plan.finisher or '—' }}</div>
@@ -109,9 +122,7 @@
         {% endif %}
       </div>
 
-      <!-- ======================= -->
-      <!-- MODAL ADMIN (edita todo) -->
-      <!-- ======================= -->
+      <!-- MODAL ADMIN (EDITA TODO) -->
       {% if current_user.email == 'admin@vir.app' %}
       <div class="modal fade" id="modalAdmin{{ loop.index }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -196,9 +207,7 @@
       </div>
 
       {% else %}
-      <!-- ========================== -->
-      <!-- MODAL ATLETA (solo feedback) -->
-      <!-- ========================== -->
+      <!-- MODAL ATLETA (SOLO FEEDBACK) -->
       <div class="modal fade" id="modalAtleta{{ loop.index }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
           <div class="modal-content bg-dark text-light border border-info"
@@ -211,7 +220,7 @@
             </div>
 
             <div class="modal-body">
-              <!-- Entreno en solo lectura -->
+              <!-- Entreno solo lectura -->
               <div class="mb-3">
                 <h6 class="text-secondary mb-2">Plan del día (solo lectura)</h6>
                 <div class="bg-black border border-secondary rounded p-2 small">
@@ -264,9 +273,9 @@
                 </button>
               </form>
 
-              <!-- Placeholder para Strava -->
+              <!-- Placeholder Strava -->
               <div class="mt-4 text-center small text-secondary">
-                Próximamente: botón para vincular actividad de <span class="text-info fw-bold">Strava</span> y traer automáticamente el entreno realizado.
+                Próximamente: vincular actividad de <span class="text-info fw-bold">Strava</span> y traer el entreno realizado.
               </div>
             </div>
           </div>
@@ -276,8 +285,8 @@
       {% endfor %}
     </div>
 
-    <!-- GRÁFICO (sección colapsable por JS) -->
-    <div id="cardGrafico" class="card bg-black border-0 shadow-lg mt-4 collapsed-section">
+    <!-- GRÁFICO (OCULTO POR DEFECTO) -->
+    <div id="graficoWrapper" class="card bg-black border-0 shadow-lg mt-4 d-none">
       <div class="card-body">
         <h5 class="mb-3 text-light">
           <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
@@ -287,11 +296,12 @@
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- CALENDARIO MENSUAL (colapsable por JS) -->
-<div id="cardMesCompleto" class="card bg-black border-0 shadow-lg mb-4 collapsed-section">
+<!-- CALENDARIO MENSUAL (OCULTO POR DEFECTO) -->
+<div id="mesCompletoCard" class="card bg-black border-0 shadow-lg mb-4 d-none">
   <div class="card-body">
     <h6 class="mb-3 text-info">
       <i class="bi bi-calendar3-range me-2"></i>Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
@@ -302,6 +312,7 @@
       {% set plan_mes = planes_mes.get(f) %}
       {% set tipo_mes = plan_mes.plan_type|lower if plan_mes else 'descanso' %}
       <div class="calendar-day text-light rounded p-2 text-start
+                  day-tipo-{{ tipo_mes }}
                   {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
         <div class="date-number text-secondary">{{ f.day }}</div>
         <div class="mt-4 small">
@@ -337,23 +348,19 @@
   </div>
 </div>
 
-<!-- COMENTARIOS / FEEDBACK (placeholder, colapsable) -->
-<div id="cardComentarios" class="card bg-black border-0 shadow-lg mb-5 collapsed-section">
+<!-- PANEL COMENTARIOS (OCULTO POR DEFECTO) -->
+<div id="commentsPanel" class="card bg-black border-0 shadow-lg mb-4 d-none">
   <div class="card-body">
-    <h5 class="mb-3 text-light">
-      <i class="bi bi-chat-heart text-info me-2"></i>Comentarios y sensaciones
-    </h5>
-    <p class="small text-secondary mb-1">
-      Próximamente: resumen automático de cómo se sintió {{ user.nombre }} en la semana
-      (energía, dificultad, molestias, etc.) + actividades importadas desde <span class="text-info">Strava</span>.
-    </p>
+    <h6 class="mb-3 text-info">
+      <i class="bi bi-chat-text me-2"></i>Resumen de comentarios del atleta
+    </h6>
     <p class="small text-secondary mb-0">
-      De momento, podés ver o editar los comentarios día por día desde cada tarjeta de la semana.
+      Próximamente: listado de feedback por día, nivel de dificultad y enlace a actividades de Strava.
     </p>
   </div>
 </div>
 
-<!-- RUTINAS (creación rápida, solo visible para admin) -->
+<!-- RUTINAS (SOLO VISIBLE PARA ADMIN) -->
 {% if current_user.email == 'admin@vir.app' %}
 <div class="card bg-black border-0 shadow-lg mb-5">
   <div class="card-body">
@@ -367,59 +374,95 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// ==========================
-// Gráfico Propuesto vs Realizado
-// ==========================
-const ctx = document.getElementById("graficoProgreso").getContext("2d");
-new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: {{ labels|tojson }},
-    datasets: [
-      { label: "Propuesto", data: {{ propuesto|tojson }}, borderColor: "#22d3ee", tension: 0.3, fill: false, borderWidth: 2 },
-      { label: "Realizado", data: {{ realizado|tojson }}, borderColor: "#00bfff", tension: 0.3, fill: false, borderWidth: 2 }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: "#ccc" } } },
-    scales: {
-      x: { ticks: { color: "#aaa" } },
-      y: { min: 0, max: 10, ticks: { color: "#aaa", stepSize: 2 } }
+// ====== TOGGLE SECCIONES (GRÁFICA / MES / COMENTARIOS) ======
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const targetId = btn.getAttribute('data-target');
+    const target = document.getElementById(targetId);
+    if (!target) return;
+
+    const openText = btn.getAttribute('data-open-text');
+    const closeText = btn.getAttribute('data-close-text');
+    const isHidden = target.classList.contains('d-none');
+
+    if (isHidden) {
+      target.classList.remove('d-none');
+      target.classList.add('fade-in-section');
+      btn.classList.add('active-toggle');
+      if (closeText && openText && btn.innerHTML.includes(openText)) {
+        btn.innerHTML = btn.innerHTML.replace(openText, closeText);
+      }
+    } else {
+      target.classList.add('d-none');
+      target.classList.remove('fade-in-section');
+      btn.classList.remove('active-toggle');
+      if (closeText && openText && btn.innerHTML.includes(closeText)) {
+        btn.innerHTML = btn.innerHTML.replace(closeText, openText);
+      }
     }
-  }
+  });
 });
 
-// ==========================
-// Toggles con animación PRO
-// ==========================
-function toggleSectionVisibility(sectionId, buttonId, showText, hideText) {
-  const section = document.getElementById(sectionId);
-  const button  = document.getElementById(buttonId);
-  if (!section || !button) return;
-
-  const isCollapsed = section.classList.contains("collapsed-section");
-
-  if (isCollapsed) {
-    section.classList.remove("collapsed-section");
-    section.classList.add("expanded-section");
-    button.classList.add("active-toggle");
-    button.innerHTML = button.innerHTML.replace(showText, hideText);
-  } else {
-    section.classList.remove("expanded-section");
-    section.classList.add("collapsed-section");
-    button.classList.remove("active-toggle");
-    button.innerHTML = button.innerHTML.replace(hideText, showText);
-  }
+// ====== GRÁFICO (SOLO SI EXISTE CANVAS) ======
+const canvas = document.getElementById("graficoProgreso");
+if (canvas) {
+  const ctx = canvas.getContext("2d");
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: {{ labels|tojson }},
+      datasets: [
+        { label: "Propuesto", data: {{ propuesto|tojson }}, borderColor: "#22d3ee", tension: 0.3, fill: false, borderWidth: 2 },
+        { label: "Realizado", data: {{ realizado|tojson }}, borderColor: "#00bfff", tension: 0.3, fill: false, borderWidth: 2 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#ccc" } } },
+      scales: {
+        x: { ticks: { color: "#aaa" } },
+        y: { min: 0, max: 10, ticks: { color: "#aaa", stepSize: 2 } }
+      }
+    }
+  });
 }
 </script>
 
 <style>
-.week-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 15px; }
-.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(110px,1fr)); gap: 8px; }
-.icono-dia { display:block; margin:0 auto 6px auto; height:40px; width:auto; filter: drop-shadow(0 0 8px rgba(255,255,255,0.15)); transition: transform 0.3s ease; }
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.day-card {
+  background: #111;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.day-card-body {
+  min-height: 90px;
+}
+.day-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 18px rgba(34,211,238,0.3);
+}
+
+.icono-dia {
+  display:block;
+  margin:0 auto 6px auto;
+  height:40px;
+  width:auto;
+  filter: drop-shadow(0 0 8px rgba(255,255,255,0.15));
+  transition: transform 0.3s ease;
+}
 .day-card:hover .icono-dia { transform: scale(1.05); }
+
 .icono-modal { height: 32px; width:auto; vertical-align: middle; }
 
 .training-section textarea {
@@ -432,7 +475,6 @@ function toggleSectionVisibility(sectionId, buttonId, showText, hideText) {
   border-radius: 10px;
   color: #e0faff;
 }
-
 .training-section {
   border-radius: 12px;
   padding: 14px;
@@ -440,9 +482,14 @@ function toggleSectionVisibility(sectionId, buttonId, showText, hideText) {
   box-shadow: 0 0 18px rgba(34,211,238,0.4);
 }
 
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(90px, 1fr));
+  gap: 8px;
+}
 .calendar-day {
   border: 1px solid rgba(34,211,238,0.2);
-  min-height: 120px;
+  min-height: 110px;
   background: #050608;
   border-radius: 8px;
   padding: 6px;
@@ -459,10 +506,35 @@ function toggleSectionVisibility(sectionId, buttonId, showText, hideText) {
   font-size: 0.8rem;
 }
 .dia-no-entrena {
-  border-color: #ef4444;
+  border-color: #ef4444 !important;
   box-shadow: 0 0 15px rgba(239,68,68,0.7);
 }
 
+/* Colores por tipo de día (semana + mes) */
+.day-tipo-fuerza {
+  background: radial-gradient(circle at top left, #1f1400, #050505);
+  border-color: rgba(250,204,21,0.55);
+}
+.day-tipo-pista,
+.day-tipo-running,
+.day-tipo-run {
+  background: radial-gradient(circle at top left, #2b0202, #050505);
+  border-color: rgba(239,68,68,0.65);
+}
+.day-tipo-bike {
+  background: radial-gradient(circle at top left, #021f0a, #050505);
+  border-color: rgba(34,197,94,0.6);
+}
+.day-tipo-natacion {
+  background: radial-gradient(circle at top left, #031421, #050505);
+  border-color: rgba(59,130,246,0.6);
+}
+.day-tipo-descanso {
+  background: radial-gradient(circle at top left, #111827, #050505);
+  border-color: rgba(75,85,99,0.6);
+}
+
+/* Leyenda */
 .leyenda-box {
   display:inline-block;
   width:14px;
@@ -477,29 +549,39 @@ function toggleSectionVisibility(sectionId, buttonId, showText, hideText) {
 .leyenda-box.descanso { background:#4b5563; }
 .leyenda-box.no-entrena { background:#ef4444; border:2px solid #ffffff; }
 
-/* Animación de secciones colapsables */
-.collapsed-section {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transform: scaleY(0.95);
-  transform-origin: top;
-  transition: max-height 0.35s ease, opacity 0.35s ease, transform 0.35s ease, margin 0.35s ease;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+/* Botones toggle */
+.toggle-btn {
+  border-radius: 999px;
+  font-weight: 600;
+  padding-inline: 14px;
 }
-.expanded-section {
-  max-height: 2000px;
-  opacity: 1;
-  transform: scaleY(1);
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
+.toggle-btn.active-toggle {
+  box-shadow: 0 0 18px rgba(34,211,238,0.6);
+}
+.fade-in-section {
+  animation: fadeInScale 0.35s ease-out;
+}
+@keyframes fadeInScale {
+  from { opacity:0; transform:scale(0.98); }
+  to   { opacity:1; transform:scale(1); }
 }
 
-/* Botones toggle activos */
-.active-toggle {
-  box-shadow: 0 0 14px rgba(34,211,238,0.8);
-  transform: translateY(-1px);
+/* Responsive */
+@media (max-width: 992px) {
+  .week-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 576px) {
+  .week-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 </style>
 {% endblock %}

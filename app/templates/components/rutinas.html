@@ -1,0 +1,29 @@
+{% if current_user.email == "admin@vir.app" %}
+<div class="card card-pro mb-5">
+  <h4 class="text-info mb-3">
+    <i class="bi bi-collection me-2"></i> Rutinas disponibles
+  </h4>
+
+  <div class="d-flex flex-column gap-2">
+
+    {% for r in rutinas %}
+    <div class="p-3 bg-black border border-secondary rounded rutina-item"
+         draggable="true"
+         ondragstart="drag(event)"
+         data-id="{{ r.id }}"
+         data-tipo="{{ r.tipo }}"
+         data-nombre="{{ r.nombre }}">
+      <strong>{{ r.nombre }}</strong>
+      <div class="text-secondary small">{{ r.tipo|capitalize }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <style>
+    .rutina-item:hover {
+      transform: translateX(4px);
+      box-shadow: 0 0 12px rgba(34,211,238,0.5);
+    }
+  </style>
+</div>
+{% endif %}

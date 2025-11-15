@@ -1,587 +1,203 @@
-
 {% extends "layout.html" %}
 {% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
 
 {% block content %}
 
-<!-- ENCABEZADO -->
-<div class="text-center mb-5">
-  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" alt="VR"
+<!-- ====================== -->
+<!-- HEADER DEL ATLETA -->
+<!-- ====================== -->
+<div class="text-center mb-4">
+  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
        style="height:70px;filter:drop-shadow(0 0 15px #22d3ee);">
   <h2 class="fw-bold mt-2 text-light">{{ user.nombre }}</h2>
   <div class="text-secondary">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
 </div>
 
-<!-- BLOQUES RESUMEN -->
-<div class="row mb-4 text-center g-3">
-  <div class="col-md-6">
-    <div class="card text-light border-0 shadow-lg"
-         style="background: radial-gradient(circle at top left, #002233, #000); box-shadow:0 0 20px rgba(34,211,238,0.2);">
-      <div class="card-body">
-        <h5 class="card-title text-info"><i class="bi bi-activity me-2"></i>Último entrenamiento</h5>
-        <p class="small text-secondary mb-0">Próximamente: cálculo real con histórico.</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card text-light border-0 shadow-lg"
-         style="background: radial-gradient(circle at top right, #330000, #000); box-shadow:0 0 20px rgba(239,68,68,0.25);">
-      <div class="card-body">
-        <h5 class="card-title text-danger"><i class="bi bi-lightning-charge me-2"></i>Próximo entrenamiento</h5>
-        <p class="small text-secondary mb-0">Se mostrará el siguiente día planificado.</p>
-      </div>
-    </div>
-  </div>
-</div>
 
+<!-- ====================== -->
+<!-- BOTONES TOGGLE -->
+<!-- ====================== -->
+{% include "partials/botones_toggle.html" %}
+
+
+<!-- ====================== -->
 <!-- SEMANA ACTUAL -->
-<div class="card bg-black border-0 shadow-lg mb-4">
-  <div class="card-body">
+<!-- ====================== -->
+<div class="card bg-black border-0 shadow-lg mb-4 p-3">
+  <h5 class="text-light mb-3">
+    <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
+  </h5>
 
-    <!-- Barra de controles -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-      <h5 class="mb-0 text-light">
-        <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
-      </h5>
-      <div class="d-flex flex-wrap gap-2">
-        <button id="graficoBtn"
-                type="button"
-                class="btn btn-outline-info btn-sm toggle-btn"
-                data-target="graficoWrapper"
-                data-open-text="Ver gráfica"
-                data-close-text="Ocultar gráfica">
-          <i class="bi bi-graph-up-arrow me-1"></i>Ver gráfica
-        </button>
-        <button id="mesBtn"
-                type="button"
-                class="btn btn-outline-light btn-sm toggle-btn"
-                data-target="mesCompletoCard"
-                data-open-text="Ver mes completo"
-                data-close-text="Ocultar mes completo">
-          <i class="bi bi-calendar3-range me-1"></i>Ver mes completo
-        </button>
-        <button id="comentariosBtn"
-                type="button"
-                class="btn btn-outline-secondary btn-sm toggle-btn"
-                data-target="commentsPanel"
-                data-open-text="Ver comentarios"
-                data-close-text="Ocultar comentarios">
-          <i class="bi bi-chat-text me-1"></i>Ver comentarios
-        </button>
-      </div>
-    </div>
+  <div class="week-grid">
+    {% for f in fechas %}
+    {% set plan = planes[f] %}
+    {% set tipo = (plan.plan_type or 'descanso')|lower %}
+    {% set idx = loop.index %}
+    
+    <div class="day-card day-{{ tipo }}"
+         data-bs-toggle="modal"
+         data-bs-target="#modal{{ idx }}"
+         style="cursor:pointer;">
 
-    <!-- GRID SEMANAL -->
-    <div class="week-grid">
-      {% for f in fechas %}
-      {% set plan = planes[f] %}
-      {% set tipo = (plan.plan_type or 'descanso')|lower %}
-
-      <div class="day-card text-light p-3 rounded shadow-sm day-tipo-{{ tipo }}"
-           data-bs-toggle="modal"
-           {% if current_user.email == 'admin@vir.app' %}
-             data-bs-target="#modalAdmin{{ loop.index }}"
-           {% else %}
-             data-bs-target="#modalAtleta{{ loop.index }}"
-           {% endif %}
-           style="cursor:pointer; transition:transform .2s ease;">
-        <!-- Icono según tipo -->
-        {% if tipo == "fuerza" %}
-          <img src="{{ url_for('static', filename='icons/fuerza.png') }}" class="icono-dia" alt="Fuerza">
-        {% elif tipo in ["pista", "running", "run"] %}
-          <img src="{{ url_for('static', filename='icons/pista.png') }}" class="icono-dia" alt="Pista">
-        {% elif tipo == "bike" %}
-          <img src="{{ url_for('static', filename='icons/bike.png') }}" class="icono-dia" alt="Bike">
-        {% elif tipo == "natacion" %}
-          <img src="{{ url_for('static', filename='icons/natacion.png') }}" class="icono-dia" alt="Natación">
-        {% endif %}
-
-        <div class="d-flex justify-content-between align-items-center mb-2 mt-1">
-          <strong>{{ f.strftime('%a')|capitalize }} {{ f.day }}</strong>
-          <span class="badge
-            {% if tipo == 'fuerza' %} bg-warning text-dark
-            {% elif tipo in ['pista','running','run'] %} bg-danger
-            {% elif tipo == 'bike' %} bg-success
-            {% elif tipo == 'natacion' %} bg-primary
-            {% else %} bg-secondary
-            {% endif %}">
-            {{ plan.plan_type|capitalize }}
-          </span>
-        </div>
-
-        <div class="small bg-dark rounded p-2 border border-secondary day-card-body">
-          <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
-          <div><strong>Entrenamiento:</strong> {{ plan.main or '—' }}</div>
-          <div><strong>Bloque final:</strong> {{ plan.finisher or '—' }}</div>
-        </div>
-
-        {% if plan.puede_entrenar == 'no' %}
-          <div class="mt-2 badge bg-danger w-100">El atleta marcó que NO puede entrenar</div>
-        {% elif plan.puede_entrenar == 'si' %}
-          <div class="mt-2 badge bg-success w-100">Puede entrenar ✅</div>
-        {% endif %}
+      <div class="d-flex justify-content-between mb-1">
+        <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
+        <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
       </div>
 
-      <!-- MODAL ADMIN (EDITA TODO) -->
-      {% if current_user.email == 'admin@vir.app' %}
-      <div class="modal fade" id="modalAdmin{{ loop.index }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-          <div class="modal-content bg-dark text-light border border-info"
-               style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.5); font-family:'Rajdhani', sans-serif;">
-            <div class="modal-header border-info">
-              <h5 class="modal-title text-info fw-bold">
-                {% if tipo == "fuerza" %}
-                  <img src="{{ url_for('static', filename='icons/fuerza.png') }}" class="icono-modal me-2" alt="Fuerza">
-                {% elif tipo in ["pista", "running", "run"] %}
-                  <img src="{{ url_for('static', filename='icons/pista.png') }}" class="icono-modal me-2" alt="Pista">
-                {% elif tipo == "bike" %}
-                  <img src="{{ url_for('static', filename='icons/bike.png') }}" class="icono-modal me-2" alt="Bike">
-                {% elif tipo == "natacion" %}
-                  <img src="{{ url_for('static', filename='icons/natacion.png') }}" class="icono-modal me-2" alt="Natación">
-                {% endif %}
-                {{ f.strftime('%A %d/%m')|capitalize }} — Plan del día
-              </h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-              <form action="{{ url_for('main.save_day') }}" method="POST">
-                <input type="hidden" name="user_id" value="{{ user.id }}">
-                <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
-
-                <div class="mb-3">
-                  <label class="form-label text-info">Tipo de día</label>
-                  <select name="plan_type" class="form-select form-select-sm bg-black text-light border-info">
-                    {% for t in ['descanso','fuerza','pista','bike','natacion'] %}
-                    <option value="{{ t }}" {% if plan.plan_type == t %}selected{% endif %}>
-                      {{ t|capitalize }}
-                    </option>
-                    {% endfor %}
-                  </select>
-                </div>
-
-                <div class="training-section">
-                  <h5 class="fw-bold text-info mb-2"><i class="bi bi-fire me-2"></i>Calentamiento</h5>
-                  <textarea name="warmup" class="form-control form-control-sm bg-black text-light mb-3"
-                            rows="3">{{ plan.warmup or '' }}</textarea>
-
-                  <h5 class="fw-bold text-primary mb-2"><i class="bi bi-lightning-charge me-2"></i>Bloque principal</h5>
-                  <textarea name="main" class="form-control form-control-sm bg-black text-light mb-3"
-                            rows="4">{{ plan.main or '' }}</textarea>
-
-                  <h5 class="fw-bold text-light mb-2"><i class="bi bi-peace me-2"></i>Bloque final</h5>
-                  <textarea name="finisher" class="form-control form-control-sm bg-black text-light mb-3"
-                            rows="3">{{ plan.finisher or '' }}</textarea>
-                </div>
-
-                <div class="d-flex gap-3 mt-2">
-                  <div>
-                    <label class="form-label text-secondary">Score propuesto</label>
-                    <input type="number" name="propuesto_score" min="0" max="10"
-                           class="form-control form-control-sm bg-black text-light"
-                           value="{{ plan.propuesto_score or 0 }}">
-                  </div>
-                  <div>
-                    <label class="form-label text-secondary">Score realizado</label>
-                    <input type="number" name="realizado_score" min="0" max="10"
-                           class="form-control form-control-sm bg-black text-light"
-                           value="{{ plan.realizado_score or 0 }}">
-                  </div>
-                </div>
-
-                {% if plan.comentario_atleta %}
-                <hr class="border-info my-3">
-                <p class="small text-info mb-1"><i class="bi bi-chat-right-quote me-1"></i>Comentario del atleta:</p>
-                <div class="bg-black border border-info rounded p-2 small">
-                  {{ plan.comentario_atleta }}
-                </div>
-                {% endif %}
-
-                <button class="btn btn-glow w-100 mt-3">
-                  <i class="bi bi-save2 me-1"></i>Guardar día
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
+      <div class="small bg-dark rounded p-2 border border-secondary">
+        <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
+        <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
+        <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
       </div>
 
-      {% else %}
-      <!-- MODAL ATLETA (SOLO FEEDBACK) -->
-      <div class="modal fade" id="modalAtleta{{ loop.index }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-          <div class="modal-content bg-dark text-light border border-info"
-               style="border-radius:14px; box-shadow:0 0 30px rgba(34,211,238,0.5); font-family:'Rajdhani', sans-serif;">
-            <div class="modal-header border-info">
-              <h5 class="modal-title text-info fw-bold">
-                {{ f.strftime('%A %d/%m')|capitalize }} — Entrenamiento del día
-              </h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-              <!-- Entreno solo lectura -->
-              <div class="mb-3">
-                <h6 class="text-secondary mb-2">Plan del día (solo lectura)</h6>
-                <div class="bg-black border border-secondary rounded p-2 small">
-                  <div><strong>Tipo:</strong> {{ plan.plan_type|capitalize }}</div>
-                  <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
-                  <div><strong>Entrenamiento:</strong> {{ plan.main or '—' }}</div>
-                  <div><strong>Bloque final:</strong> {{ plan.finisher or '—' }}</div>
-                </div>
-              </div>
-
-              <hr class="border-info">
-
-              <!-- Feedback del atleta -->
-              <form action="{{ url_for('main.save_feedback') }}" method="POST">
-                <input type="hidden" name="user_id" value="{{ user.id }}">
-                <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
-
-                <div class="mb-3">
-                  <label class="form-label text-info">¿Podés entrenar este día?</label>
-                  <select name="puede_entrenar" class="form-select form-select-sm bg-black text-light border-info">
-                    <option value="">No estoy seguro</option>
-                    <option value="si" {% if plan.puede_entrenar == 'si' %}selected{% endif %}>Sí, puedo entrenar</option>
-                    <option value="no" {% if plan.puede_entrenar == 'no' %}selected{% endif %}>No puedo entrenar</option>
-                  </select>
-                  <div class="form-text text-secondary">
-                    Si marcas <strong>No puedo entrenar</strong>, el día aparecerá en rojo para el entrenador.
-                  </div>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label text-info">Si lo entrenaste: ¿cómo te resultó?</label>
-                  <select name="dificultad" class="form-select form-select-sm bg-black text-light border-info">
-                    <option value="">No realizado todavía</option>
-                    <option value="facil" {% if plan.dificultad == 'facil' %}selected{% endif %}>Fácil</option>
-                    <option value="media" {% if plan.dificultad == 'media' %}selected{% endif %}>Medio</option>
-                    <option value="dura" {% if plan.dificultad == 'dura' %}selected{% endif %}>Duro</option>
-                  </select>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label text-info">Comentario del día</label>
-                  <textarea name="comentario_atleta"
-                            class="form-control form-control-sm bg-black text-light border-info"
-                            rows="4"
-                            placeholder="Contame cómo te sentiste, si hubo molestias, energía, etc.">{{ plan.comentario_atleta or '' }}</textarea>
-                </div>
-
-                <button class="btn btn-glow w-100 mt-2">
-                  <i class="bi bi-save2 me-1"></i>Guardar feedback
-                </button>
-              </form>
-
-              <!-- Placeholder Strava -->
-              <div class="mt-4 text-center small text-secondary">
-                Próximamente: vincular actividad de <span class="text-info fw-bold">Strava</span> y traer el entreno realizado.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {% if plan.puede_entrenar == 'no' %}
+      <div class="badge bg-danger w-100 mt-2">NO puede entrenar</div>
+      {% elif plan.puede_entrenar == 'si' %}
+      <div class="badge bg-success w-100 mt-2">OK para entrenar</div>
       {% endif %}
-      {% endfor %}
-    </div>
 
-    <!-- GRÁFICO (OCULTO POR DEFECTO) -->
-    <div id="graficoWrapper" class="card bg-black border-0 shadow-lg mt-4 d-none">
-      <div class="card-body">
-        <h5 class="mb-3 text-light">
-          <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
-        </h5>
-        <div style="height:220px;">
-          <canvas id="graficoProgreso"></canvas>
-        </div>
-      </div>
     </div>
-
+    {% endfor %}
   </div>
 </div>
 
-<!-- CALENDARIO MENSUAL (OCULTO POR DEFECTO) -->
-<div id="mesCompletoCard" class="card bg-black border-0 shadow-lg mb-4 d-none">
-  <div class="card-body">
-    <h6 class="mb-3 text-info">
-      <i class="bi bi-calendar3-range me-2"></i>Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
-    </h6>
 
-    <div class="calendar-grid mb-3">
+<!-- ====================== -->
+<!-- GRÁFICO PROGRESO -->
+<!-- ====================== -->
+<div id="boxGrafico" class="collapse">
+  <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+    <h5 class="text-light mb-3">
+      <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
+    </h5>
+    <div style="height:220px;">
+      <canvas id="graficoProgreso"></canvas>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================== -->
+<!-- CALENDARIO MENSUAL -->
+<!-- ====================== -->
+<div id="boxMes" class="collapse">
+  <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+
+    <h5 class="text-info mb-3">
+      <i class="bi bi-calendar3-range me-2"></i>Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
+    </h5>
+
+    <div class="calendar-grid">
       {% for f in dias_mes %}
       {% set plan_mes = planes_mes.get(f) %}
-      {% set tipo_mes = plan_mes.plan_type|lower if plan_mes else 'descanso' %}
-      <div class="calendar-day text-light rounded p-2 text-start
-                  day-tipo-{{ tipo_mes }}
-                  {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
-        <div class="date-number text-secondary">{{ f.day }}</div>
-        <div class="mt-4 small">
-          {% if plan_mes %}
-            <div class="fw-bold">
-              {% if tipo_mes == 'fuerza' %}Fuerza
-              {% elif tipo_mes in ['pista','running','run'] %}Pista
-              {% elif tipo_mes == 'bike' %}Bike
-              {% elif tipo_mes == 'natacion' %}Natación
-              {% else %}Descanso{% endif %}
-            </div>
-            {% if plan_mes.puede_entrenar == 'no' %}
-              <span class="badge bg-danger mt-1">No puede entrenar</span>
-            {% elif plan_mes.puede_entrenar == 'si' %}
-              <span class="badge bg-success mt-1">OK para entrenar</span>
-            {% endif %}
-          {% else %}
-            <span class="text-secondary">Sin plan</span>
-          {% endif %}
-        </div>
+      {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
+
+      <div class="calendar-day day-{{ tipo_mes }}
+           {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
+
+        <div class="date-number">{{ f.day }}</div>
+
+        {% if plan_mes %}
+        <div class="fw-bold small mt-4">{{ plan_mes.plan_type|capitalize }}</div>
+
+        {% if plan_mes.puede_entrenar == 'no' %}
+          <span class="badge bg-danger mt-1">No puede entrenar</span>
+        {% elif plan_mes.puede_entrenar == 'si' %}
+          <span class="badge bg-success mt-1">OK</span>
+        {% endif %}
+
+        {% else %}
+        <span class="text-secondary small mt-4">Sin plan</span>
+        {% endif %}
+
       </div>
       {% endfor %}
     </div>
 
-    <div class="d-flex justify-content-center flex-wrap gap-3 mt-2 small">
-      <span><span class="leyenda-box fuerza"></span> Fuerza</span>
-      <span><span class="leyenda-box pista"></span> Pista/Running</span>
-      <span><span class="leyenda-box bike"></span> Bike</span>
-      <span><span class="leyenda-box natacion"></span> Natación</span>
-      <span><span class="leyenda-box descanso"></span> Descanso</span>
-      <span><span class="leyenda-box no-entrena"></span> No puede entrenar</span>
-    </div>
   </div>
 </div>
 
-<!-- PANEL COMENTARIOS (OCULTO POR DEFECTO) -->
-<div id="commentsPanel" class="card bg-black border-0 shadow-lg mb-4 d-none">
-  <div class="card-body">
-    <h6 class="mb-3 text-info">
-      <i class="bi bi-chat-text me-2"></i>Resumen de comentarios del atleta
-    </h6>
-    <p class="small text-secondary mb-0">
-      Próximamente: listado de feedback por día, nivel de dificultad y enlace a actividades de Strava.
-    </p>
-  </div>
-</div>
 
-<!-- RUTINAS (SOLO VISIBLE PARA ADMIN) -->
-{% if current_user.email == 'admin@vir.app' %}
-<div class="card bg-black border-0 shadow-lg mb-5">
-  <div class="card-body">
-    {% include 'partials/rutinas.html' %}
-  </div>
-</div>
-{% endif %}
+<!-- ====================== -->
+<!-- BLOQUES / RUTINAS -->
+<!-- ====================== -->
+{% include "components/rutinas.html" %}
+
+
+<!-- ====================== -->
+<!-- MODALES -->
+<!-- ====================== -->
+{% include "components/modales.html" %}
+
 
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- GRAFICO -->
 <script>
-// ====== TOGGLE SECCIONES (GRÁFICA / MES / COMENTARIOS) ======
-document.querySelectorAll('.toggle-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const targetId = btn.getAttribute('data-target');
-    const target = document.getElementById(targetId);
-    if (!target) return;
-
-    const openText = btn.getAttribute('data-open-text');
-    const closeText = btn.getAttribute('data-close-text');
-    const isHidden = target.classList.contains('d-none');
-
-    if (isHidden) {
-      target.classList.remove('d-none');
-      target.classList.add('fade-in-section');
-      btn.classList.add('active-toggle');
-      if (closeText && openText && btn.innerHTML.includes(openText)) {
-        btn.innerHTML = btn.innerHTML.replace(openText, closeText);
-      }
-    } else {
-      target.classList.add('d-none');
-      target.classList.remove('fade-in-section');
-      btn.classList.remove('active-toggle');
-      if (closeText && openText && btn.innerHTML.includes(closeText)) {
-        btn.innerHTML = btn.innerHTML.replace(closeText, openText);
-      }
-    }
-  });
+new Chart(document.getElementById("graficoProgreso"), {
+  type: "line",
+  data: {
+    labels: {{ labels|tojson }},
+    datasets: [
+      { label: "Propuesto",
+        data: {{ propuesto|tojson }},
+        borderColor: "#22d3ee",
+        borderWidth: 2,
+        tension: 0.4 },
+      { label: "Realizado",
+        data: {{ realizado|tojson }},
+        borderColor: "#00bfff",
+        borderWidth: 2,
+        tension: 0.4 }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: "#ccc" } } },
+    scales: { x: { ticks: { color: "#aaa" } },
+              y: { ticks: { color: "#aaa" }, min: 0, max: 10 } }
+  }
 });
+</script>
 
-// ====== GRÁFICO (SOLO SI EXISTE CANVAS) ======
-const canvas = document.getElementById("graficoProgreso");
-if (canvas) {
-  const ctx = canvas.getContext("2d");
-  new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: {{ labels|tojson }},
-      datasets: [
-        { label: "Propuesto", data: {{ propuesto|tojson }}, borderColor: "#22d3ee", tension: 0.3, fill: false, borderWidth: 2 },
-        { label: "Realizado", data: {{ realizado|tojson }}, borderColor: "#00bfff", tension: 0.3, fill: false, borderWidth: 2 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#ccc" } } },
-      scales: {
-        x: { ticks: { color: "#aaa" } },
-        y: { min: 0, max: 10, ticks: { color: "#aaa", stepSize: 2 } }
-      }
-    }
-  });
-}
+<!-- TOGGLE CARDS -->
+<script>
+document.getElementById("btnToggleGrafico").onclick =
+  () => document.querySelector("#boxGrafico").classList.toggle("show");
+
+document.getElementById("btnToggleMes").onclick =
+  () => document.querySelector("#boxMes").classList.toggle("show");
 </script>
 
 <style>
-.week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 14px;
-}
+.week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px,1fr)); gap: 15px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
 
-.day-card {
-  background: #111;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  min-height: 170px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-.day-card-body {
-  min-height: 90px;
-}
-.day-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0 18px rgba(34,211,238,0.3);
-}
-
-.icono-dia {
-  display:block;
-  margin:0 auto 6px auto;
-  height:40px;
-  width:auto;
-  filter: drop-shadow(0 0 8px rgba(255,255,255,0.15));
-  transition: transform 0.3s ease;
-}
-.day-card:hover .icono-dia { transform: scale(1.05); }
-
-.icono-modal { height: 32px; width:auto; vertical-align: middle; }
-
-.training-section textarea {
-  width: 100%;
-  font-size: 1rem;
-  line-height: 1.4;
-  padding: 10px;
-  background-color: #000;
-  border: 1px solid rgba(34,211,238,0.3);
-  border-radius: 10px;
-  color: #e0faff;
-}
-.training-section {
+.day-card, .calendar-day {
   border-radius: 12px;
-  padding: 14px;
-  background: radial-gradient(circle at top left, #000814, #001122);
-  box-shadow: 0 0 18px rgba(34,211,238,0.4);
+  padding: 12px;
+  background: #0b0f12;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(90px, 1fr));
-  gap: 8px;
-}
-.calendar-day {
-  border: 1px solid rgba(34,211,238,0.2);
-  min-height: 110px;
-  background: #050608;
-  border-radius: 8px;
-  padding: 6px;
-  position: relative;
-  font-size: 0.8rem;
-}
-.calendar-day:hover {
-  box-shadow: 0 0 12px rgba(34,211,238,0.4);
-}
-.date-number {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  font-size: 0.8rem;
-}
-.dia-no-entrena {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 15px rgba(239,68,68,0.7);
-}
+.badge-fuerza { background:#facc15; color:#000; }
+.badge-pista { background:#ef4444; }
+.badge-bike { background:#22c55e; }
+.badge-natacion { background:#3b82f6; }
+.badge-descanso { background:#4b5563; }
 
-/* Colores por tipo de día (semana + mes) */
-.day-tipo-fuerza {
-  background: radial-gradient(circle at top left, #1f1400, #050505);
-  border-color: rgba(250,204,21,0.55);
-}
-.day-tipo-pista,
-.day-tipo-running,
-.day-tipo-run {
-  background: radial-gradient(circle at top left, #2b0202, #050505);
-  border-color: rgba(239,68,68,0.65);
-}
-.day-tipo-bike {
-  background: radial-gradient(circle at top left, #021f0a, #050505);
-  border-color: rgba(34,197,94,0.6);
-}
-.day-tipo-natacion {
-  background: radial-gradient(circle at top left, #031421, #050505);
-  border-color: rgba(59,130,246,0.6);
-}
-.day-tipo-descanso {
-  background: radial-gradient(circle at top left, #111827, #050505);
-  border-color: rgba(75,85,99,0.6);
-}
+.day-fuerza { border-left:4px solid #facc15; }
+.day-pista { border-left:4px solid #ef4444; }
+.day-bike { border-left:4px solid #22c55e; }
+.day-natacion { border-left:4px solid #3b82f6; }
+.day-descanso { border-left:4px solid #4b5563; }
 
-/* Leyenda */
-.leyenda-box {
-  display:inline-block;
-  width:14px;
-  height:14px;
-  border-radius:3px;
-  margin-right:4px;
-}
-.leyenda-box.fuerza { background:#facc15; }
-.leyenda-box.pista { background:#ef4444; }
-.leyenda-box.bike { background:#22c55e; }
-.leyenda-box.natacion { background:#3b82f6; }
-.leyenda-box.descanso { background:#4b5563; }
-.leyenda-box.no-entrena { background:#ef4444; border:2px solid #ffffff; }
-
-/* Botones toggle */
-.toggle-btn {
-  border-radius: 999px;
-  font-weight: 600;
-  padding-inline: 14px;
-}
-.toggle-btn.active-toggle {
-  box-shadow: 0 0 18px rgba(34,211,238,0.6);
-}
-.fade-in-section {
-  animation: fadeInScale 0.35s ease-out;
-}
-@keyframes fadeInScale {
-  from { opacity:0; transform:scale(0.98); }
-  to   { opacity:1; transform:scale(1); }
-}
-
-/* Responsive */
-@media (max-width: 992px) {
-  .week-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .calendar-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-@media (max-width: 576px) {
-  .week-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-  .calendar-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
+.dia-no-entrena { box-shadow:0 0 12px rgba(239,68,68,0.7); border-color:#ef4444; }
+.date-number { font-size:0.8rem; color:#aaa; text-align:right; }
 </style>
+
 {% endblock %}

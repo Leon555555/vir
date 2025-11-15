@@ -1,0 +1,56 @@
+<div class="card card-pro">
+  <h4 class="text-info mb-3">
+    <i class="bi bi-calendar3"></i> Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
+  </h4>
+
+  <div class="calendar-grid">
+    {% for f in dias_mes %}
+      {% set p = planes_mes.get(f) %}
+      {% set tipo = p.plan_type|lower if p else 'sinplan' %}
+
+      <div class="calendar-box {{ tipo }}">
+        <div class="date">{{ f.day }}</div>
+
+        {% if p %}
+          <div class="tipo">{{ tipo|capitalize }}</div>
+          {% if p.puede_entrenar == "no" %}
+            <span class="badge bg-danger mt-1">No entrena</span>
+          {% endif %}
+        {% else %}
+          <div class="text-secondary small mt-3">Sin plan</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <style>
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+    .calendar-box {
+      border-radius: 10px;
+      padding: 10px;
+      min-height: 120px;
+      background: #0f141a;
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+    }
+    .calendar-box .date {
+      position: absolute;
+      right: 8px;
+      top: 6px;
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    /* Colores PRO */
+    .calendar-box.fuerza     { border-left: 6px solid #facc15; }
+    .calendar-box.pista      { border-left: 6px solid #ef4444; }
+    .calendar-box.bike       { border-left: 6px solid #22c55e; }
+    .calendar-box.natacion   { border-left: 6px solid #3b82f6; }
+    .calendar-box.descanso   { border-left: 6px solid #999; }
+    .calendar-box.sinplan    { border-left: 6px solid #555; }
+  </style>
+</div>

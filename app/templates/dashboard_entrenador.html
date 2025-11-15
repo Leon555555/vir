@@ -3,286 +3,128 @@
 
 {% block content %}
 
-<div class="container-fluid mt-4">
-  <h2 class="mb-4 text-light">
-    🏋️‍♂️ Panel del Entrenador — {{ current_user.nombre }}
-  </h2>
+<div class="text-center mb-4">
+  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
+       style="height:70px; filter:drop-shadow(0 0 18px #ef4444);">
+  <h2 class="fw-bold mt-2 text-danger">Panel del Entrenador</h2>
+</div>
 
-  <!-- ========================= -->
-  <!-- CREAR NUEVO USUARIO      -->
-  <!-- ========================= -->
-  <form action="{{ url_for('main.admin_create_user') }}" method="POST"
-        class="mb-5 p-3 bg-dark rounded shadow-sm">
-    <h5 class="text-info mb-3">➕ Crear nuevo usuario</h5>
-    <div class="row g-2 align-items-center">
-      <div class="col-md-3">
-        <input name="nombre" class="form-control" placeholder="Nombre completo" required>
-      </div>
-      <div class="col-md-3">
-        <input name="email" type="email" class="form-control" placeholder="Correo electrónico" required>
-      </div>
-      <div class="col-md-2">
-        <select name="grupo" class="form-select">
-          <option value="Atleta">Atleta</option>
-          <option value="Entrenador">Entrenador</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <input name="password" type="text" class="form-control" placeholder="Contraseña" required>
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-info w-100 fw-bold btn-glow">Crear</button>
-      </div>
-    </div>
-  </form>
+<!-- ============================= -->
+<!-- SECCIÓN ATLETAS -->
+<!-- ============================= -->
+<div class="card bg-dark border-0 shadow-lg mb-5 p-4">
+  <h4 class="text-light mb-4">
+    <i class="bi bi-people-fill text-danger me-2"></i>Atletas registrados
+  </h4>
 
-  <!-- ========================= -->
-  <!-- LISTA DE USUARIOS        -->
-  <!-- ========================= -->
-  <div class="card bg-dark border-0 shadow-sm mb-5">
-    <div class="card-body">
-      <h5 class="text-light mb-3">👥 Usuarios registrados</h5>
-      <table class="table table-bordered table-dark table-hover align-middle text-center">
-        <thead class="table-secondary text-dark">
-          <tr>
-            <th>Nombre</th>
-            <th>Email</th>
-            <th>Grupo</th>
-            <th style="width: 230px;">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for atleta in atletas %}
-          <tr>
-            <td>{{ atleta.nombre }}</td>
-            <td>{{ atleta.email }}</td>
-            <td>{{ atleta.grupo }}</td>
-            <td>
-              <div class="d-flex justify-content-center gap-2">
-                <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}"
-                   class="btn btn-outline-info btn-sm">
-                  👀 Ver perfil
-                </a>
-                <form action="{{ url_for('main.admin_delete_user', user_id=atleta.id) }}"
-                      method="POST"
-                      onsubmit="return confirm('¿Seguro que deseas eliminar a {{ atleta.nombre }}?');">
-                  <button class="btn btn-danger btn-sm">🗑️ Eliminar</button>
-                </form>
-              </div>
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="4" class="text-secondary">No hay usuarios registrados todavía.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <div class="row g-4">
+    {% for a in atletas %}
+    <div class="col-md-4">
+      <div class="athlete-card p-3 rounded shadow-sm">
+        <h5 class="text-light mb-1">{{ a.nombre }}</h5>
+        <div class="text-secondary small mb-2">{{ a.email }}</div>
 
-  <!-- =========================================== -->
-  <!-- RUTINAS + CALENDARIO MENSUAL GENERAL (ADMIN) -->
-  <!-- =========================================== -->
-  <div class="row">
-    <!-- BLOQUES / RUTINAS -->
-    <div class="col-md-3 mb-4">
-      <div class="card bg-dark border-0 shadow-lg p-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="text-info mb-0">
-            <i class="bi bi-collection me-2"></i>Rutinas disponibles
-          </h5>
-        </div>
+        <div class="d-flex justify-content-between mt-3">
+          <a href="{{ url_for('main.perfil_usuario', user_id=a.id) }}"
+             class="btn btn-outline-info btn-sm w-50 me-2">
+            <i class="bi bi-eye me-1"></i> Ver perfil
+          </a>
 
-        <!-- include de rutinas (módulo) -->
-        {% include 'partials/rutinas.html' %}
-
-        <hr class="border-secondary my-3">
-
-        <!-- Rutinas como bloques arrastrables -->
-        <h6 class="text-secondary mb-2">Bloques para drag & drop</h6>
-        {% for r in rutinas %}
-        <div class="bloque-entrenamiento mb-2 text-light p-2 rounded"
-             draggable="true"
-             ondragstart="drag(event)"
-             data-id="{{ r.id }}"
-             data-tipo="{{ r.tipo or 'fuerza' }}"
-             data-nombre="{{ r.nombre }}"
-             style="cursor:grab;">
-          <strong>{{ r.nombre }}</strong><br>
-          <small class="text-secondary">{{ r.tipo|capitalize }}</small>
-        </div>
-        {% else %}
-        <p class="text-secondary small">No hay rutinas creadas aún.</p>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- CALENDARIO MENSUAL GENERAL -->
-    <div class="col-md-9">
-      <div class="card bg-black border-0 shadow-lg p-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="text-info mb-0">
-            <i class="bi bi-calendar3 me-2"></i>Calendario mensual (asigna a todos los atletas)
-          </h5>
-          <span class="text-secondary small">
-            Mes {{ hoy.month }}/{{ hoy.year }}
-          </span>
-        </div>
-
-        <div id="calendar" class="calendar-grid">
-          {% for d in range(1, 32) %}
-          <div class="calendar-day"
-               ondrop="drop(event)"
-               ondragover="allowDrop(event)"
-               data-date="{{ hoy.year }}-{{ '%02d' % hoy.month }}-{{ '%02d' % d }}">
-            <div class="date-number text-secondary">{{ d }}</div>
-            <div class="day-content" id="day-{{ hoy.year }}-{{ '%02d' % hoy.month }}-{{ '%02d' % d }}"></div>
-          </div>
-          {% endfor %}
-        </div>
-
-        <div class="mt-3 small text-secondary">
-          Arrastra una rutina sobre un día y se asignará a <strong>todos los atletas</strong>.
-          Luego puedes ajustar atleta por atleta desde su perfil.
+          <form action="{{ url_for('main.admin_delete_user', user_id=a.id) }}"
+                method="POST" class="w-50"
+                onsubmit="return confirm('¿Eliminar a {{ a.nombre }}?');">
+            <button class="btn btn-danger btn-sm w-100">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
         </div>
       </div>
     </div>
+    {% endfor %}
   </div>
 </div>
 
-{% endblock %}
 
-{% block scripts %}
-<script>
-function allowDrop(ev) {
-  ev.preventDefault();
-}
+<!-- ============================= -->
+<!-- SECCIÓN RUTINAS -->
+<!-- ============================= -->
+<div class="card bg-dark border-0 shadow-lg mb-4 p-4">
+  <h4 class="text-light mb-3">
+    <i class="bi bi-list-task text-danger me-2"></i>Rutinas disponibles
+  </h4>
 
-function drag(ev) {
-  ev.dataTransfer.setData("id", ev.target.dataset.id);
-  ev.dataTransfer.setData("tipo", (ev.target.dataset.tipo || "").toLowerCase());
-  ev.dataTransfer.setData("nombre", ev.target.dataset.nombre);
-}
+  <div class="row g-3">
+    {% for r in rutinas %}
+    <div class="col-md-4">
+      <div class="routine-card p-3 rounded">
 
-function drop(ev) {
-  ev.preventDefault();
-  const rutina_id = ev.dataTransfer.getData("id");
-  const tipo = ev.dataTransfer.getData("tipo");
-  const nombre = ev.dataTransfer.getData("nombre");
-  const fecha = ev.currentTarget.dataset.date;
+        <h6 class="fw-bold text-info">
+          {{ r.nombre }}
+        </h6>
 
-  // Asignar a TODOS los atletas
-  const atletas = {{ atletas|tojson }};
-  atletas.forEach(a => asignarBloque(a.id, rutina_id, fecha));
+        <span class="badge bg-secondary mb-2">{{ r.tipo|capitalize }}</span>
 
-  agregarVisualDia(fecha, tipo, nombre);
-}
+        <p class="small mb-2">{{ r.descripcion }}</p>
 
-function asignarBloque(user_id, rutina_id, fecha) {
-  fetch("{{ url_for('main.asignar_bloque') }}", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id, rutina_id, fecha })
-  })
-  .then(r => r.json())
-  .then(res => console.log(res.msg || res.status))
-  .catch(e => console.error(e));
-}
+        <button class="btn btn-outline-light btn-sm w-100 mt-2"
+                draggable="true"
+                ondragstart="event.dataTransfer.setData('rutina_id','{{ r.id }}');">
+          <i class="bi bi-hand-index-thumb me-1"></i> Arrastrar a un día
+        </button>
 
-function agregarVisualDia(fecha, tipo, nombre) {
-  const cont = document.getElementById("day-" + fecha);
-  if (!cont) return;
+      </div>
+    </div>
+    {% endfor %}
+  </div>
 
-  const iconos = {
-    "fuerza": "{{ url_for('static', filename='icons/fuerza.png') }}",
-    "bike": "{{ url_for('static', filename='icons/bike.png') }}",
-    "pista": "{{ url_for('static', filename='icons/pista.png') }}",
-    "natacion": "{{ url_for('static', filename='icons/natacion.png') }}"
-  };
+  <!-- crear rutina -->
+  <hr class="border-secondary mt-4 mb-3">
 
-  const icon = iconos[tipo] || "";
-  const div = document.createElement("div");
-  div.classList.add("rutina-asignada");
-  if (tipo) div.classList.add("tipo-" + tipo);
+  <form action="{{ url_for('main.crear_rutina') }}" method="POST" class="row g-2">
+    <div class="col-md-3">
+      <input name="nombre" class="form-control" placeholder="Nombre rutina" required>
+    </div>
+    <div class="col-md-2">
+      <select name="tipo" class="form-select">
+        <option value="fuerza">Fuerza</option>
+        <option value="pista">Pista</option>
+        <option value="bike">Bike</option>
+        <option value="natacion">Natación</option>
+      </select>
+    </div>
+    <div class="col-md-5">
+      <input name="descripcion" class="form-control" placeholder="Descripción…">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-danger w-100">
+        <i class="bi bi-plus-lg"></i> Crear
+      </button>
+    </div>
+  </form>
 
-  if (icon) {
-    div.innerHTML = `<img src="${icon}" alt="${tipo}" height="20"><span>${nombre}</span>`;
-  } else {
-    div.innerHTML = `<span>${nombre}</span>`;
-  }
+</div>
 
-  cont.appendChild(div);
-}
-</script>
 
 <style>
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+.athlete-card {
+  background: #0e0e0e;
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: .25s ease;
 }
-.calendar-day {
-  border: 1px solid rgba(34,211,238,0.25);
-  min-height: 140px;
-  background: #050608;
-  border-radius: 8px;
-  padding: 6px;
-  position: relative;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-.calendar-day:hover {
-  box-shadow: 0 0 12px rgba(34,211,238,0.4);
-  transform: translateY(-2px);
-}
-.date-number {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  font-size: 0.9rem;
-}
-.day-content { margin-top: 18px; }
-
-.rutina-asignada {
-  background: rgba(10,10,10,0.9);
-  border-radius: 6px;
-  padding: 4px 6px;
-  margin-bottom: 4px;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border-left: 4px solid rgba(255,255,255,0.3);
-}
-.rutina-asignada.tipo-fuerza {
-  border-left-color: gold;
-  box-shadow: 0 0 10px rgba(255,215,0,0.4);
-}
-.rutina-asignada.tipo-bike {
-  border-left-color: #22c55e;
-  box-shadow: 0 0 10px rgba(34,197,94,0.4);
-}
-.rutina-asignada.tipo-pista {
-  border-left-color: #ef4444;
-  box-shadow: 0 0 10px rgba(239,68,68,0.4);
-}
-.rutina-asignada.tipo-natacion {
-  border-left-color: #3b82f6;
-  box-shadow: 0 0 10px rgba(59,130,246,0.4);
+.athlete-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 14px rgba(239,68,68,0.4);
 }
 
-.bloque-entrenamiento {
-  background: rgba(15,23,42,0.9);
-  border-radius: 8px;
-  border-left: 4px solid rgba(34,211,238,0.7);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+.routine-card {
+  background: #0b0b0b;
+  border: 1px solid rgba(34,211,238,0.15);
+  transition: .25s ease;
 }
-.bloque-entrenamiento:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 12px rgba(34,211,238,0.5);
-  background: rgba(15,23,42,1);
-}
-.bloque-entrenamiento:active {
-  opacity: 0.7;
-  transform: scale(0.97);
+.routine-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 12px rgba(34,211,238,0.3);
 }
 </style>
+
 {% endblock %}

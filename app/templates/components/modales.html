@@ -1,0 +1,168 @@
+{% for f in fechas %}
+  {% set plan = planes[f] %}
+  {% set tipo = (plan.plan_type or "descanso")|lower %}
+  {% set idx = loop.index %}
+
+  {# =============================== #}
+  {#   MODAL ADMIN - EDITA TODO      #}
+  {# =============================== #}
+  {% if current_user.email == "admin@vir.app" %}
+  <div class="modal fade" id="modal{{ idx }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content modal-pro border-info">
+
+        <div class="modal-header border-info">
+          <h5 class="modal-title text-info fw-bold">
+            <i class="bi bi-pencil-square me-2"></i>
+            {{ f.strftime('%A %d/%m')|capitalize }} — Editar entrenamiento
+          </h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <form action="{{ url_for('main.save_day') }}" method="POST">
+
+            <input type="hidden" name="user_id" value="{{ user.id }}">
+            <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
+
+            <!-- Tipo -->
+            <label class="form-label text-info">Tipo de día</label>
+            <select name="plan_type" class="form-select form-select-sm bg-black text-light border-info mb-3">
+              {% for t in ["descanso","fuerza","pista","bike","natacion"] %}
+              <option value="{{ t }}" {% if plan.plan_type == t %}selected{% endif %}>
+                {{ t|capitalize }}
+              </option>
+              {% endfor %}
+            </select>
+
+            <!-- Calentamiento -->
+            <label class="form-label text-info">Calentamiento</label>
+            <textarea name="warmup" class="form-control bg-black text-light border-info mb-3"
+                      rows="2">{{ plan.warmup or "" }}</textarea>
+
+            <!-- Entrenamiento -->
+            <label class="form-label text-info">Bloque principal</label>
+            <textarea name="main" class="form-control bg-black text-light border-info mb-3"
+                      rows="3">{{ plan.main or "" }}</textarea>
+
+            <!-- Final -->
+            <label class="form-label text-info">Bloque final</label>
+            <textarea name="finisher" class="form-control bg-black text-light border-info mb-3"
+                      rows="2">{{ plan.finisher or "" }}</textarea>
+
+            <!-- Score -->
+            <div class="d-flex gap-3">
+              <div>
+                <label class="form-label text-secondary">Score propuesto</label>
+                <input type="number" name="propuesto_score"
+                       class="form-control bg-black text-light border-info"
+                       value="{{ plan.propuesto_score or 0 }}" min="0" max="10">
+              </div>
+              <div>
+                <label class="form-label text-secondary">Score realizado</label>
+                <input type="number" name="realizado_score"
+                       class="form-control bg-black text-light border-info"
+                       value="{{ plan.realizado_score or 0 }}" min="0" max="10">
+              </div>
+            </div>
+
+            <button class="btn btn-glow w-100 mt-4">
+              <i class="bi bi-save2 me-2"></i>Guardar cambios
+            </button>
+
+          </form>
+
+          {% if plan.comentario_atleta %}
+          <hr class="border-info">
+
+          <div class="p-2 bg-black rounded border border-info small">
+            <i class="bi bi-chat-text me-1"></i>
+            <strong>Comentario del atleta:</strong>
+            <p class="mt-2">{{ plan.comentario_atleta }}</p>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+
+  {# =============================== #}
+  {#      MODAL ATLETA (FEEDBACK)    #}
+  {# =============================== #}
+  <div class="modal fade" id="modal{{ idx }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content modal-pro border-info">
+
+        <div class="modal-header border-info">
+          <h5 class="modal-title text-info fw-bold">
+            <i class="bi bi-chat-left-quote me-2"></i>
+            Feedback del día — {{ f.strftime('%A %d/%m') }}
+          </h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+
+          <div class="bg-black p-3 border rounded border-secondary mb-3 small">
+            <strong>Plan del día:</strong><br>
+            Tipo: {{ plan.plan_type|capitalize }}<br>
+            Calentamiento: {{ plan.warmup or '—' }}<br>
+            Entrenamiento: {{ plan.main or '—' }}<br>
+            Final: {{ plan.finisher or '—' }}
+          </div>
+
+          <form action="{{ url_for('main.save_feedback') }}" method="POST">
+
+            <input type="hidden" name="user_id" value="{{ user.id }}">
+            <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
+
+            <!-- Puede entrenar -->
+            <label class="form-label text-info">¿Podés entrenar este día?</label>
+            <select name="puede_entrenar"
+                    class="form-select form-select-sm bg-black text-light border-info mb-3">
+              <option value="">Sin respuesta</option>
+              <option value="si" {% if plan.puede_entrenar=='si' %}selected{% endif %}>Sí</option>
+              <option value="no" {% if plan.puede_entrenar=='no' %}selected{% endif %}>No</option>
+            </select>
+
+            <!-- Dificultad -->
+            <label class="form-label text-info">¿Cómo te fue?</label>
+            <select name="dificultad"
+                    class="form-select form-select-sm bg-black text-light border-info mb-3">
+              <option value="">No realicé</option>
+              <option value="facil" {% if plan.dificultad=='facil' %}selected{% endif %}>Fácil</option>
+              <option value="media" {% if plan.dificultad=='media' %}selected{% endif %}>Media</option>
+              <option value="dura" {% if plan.dificultad=='dura' %}selected{% endif %}>Dura</option>
+            </select>
+
+            <!-- Comentario -->
+            <label class="form-label text-info">Comentario</label>
+            <textarea name="comentario_atleta"
+                      class="form-control bg-black text-light border-info mb-3"
+                      rows="3">{{ plan.comentario_atleta or '' }}</textarea>
+
+            <button class="btn btn-glow w-100 mt-2">
+              <i class="bi bi-save2 me-2"></i>Guardar feedback
+            </button>
+
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+{% endfor %}
+
+<style>
+.modal-pro {
+  background: #0a0f14 !important;
+  border-radius: 14px;
+  box-shadow: 0 0 30px rgba(34,211,238,0.4);
+  color: white;
+}
+</style>

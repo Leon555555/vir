@@ -1,0 +1,71 @@
+<div class="card card-pro mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="text-info m-0">
+      <i class="bi bi-calendar-week me-2"></i>
+      Semana: {{ semana_str }}
+    </h4>
+    <div class="d-flex gap-2">
+      <button id="btnToggleGrafico" class="btn btn-toggle-pro">
+        📈 Ver gráfico
+      </button>
+      <button id="btnToggleMes" class="btn btn-toggle-pro">
+        📅 Ver mes completo
+      </button>
+    </div>
+  </div>
+
+  <div class="week-grid">
+    {% for f in fechas %}
+      {% set plan = planes[f] %}
+      {% set tipo = (plan.plan_type or 'descanso')|lower %}
+
+      <div class="day-card pro-day {{ tipo }} shadow"
+           data-bs-toggle="modal"
+           data-bs-target="#modal{{ loop.index }}">
+
+        <div class="fw-bold mb-1">
+          {{ f.strftime('%a')|capitalize }} {{ f.day }}
+        </div>
+
+        <div class="small">
+          <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
+          <div><strong>Entrenamiento:</strong> {{ plan.main or '—' }}</div>
+          <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
+        </div>
+
+        {% if plan.puede_entrenar == 'no' %}
+          <div class="badge bg-danger mt-2 w-100">No puede entrenar</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+/* Grid */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+  gap: 18px;
+}
+
+/* Tarjetas por tipo */
+.pro-day {
+  padding: 15px;
+  border-radius: 12px;
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: .25s;
+}
+.pro-day:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 18px rgba(255,255,255,0.15);
+}
+
+/* Colores */
+.pro-day.fuerza     { border-left: 6px solid #facc15; }
+.pro-day.pista      { border-left: 6px solid #ef4444; }
+.pro-day.bike       { border-left: 6px solid #22c55e; }
+.pro-day.natacion   { border-left: 6px solid #3b82f6; }
+.pro-day.descanso   { border-left: 6px solid #666; }
+</style>

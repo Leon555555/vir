@@ -1,86 +1,107 @@
-/* === VR TRAINING — DARK NEON THEME === */
+/* ===================== */
+/* THEME VR TRAINING PRO */
+/* ===================== */
+
+:root {
+  --cyan: #22d3ee;
+  --red: #ef4444;
+  --green: #22c55e;
+  --blue: #3b82f6;
+  --yellow: #facc15;
+  --gray: #4b5563;
+  --bg: #000;
+  --card: #0b0f12;
+}
+
 body {
-  background-color: #050505;
-  color: #e0e0e0;
-  font-family: 'Orbitron', 'Segoe UI', sans-serif;
-  letter-spacing: 0.4px;
-  transition: background 0.5s ease;
-}
-
-/* NAV / TOP BAR */
-.top-bar {
-  height: 60px;
-  background: linear-gradient(90deg, #000 0%, #0a0a0a 100%);
-  border-bottom: 1px solid rgba(34,211,238,0.3);
-}
-
-.logo-img {
-  height: 40px;
-  filter: drop-shadow(0 0 5px rgba(34,211,238,0.6));
-}
-
-/* SIDEBAR */
-.sidebar {
-  width: 250px;
-  background: #0b0f14;
-  transition: all 0.3s ease;
-  border-right: 1px solid rgba(34,211,238,0.2);
-}
-.sidebar.collapsed,
-#sidebar.d-none {
-  display: none !important;
-}
-
-/* === EFECTO GLOW PULSANTE VR TRAINING === */
-@keyframes neonPulse {
-  0% { box-shadow: 0 0 10px rgba(34,211,238,0.3), 0 0 20px rgba(34,211,238,0.2); }
-  50% { box-shadow: 0 0 25px rgba(34,211,238,0.8), 0 0 40px rgba(34,211,238,0.5); }
-  100% { box-shadow: 0 0 10px rgba(34,211,238,0.3), 0 0 20px rgba(34,211,238,0.2); }
-}
-
-/* Botones principales */
-.btn-glow {
-  background: linear-gradient(90deg, #22d3ee 0%, #00bfff 100%);
-  color: #000;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  animation: neonPulse 3s infinite;
-  transition: all 0.3s ease-in-out;
-}
-.btn-glow:hover {
-  transform: scale(1.03);
-  color: #000;
-}
-
-/* Ajustes visuales */
-h2, h5, h6 {
+  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
   color: #fff;
-  text-shadow: 0 0 10px rgba(34,211,238,0.5);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
 }
 
-.week-grid {
+/* TARJETAS DÍA */
+.day-card {
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: .25s ease;
+}
+.day-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 12px rgba(34,211,238,0.3);
+}
+
+/* Colores por tipo */
+.day-fuerza { border-left: 4px solid var(--yellow); }
+.day-pista { border-left: 4px solid var(--red); }
+.day-bike { border-left: 4px solid var(--green); }
+.day-natacion { border-left: 4px solid var(--blue); }
+.day-descanso { border-left: 4px solid var(--gray); }
+
+/* Badges */
+.badge-fuerza { background: var(--yellow); color:#000; }
+.badge-pista { background: var(--red); }
+.badge-bike { background: var(--green); }
+.badge-natacion { background: var(--blue); }
+.badge-descanso { background: var(--gray); }
+
+/* Calendario mensual */
+.calendar-day {
+  background: #080a0c;
+  border: 1px solid rgba(255,255,255,0.05);
+  padding: 8px;
+  border-radius: 8px;
+  min-height: 120px;
+  transition:.25s ease;
+}
+.calendar-day:hover {
+  box-shadow: 0 0 12px rgba(34,211,238,0.3);
+}
+.dia-no-entrena {
+  border: 2px solid var(--red);
+  box-shadow: 0 0 15px rgba(239,68,68,0.6);
+}
+
+.calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
+  gap: 8px;
 }
 
-.day-card {
-  background: rgba(18,24,35,0.9);
-  border: 1px solid rgba(34,211,238,0.15);
-  border-radius: 14px;
-  box-shadow: 0 0 10px rgba(34,211,238,0.05);
-  padding: 12px;
+/* Rutinas */
+.routine-card {
+  background:#111;
+  border:1px solid rgba(34,211,238,0.15);
+  padding:14px;
+  border-radius:10px;
+  transition:.25s ease;
+}
+.routine-card:hover {
+  transform:translateY(-4px);
+  box-shadow:0 0 12px rgba(34,211,238,0.3);
 }
 
-.btn-outline-light {
-  border-color: rgba(255,255,255,0.2);
+/* Toggle Buttons */
+.btn-toggle {
+  background:#0d0d0d;
+  color:#ccc;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.btn-toggle:hover {
+  background:#111;
+  color:#fff;
+  border-color:var(--cyan);
 }
 
-#main-content {
-  transition: margin-left 0.3s ease;
+/* Modales */
+.modal-content {
+  background:#0a0a0a !important;
+  border:1px solid var(--cyan) !important;
+  border-radius:14px !important;
+  box-shadow:0 0 25px rgba(34,211,238,0.5);
 }
 
-#w-100 {
-  width: 100% !important;
-}
+/* Animación */
+.fade { transition:opacity .25s ease; }

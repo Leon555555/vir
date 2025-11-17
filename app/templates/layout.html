@@ -44,7 +44,7 @@
   </div>
   <div class="nav-links">
     {% if current_user.is_authenticated %}
-      <a href="{{ url_for('main.perfil') }}">Perfil</a>
+      <a href="{{ url_for('main.perfil_redirect') }}">Perfil</a>
       {% if current_user.email == "admin@vir.app" %}
         <a href="{{ url_for('main.dashboard_entrenador') }}">Dashboard</a>
       {% endif %}

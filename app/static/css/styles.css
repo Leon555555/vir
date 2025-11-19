@@ -1,6 +1,6 @@
-/* ===================== */
-/* THEME VR TRAINING PRO */
-/* ===================== */
+/* ================================
+   VR TRAINING PRO 2025 UI THEME
+================================ */
 
 :root {
   --cyan: #22d3ee;
@@ -13,95 +13,177 @@
   --card: #0b0f12;
 }
 
-body {
-  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
-  color: #fff;
-  font-family: 'Rajdhani', sans-serif;
-  min-height: 100vh;
+/* CONTENEDOR CENTRAL */
+.perfil-container {
+  max-width: 1050px;
+  margin: 0 auto;
 }
 
-/* TARJETAS DÍA */
-.day-card {
-  border-radius: 12px;
-  padding: 14px;
+/* HEADER */
+.perfil-logo {
+  height: 70px;
+  filter: drop-shadow(0 0 16px var(--cyan));
+}
+
+.perfil-nombre {
+  font-weight: 700;
+  margin-top: 12px;
+}
+
+.perfil-sub {
+  color: #bbb;
+  font-size: 1rem;
+}
+
+/* CARD GENERAL */
+.perfil-card {
   background: var(--card);
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 0 10px rgba(34,211,238,0.15);
+}
+
+.perfil-titulo {
+  font-size: 1.25rem;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+}
+
+/* GRID SEMANA */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 18px;
+}
+
+/* TARJETA DÍA */
+.day-card {
+  background: linear-gradient(145deg, #0d1116, #090b0e);
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: inset 0 0 8px rgba(255,255,255,0.03),
+              0 0 12px rgba(34,211,238,0.15);
+  transition: .25s ease;
+  cursor: pointer;
+}
+
+.day-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 18px rgba(34,211,238,0.35);
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.day-icon {
+  width: 22px;
+  opacity: .9;
+  margin-right: 6px;
+}
+
+.day-body {
+  background: #111;
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.9rem;
+}
+
+/* ESTADOS */
+.estado {
+  margin-top: 10px;
+  text-align: center;
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.estado-no {
+  background: var(--red);
+  color: white;
+}
+
+.estado-ok {
+  background: var(--green);
+  color: black;
+}
+
+.estado-no-small,
+.estado-ok-small {
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+/* CALENDARIO */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.calendar-day {
+  background: #080a0c;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 115px;
   transition: .25s ease;
 }
-.day-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0 12px rgba(34,211,238,0.3);
+
+.calendar-day:hover {
+  box-shadow: 0 0 15px rgba(34,211,238,0.3);
 }
 
-/* Colores por tipo */
+.date-number {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+/* TIPO DÍA VIA BORDER */
 .day-fuerza { border-left: 4px solid var(--yellow); }
 .day-pista { border-left: 4px solid var(--red); }
 .day-bike { border-left: 4px solid var(--green); }
 .day-natacion { border-left: 4px solid var(--blue); }
 .day-descanso { border-left: 4px solid var(--gray); }
 
-/* Badges */
-.badge-fuerza { background: var(--yellow); color:#000; }
+/* HOVER Y STATES */
+.dia-no-entrena {
+  border: 2px solid var(--red);
+  box-shadow: 0 0 16px rgba(239,68,68,0.45);
+}
+
+.plan-type {
+  margin-top: 25px;
+  color: #fff;
+  font-weight: bold;
+}
+
+.plan-empty {
+  margin-top: 25px;
+  color: #444;
+}
+
+/* BADGES */
+.badge-fuerza { background: var(--yellow); color: #000; }
 .badge-pista { background: var(--red); }
 .badge-bike { background: var(--green); }
 .badge-natacion { background: var(--blue); }
 .badge-descanso { background: var(--gray); }
 
-/* Calendario mensual */
-.calendar-day {
-  background: #080a0c;
-  border: 1px solid rgba(255,255,255,0.05);
-  padding: 8px;
-  border-radius: 8px;
-  min-height: 120px;
-  transition:.25s ease;
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .perfil-container { padding: 0 12px; }
+  .week-grid { grid-template-columns: 1fr; }
+  .calendar-grid { grid-template-columns: repeat(3, 1fr); }
 }
-.calendar-day:hover {
-  box-shadow: 0 0 12px rgba(34,211,238,0.3);
-}
-.dia-no-entrena {
-  border: 2px solid var(--red);
-  box-shadow: 0 0 15px rgba(239,68,68,0.6);
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-}
-
-/* Rutinas */
-.routine-card {
-  background:#111;
-  border:1px solid rgba(34,211,238,0.15);
-  padding:14px;
-  border-radius:10px;
-  transition:.25s ease;
-}
-.routine-card:hover {
-  transform:translateY(-4px);
-  box-shadow:0 0 12px rgba(34,211,238,0.3);
-}
-
-/* Toggle Buttons */
-.btn-toggle {
-  background:#0d0d0d;
-  color:#ccc;
-  border:1px solid rgba(255,255,255,0.1);
-}
-.btn-toggle:hover {
-  background:#111;
-  color:#fff;
-  border-color:var(--cyan);
-}
-
-/* Modales */
-.modal-content {
-  background:#0a0a0a !important;
-  border:1px solid var(--cyan) !important;
-  border-radius:14px !important;
-  box-shadow:0 0 25px rgba(34,211,238,0.5);
-}
-
-/* Animación */
-.fade { transition:opacity .25s ease; }

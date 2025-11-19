@@ -1,29 +1,27 @@
 {% extends "layout.html" %}
-{% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
+{% block title %}{{ user.nombre }} — VR Training{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% endblock %}
 
 {% block content %}
 
-<!-- ====================== -->
-<!-- HEADER DEL ATLETA -->
-<!-- ====================== -->
+<!-- HEADER ATLETA -->
 <div class="text-center mb-4">
   <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-       style="height:70px;filter:drop-shadow(0 0 15px #22d3ee);">
+       style="height:70px;filter:drop-shadow(0 0 15px var(--cyan));">
+
   <h2 class="fw-bold mt-2 text-light">{{ user.nombre }}</h2>
   <div class="text-secondary">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
 </div>
 
-
-<!-- ====================== -->
-<!-- BOTONES TOGGLE -->
-<!-- ====================== -->
+<!-- BOTONES -->
 {% include "partials/botones_toggle.html" %}
 
-
-<!-- ====================== -->
-<!-- SEMANA ACTUAL -->
-<!-- ====================== -->
+<!-- SEMANA -->
 <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+
   <h5 class="text-light mb-3">
     <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
   </h5>
@@ -33,7 +31,7 @@
     {% set plan = planes[f] %}
     {% set tipo = (plan.plan_type or 'descanso')|lower %}
     {% set idx = loop.index %}
-    
+
     <div class="day-card day-{{ tipo }}"
          data-bs-toggle="modal"
          data-bs-target="#modal{{ idx }}"
@@ -61,12 +59,9 @@
   </div>
 </div>
 
-
-<!-- ====================== -->
-<!-- GRÁFICO PROGRESO -->
-<!-- ====================== -->
+<!-- GRAFICO -->
 <div id="boxGrafico" class="collapse">
-  <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+  <div class="card bg-black border-0 shadow-lg mb-4 p-4">
     <h5 class="text-light mb-3">
       <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
     </h5>
@@ -76,12 +71,9 @@
   </div>
 </div>
 
-
-<!-- ====================== -->
-<!-- CALENDARIO MENSUAL -->
-<!-- ====================== -->
+<!-- MES -->
 <div id="boxMes" class="collapse">
-  <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+  <div class="card bg-black border-0 shadow-lg mb-4 p-4">
 
     <h5 class="text-info mb-3">
       <i class="bi bi-calendar3-range me-2"></i>Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
@@ -95,10 +87,10 @@
       <div class="calendar-day day-{{ tipo_mes }}
            {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
 
-        <div class="date-number">{{ f.day }}</div>
+        <div class="date-number small text-secondary text-end">{{ f.day }}</div>
 
         {% if plan_mes %}
-        <div class="fw-bold small mt-4">{{ plan_mes.plan_type|capitalize }}</div>
+        <div class="fw-bold small mt-3">{{ plan_mes.plan_type|capitalize }}</div>
 
         {% if plan_mes.puede_entrenar == 'no' %}
           <span class="badge bg-danger mt-1">No puede entrenar</span>
@@ -107,35 +99,24 @@
         {% endif %}
 
         {% else %}
-        <span class="text-secondary small mt-4">Sin plan</span>
+        <span class="text-secondary small mt-3">Sin plan</span>
         {% endif %}
 
       </div>
       {% endfor %}
     </div>
-
   </div>
 </div>
 
-
-<!-- ====================== -->
-<!-- BLOQUES / RUTINAS -->
-<!-- ====================== -->
+<!-- RUTINAS -->
 {% include "components/rutinas.html" %}
 
-
-<!-- ====================== -->
 <!-- MODALES -->
-<!-- ====================== -->
 {% include "components/modales.html" %}
-
 
 {% endblock %}
 
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- GRAFICO -->
+{% block extra_js %}
 <script>
 new Chart(document.getElementById("graficoProgreso"), {
   type: "line",
@@ -159,12 +140,11 @@ new Chart(document.getElementById("graficoProgreso"), {
     maintainAspectRatio: false,
     plugins: { legend: { labels: { color: "#ccc" } } },
     scales: { x: { ticks: { color: "#aaa" } },
-              y: { ticks: { color: "#aaa" }, min: 0, max: 10 } }
+              y: { ticks: { color: "#aaa" } } }
   }
 });
 </script>
 
-<!-- TOGGLE CARDS -->
 <script>
 document.getElementById("btnToggleGrafico").onclick =
   () => document.querySelector("#boxGrafico").classList.toggle("show");
@@ -172,32 +152,4 @@ document.getElementById("btnToggleGrafico").onclick =
 document.getElementById("btnToggleMes").onclick =
   () => document.querySelector("#boxMes").classList.toggle("show");
 </script>
-
-<style>
-.week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px,1fr)); gap: 15px; }
-.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-
-.day-card, .calendar-day {
-  border-radius: 12px;
-  padding: 12px;
-  background: #0b0f12;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-
-.badge-fuerza { background:#facc15; color:#000; }
-.badge-pista { background:#ef4444; }
-.badge-bike { background:#22c55e; }
-.badge-natacion { background:#3b82f6; }
-.badge-descanso { background:#4b5563; }
-
-.day-fuerza { border-left:4px solid #facc15; }
-.day-pista { border-left:4px solid #ef4444; }
-.day-bike { border-left:4px solid #22c55e; }
-.day-natacion { border-left:4px solid #3b82f6; }
-.day-descanso { border-left:4px solid #4b5563; }
-
-.dia-no-entrena { box-shadow:0 0 12px rgba(239,68,68,0.7); border-color:#ef4444; }
-.date-number { font-size:0.8rem; color:#aaa; text-align:right; }
-</style>
-
 {% endblock %}

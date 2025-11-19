@@ -52,11 +52,15 @@
   margin-bottom: 20px;
 }
 
-/* GRID SEMANA */
+/* ================================================== */
+/* GRID SEMANA (UNIFICADO Y CORRECTO)                 */
+/* ================================================== */
+
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 18px;
+  margin-top: 20px;
 }
 
 /* TARJETA DÍA */
@@ -76,25 +80,29 @@
   box-shadow: 0 0 18px rgba(34,211,238,0.35);
 }
 
-.day-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
+/* HEADER DÍA */
+.day-card .d-flex strong {
+  font-size: 1rem;
+  letter-spacing: 1px;
+  color: #fff;
 }
 
-.day-icon {
-  width: 22px;
-  opacity: .9;
-  margin-right: 6px;
-}
-
-.day-body {
+/* CUERPO */
+.day-card .small {
   background: #111;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.05);
+  margin-top: 8px;
   font-size: 0.9rem;
 }
+
+/* BORDES POR TIPO */
+.day-fuerza   { border-left: 4px solid var(--yellow); }
+.day-pista    { border-left: 4px solid var(--red); }
+.day-bike     { border-left: 4px solid var(--green); }
+.day-natacion { border-left: 4px solid var(--blue); }
+.day-descanso { border-left: 4px solid var(--gray); }
 
 /* ESTADOS */
 .estado {
@@ -106,16 +114,10 @@
   font-weight: bold;
 }
 
-.estado-no {
-  background: var(--red);
-  color: white;
-}
+.estado-no { background: var(--red); color: white; }
+.estado-ok { background: var(--green); color: black; }
 
-.estado-ok {
-  background: var(--green);
-  color: black;
-}
-
+/* Mini estados */
 .estado-no-small,
 .estado-ok-small {
   font-size: 0.75rem;
@@ -124,11 +126,15 @@
   display: inline-block;
 }
 
-/* CALENDARIO */
+/* ================================================== */
+/* CALENDARIO (VERSION MEJORADA SUAVE)                */
+/* ================================================== */
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .calendar-day {
@@ -136,33 +142,26 @@
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 10px;
   padding: 10px;
-  min-height: 115px;
-  transition: .25s ease;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  transition: 0.25s ease;
 }
 
 .calendar-day:hover {
+  transform: translateY(-4px);
   box-shadow: 0 0 15px rgba(34,211,238,0.3);
 }
 
+/* número del día */
 .date-number {
   text-align: right;
   font-size: 0.85rem;
   color: #aaa;
+  margin-bottom: 6px;
 }
 
-/* TIPO DÍA VIA BORDER */
-.day-fuerza { border-left: 4px solid var(--yellow); }
-.day-pista { border-left: 4px solid var(--red); }
-.day-bike { border-left: 4px solid var(--green); }
-.day-natacion { border-left: 4px solid var(--blue); }
-.day-descanso { border-left: 4px solid var(--gray); }
-
-/* HOVER Y STATES */
-.dia-no-entrena {
-  border: 2px solid var(--red);
-  box-shadow: 0 0 16px rgba(239,68,68,0.45);
-}
-
+/* tipo */
 .plan-type {
   margin-top: 25px;
   color: #fff;
@@ -174,10 +173,16 @@
   color: #444;
 }
 
+/* día no apto */
+.dia-no-entrena {
+  border: 2px solid var(--red) !important;
+  box-shadow: 0 0 16px rgba(239,68,68,0.35) !important;
+}
+
 /* BADGES */
-.badge-fuerza { background: var(--yellow); color: #000; }
-.badge-pista { background: var(--red); }
-.badge-bike { background: var(--green); }
+.badge-fuerza   { background: var(--yellow); color: #000; }
+.badge-pista    { background: var(--red); }
+.badge-bike     { background: var(--green); }
 .badge-natacion { background: var(--blue); }
 .badge-descanso { background: var(--gray); }
 

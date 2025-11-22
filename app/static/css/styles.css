@@ -14,7 +14,6 @@
 
   --card-bg: #0b0f12;
   --card-dark: #0e1114;
-  --header-dark: #080a0d;
 }
 
 /* ============================ */
@@ -23,16 +22,17 @@
 .perfil-container {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 16px 40px;
 }
 
 /* ============================ */
 /*             LOGO             */
 /* ============================ */
+
 .perfil-logo {
-  height: 150px !important;
-  max-height: 150px !important;
-  margin-bottom: 12px;
+  height: 120px !important;
+  max-height: 120px !important;
+  margin-bottom: 10px;
   filter: drop-shadow(0 0 18px var(--cyan));
   object-fit: contain;
 }
@@ -49,16 +49,55 @@
 
 .perfil-sub {
   color: #a8bdc6;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 /* ============================ */
-/*    BOTONES TOGGLE PRO        */
+/*    NAV TABS VR TRAINING      */
 /* ============================ */
+
+.nav-vr-tabs {
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.nav-vr-tabs .nav-link {
+  border: none;
+  color: #9fb9c9;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  padding: 0.4rem 1.5rem;
+  background: transparent;
+}
+
+.nav-vr-tabs .nav-link:hover {
+  color: #eafaff;
+}
+
+.nav-vr-tabs .nav-link.active {
+  color: #ffffff;
+  border: none;
+  border-bottom: 2px solid var(--cyan);
+  box-shadow: 0 4px 12px var(--cyan-glow);
+}
+
+/* Secciones de tabs */
+.vr-tab {
+  display: none;
+}
+
+.vr-tab.active {
+  display: block;
+}
+
+/* ============================ */
+/*    BOTONES (estándar BS)     */
+/* ============================ */
+
 .btn-outline-info {
   border-color: var(--cyan);
   color: var(--cyan);
 }
+
 .btn-outline-info:hover {
   background: var(--cyan);
   color: #000;
@@ -66,7 +105,7 @@
 }
 
 /* ============================ */
-/*       CARD PRINCIPAL         */
+/*        CARD PRINCIPAL        */
 /* ============================ */
 .card-pro {
   background: var(--card-bg);
@@ -79,30 +118,17 @@
 /* ============================ */
 /*        GRID SEMANAL          */
 /* ============================ */
-/* ⭐ Nuevo — 7 columnas fijas estilo MyWellness */
+
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 22px;
-  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
+/* En escritorio ancho: 7 columnas fijas tipo calendario semanal */
+@media (min-width: 992px) {
   .week-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .week-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .week-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
 
@@ -110,23 +136,25 @@
 .day-card {
   background: linear-gradient(145deg, #0f1317, #080a0d);
   border-radius: 16px;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid rgba(255,255,255,0.08);
   box-shadow: inset 0 0 10px rgba(255,255,255,0.03),
               0 0 16px rgba(34,211,238,0.15);
   transition: .25s ease;
   cursor: pointer;
 }
+
 .day-card:hover {
   transform: translateY(-4px) scale(1.01);
   box-shadow: 0 0 25px var(--cyan-glow);
 }
+
 .day-card strong {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #eafaff;
 }
 
-/* Colores laterales */
+/* colores laterales por tipo */
 .day-fuerza   { border-left: 4px solid var(--yellow); }
 .day-pista    { border-left: 4px solid var(--red); }
 .day-bike     { border-left: 4px solid var(--green); }
@@ -136,6 +164,7 @@
 /* ============================ */
 /*        CALENDARIO PRO        */
 /* ============================ */
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -146,37 +175,56 @@
 .calendar-day {
   background: var(--card-dark);
   border: 1px solid rgba(255,255,255,0.1);
-  padding: 12px;
+  padding: 10px;
   border-radius: 12px;
   min-height: 130px;
   transition: .25s ease;
   color: #e2e9ee;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
 }
+
 .calendar-day:hover {
   transform: translateY(-4px);
   box-shadow: 0 0 22px var(--cyan-glow);
 }
 
-.date-number {
-  text-align: right;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #b7c7d1;
+/* Cabecera del día */
+.cal-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
 
-/* EVENTOS */
+.cal-day-num {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #d9ecf3;
+}
+
+.cal-weekday {
+  font-size: 0.75rem;
+  color: #92a4b0;
+}
+
+/* ESTILO EVENTOS (MyWellness style) */
+
 .event-pill {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.04);
   border-left: 4px solid var(--cyan);
-  padding: 6px 10px;
+  padding: 5px 8px;
   border-radius: 10px;
-  margin-bottom: 6px;
-  font-size: 0.85rem;
+  margin-bottom: 5px;
+  font-size: 0.8rem;
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.event-pill i {
+  opacity: 0.9;
+  font-size: 0.9rem;
 }
 
 .event-fuerza   { border-left-color: var(--yellow); }
@@ -185,12 +233,29 @@
 .event-natacion { border-left-color: var(--blue); }
 .event-descanso { border-left-color: var(--gray); }
 
-.event-state-ok { border-left-color: var(--green); }
-.event-state-no { border-left-color: var(--red); }
+/* estado */
+.event-state-ok {
+  border-left-color: var(--green);
+}
+.event-state-no {
+  border-left-color: var(--red);
+}
 
+/* dificultad */
 .event-diff-facil { border-left-color: #86efac; }
 .event-diff-media { border-left-color: #facc15; }
 .event-diff-dura  { border-left-color: #f87171; }
+
+/* comentario */
+.event-comment {
+  border-left-color: #9ca3af;
+}
+
+/* Label “sin plan” */
+.plan-empty {
+  color: #65727b;
+  font-size: 0.8rem;
+}
 
 /* ============================ */
 /*           MODALES            */
@@ -206,7 +271,16 @@
 /* ============================ */
 /*        RESPONSIVE            */
 /* ============================ */
+
 @media (max-width: 768px) {
-  .calendar-grid { grid-template-columns: repeat(2, 1fr); }
-  .perfil-logo { height: 120px !important; }
+  .perfil-container {
+    padding: 0 10px 30px;
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .perfil-logo {
+    height: 100px !important;
+    max-height: 100px !important;
+  }
 }

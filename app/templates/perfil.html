@@ -7,179 +7,207 @@
 
 {% block content %}
 
-<!-- ====================== -->
-<!-- HEADER DEL ATLETA -->
-<!-- ====================== -->
-<div class="perfil-container text-center mb-4">
+<div class="perfil-container">
 
-  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-       class="perfil-logo">
-
-  <h2 class="perfil-nombre">{{ user.nombre }}</h2>
-  <div class="perfil-sub">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
-
-</div>
-
-
-<!-- ====================== -->
-<!-- BOTONES TOGGLE -->
-<!-- ====================== -->
-<div class="text-center mb-4">
-  <button id="btnToggleGrafico" class="btn btn-outline-info me-2">
-    <i class="bi bi-graph-up"></i> Mostrar gráfico
-  </button>
-
-  <button id="btnToggleMes" class="btn btn-outline-info me-2">
-    <i class="bi bi-calendar3"></i> Mostrar mes completo
-  </button>
-
-  <button id="btnToggleComentarios" class="btn btn-outline-info">
-    <i class="bi bi-chat-dots"></i> Mostrar comentarios
-  </button>
-</div>
-
-
-<!-- ====================== -->
-<!-- SEMANA ACTUAL -->
-<!-- ====================== -->
-<div class="card card-pro mb-4">
-  <h5 class="text-info mb-3">
-    <i class="bi bi-calendar-week me-2"></i>{{ semana_str }}
-  </h5>
-
-  <div class="week-grid">
-
-    {% for f in fechas %}
-    {% set plan = planes[f] %}
-    {% set tipo = (plan.plan_type or 'descanso')|lower %}
-    {% set idx = loop.index %}
-
-    <div class="day-card day-{{ tipo }}"
-      data-bs-toggle="modal"
-      data-bs-target="#modal{{ idx }}">
-
-      <div class="d-flex justify-content-between mb-2">
-        <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
-        <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
-      </div>
-
-      <div class="small bg-dark rounded p-2 border border-secondary">
-        <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
-        <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
-        <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
-      </div>
-
-      {% if plan.puede_entrenar == 'no' %}
-        <div class="badge bg-danger w-100 mt-2">NO puede entrenar</div>
-      {% elif plan.puede_entrenar == 'si' %}
-        <div class="badge bg-success w-100 mt-2">OK para entrenar</div>
-      {% endif %}
-    </div>
-    {% endfor %}
-
+  <!-- ====================== -->
+  <!-- HEADER DEL ATLETA -->
+  <!-- ====================== -->
+  <div class="text-center mb-4">
+    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
+         class="perfil-logo">
+    <h2 class="perfil-nombre mt-2">{{ user.nombre }}</h2>
+    <div class="perfil-sub">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
   </div>
-</div>
 
+  <!-- ====================== -->
+  <!-- TABS NAV (MyWellness style) -->
+  <!-- ====================== -->
+  <ul class="nav nav-tabs nav-vr-tabs justify-content-center mb-4" id="perfilTabs">
+    <li class="nav-item">
+      <button class="nav-link active" data-tab="semana">
+        <i class="bi bi-calendar-week me-1"></i> Semana
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-tab="calendario">
+        <i class="bi bi-calendar3-range me-1"></i> Calendario
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-tab="progreso">
+        <i class="bi bi-graph-up-arrow me-1"></i> Progreso
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-tab="comentarios">
+        <i class="bi bi-chat-dots me-1"></i> Comentarios
+      </button>
+    </li>
+  </ul>
 
-<!-- ====================== -->
-<!-- GRÁFICO -->
-<!-- ====================== -->
-<div id="boxGrafico" class="vr-section">
-  <div class="card card-pro mb-4">
-    <h5 class="text-info mb-3">
-      <i class="bi bi-graph-up-arrow me-2"></i>Propuesto vs Realizado
-    </h5>
+  <!-- ====================== -->
+  <!-- TAB: SEMANA ACTUAL -->
+  <!-- ====================== -->
+  <section id="tab-semana" class="vr-tab active">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+      <h5 class="text-light mb-3">
+        <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
+      </h5>
 
-    <div style="height:240px;">
-      <canvas id="graficoProgreso"></canvas>
+      <div class="week-grid">
+        {% for f in fechas %}
+        {% set plan = planes[f] %}
+        {% set tipo = (plan.plan_type or 'descanso')|lower %}
+        {% set idx = loop.index %}
+
+        <div class="day-card day-{{ tipo }}"
+             data-bs-toggle="modal"
+             data-bs-target="#modal{{ idx }}">
+
+          <div class="d-flex justify-content-between mb-1">
+            <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
+            <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
+          </div>
+
+          <div class="small bg-dark rounded p-2 border border-secondary">
+            <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
+            <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
+            <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
+          </div>
+
+          {% if plan.puede_entrenar == 'no' %}
+            <div class="badge bg-danger w-100 mt-2">NO puede entrenar</div>
+          {% elif plan.puede_entrenar == 'si' %}
+            <div class="badge bg-success w-100 mt-2">OK para entrenar</div>
+          {% endif %}
+
+        </div>
+        {% endfor %}
+      </div>
     </div>
-  </div>
-</div>
+  </section>
 
+  <!-- ====================== -->
+  <!-- TAB: CALENDARIO MENSUAL -->
+  <!-- ====================== -->
+  <section id="tab-calendario" class="vr-tab">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
 
-<!-- ====================== -->
-<!-- CALENDARIO MENSUAL -->
-<!-- ====================== -->
-<div id="boxMes" class="vr-section">
-  <div class="card card-pro mb-4">
+      <h5 class="text-info mb-3">
+        <i class="bi bi-calendar3-range me-2"></i>
+        Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
+      </h5>
 
-    <h5 class="text-info mb-3">
-      <i class="bi bi-calendar3-range me-2"></i>
-      Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
-    </h5>
+      <div class="calendar-grid">
+        {% for f in dias_mes %}
+        {% set plan_mes = planes_mes.get(f) %}
+        {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
 
-    <div class="calendar-grid">
-      {% for f in dias_mes %}
-      {% set plan_mes = planes_mes.get(f) %}
-      {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
+        <div class="calendar-day day-{{ tipo_mes }}">
+          <!-- cabecera día -->
+          <div class="cal-header">
+            <span class="cal-day-num">{{ f.day }}</span>
+            <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
+          </div>
 
-      <div class="calendar-day day-{{ tipo_mes }}">
+          {% if plan_mes %}
+            <!-- tipo de día -->
+            <div class="event-pill event-{{ tipo_mes }}">
+              <span class="event-icon">
+                {% if tipo_mes == 'fuerza' %}
+                  <i class="bi bi-barbell"></i>
+                {% elif tipo_mes == 'pista' %}
+                  <i class="bi bi-speedometer2"></i>
+                {% elif tipo_mes == 'bike' %}
+                  <i class="bi bi-bicycle"></i>
+                {% elif tipo_mes == 'natacion' %}
+                  <i class="bi bi-droplet"></i>
+                {% else %}
+                  <i class="bi bi-moon-stars"></i>
+                {% endif %}
+              </span>
+              <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
+            </div>
 
-        <div class="date-number">{{ f.day }}</div>
-
-        {% if plan_mes %}
-
-          <div class="event-pill event-{{ tipo_mes }}">
-            {% if tipo_mes == 'fuerza' %}
-              <i class="bi bi-barbell"></i>
-            {% elif tipo_mes == 'pista' %}
-              <i class="bi bi-speedometer2"></i>
-            {% elif tipo_mes == 'bike' %}
-              <i class="bi bi-bicycle"></i>
-            {% elif tipo_mes == 'natacion' %}
-              <i class="bi bi-droplet"></i>
-            {% else %}
-              <i class="bi bi-moon-stars"></i>
+            <!-- estado puede entrenar -->
+            {% if plan_mes.puede_entrenar %}
+            <div class="event-pill event-state
+                        {% if plan_mes.puede_entrenar == 'no' %}event-state-no{% else %}event-state-ok{% endif %}">
+              <span class="event-text">
+                {% if plan_mes.puede_entrenar == 'no' %}
+                  No puede entrenar
+                {% else %}
+                  OK para entrenar
+                {% endif %}
+              </span>
+            </div>
             {% endif %}
-            <span>{{ plan_mes.plan_type|capitalize }}</span>
-          </div>
 
-          {% if plan_mes.puede_entrenar %}
-          <div class="event-pill 
-            {% if plan_mes.puede_entrenar == 'no' %}event-state-no{% else %}event-state-ok{% endif %}">
-            {% if plan_mes.puede_entrenar == 'no' %}No puede entrenar{% else %}OK{% endif %}
-          </div>
+            <!-- dificultad -->
+            {% if plan_mes.dificultad %}
+            <div class="event-pill event-diff event-diff-{{ plan_mes.dificultad }}">
+              <span class="event-text">
+                {% if plan_mes.dificultad == 'facil' %}Fácil
+                {% elif plan_mes.dificultad == 'media' %}Media
+                {% elif plan_mes.dificultad == 'dura' %}Dura
+                {% else %}No realicé{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            <!-- comentario -->
+            {% if plan_mes.comentario_atleta %}
+            <div class="event-pill event-comment">
+              <span class="event-icon"><i class="bi bi-chat-dots"></i></span>
+              <span class="event-text">Comentario del atleta</span>
+            </div>
+            {% endif %}
+
+          {% else %}
+            <span class="plan-empty mt-2">Sin plan</span>
           {% endif %}
-
-          {% if plan_mes.dificultad %}
-          <div class="event-pill event-diff-{{ plan_mes.dificultad }}">
-            {{ plan_mes.dificultad|capitalize }}
-          </div>
-          {% endif %}
-
-          {% if plan_mes.comentario_atleta %}
-          <div class="event-pill event-comment">
-            <i class="bi bi-chat-dots"></i> Comentario del atleta
-          </div>
-          {% endif %}
-
-        {% else %}
-          <span class="text-secondary small">Sin plan</span>
-        {% endif %}
-
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
+
     </div>
+  </section>
 
-  </div>
-</div>
+  <!-- ====================== -->
+  <!-- TAB: PROGRESO (GRÁFICO) -->
+  <!-- ====================== -->
+  <section id="tab-progreso" class="vr-tab">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+      <h5 class="text-light mb-3">
+        <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
+      </h5>
 
+      <div style="height:240px;">
+        <canvas id="graficoProgreso"></canvas>
+      </div>
+    </div>
+  </section>
 
-<!-- ====================== -->
-<!-- COMENTARIOS -->
-<!-- ====================== -->
-<div id="boxComentarios" class="vr-section">
-  <div class="card card-pro mb-4 p-4">
-    <h5 class="text-info mb-3"><i class="bi bi-chat-left-text me-2"></i>Comentarios</h5>
-    <p class="text-secondary">Próximamente aquí podrás ver un resumen de feedback.</p>
-  </div>
-</div>
+  <!-- ====================== -->
+  <!-- TAB: COMENTARIOS -->
+  <!-- ====================== -->
+  <section id="tab-comentarios" class="vr-tab">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-4">
+      <h5 class="text-info mb-3">
+        <i class="bi bi-chat-left-text me-2"></i>Comentarios
+      </h5>
+      <p class="text-secondary">
+        Próximamente aquí podrás ver un resumen de comentarios y feedback del atleta.
+      </p>
+    </div>
+  </section>
 
+  <!-- ====================== -->
+  <!-- RUTINAS (fuera de tabs, siempre visible para el admin) -->
+  <!-- ====================== -->
+  {% include "components/rutinas.html" %}
 
-<!-- ====================== -->
-<!-- RUTINAS -->
-<!-- ====================== -->
-{% include "components/rutinas.html" %}
+</div>  {# cierre .perfil-container #}
 
 <!-- ====================== -->
 <!-- MODALES -->
@@ -189,58 +217,87 @@
 {% endblock %}
 
 {% block scripts %}
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-new Chart(document.getElementById("graficoProgreso"), {
-  type: "line",
-  data: {
-    labels: {{ labels|tojson }},
-    datasets: [
-      { label: "Propuesto", data: {{ propuesto|tojson }},
-        borderColor: "#22d3ee", borderWidth: 2, tension: 0.4 },
-      { label: "Realizado", data: {{ realizado|tojson }},
-        borderColor: "#00bfff", borderWidth: 2, tension: 0.4 }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: "#ccc" } } },
-    scales: {
-      x: { ticks: { color: "#aaa" }},
-      y: { ticks: { color: "#aaa" }, min: 0, max: 10 }
+// =================== GRAFICO PROGRESO ===================
+const canvasProgreso = document.getElementById("graficoProgreso");
+if (canvasProgreso) {
+  new Chart(canvasProgreso, {
+    type: "line",
+    data: {
+      labels: {{ labels|tojson }},
+      datasets: [
+        {
+          label: "Propuesto",
+          data: {{ propuesto|tojson }},
+          borderColor: "#22d3ee",
+          borderWidth: 2,
+          tension: 0.4
+        },
+        {
+          label: "Realizado",
+          data: {{ realizado|tojson }},
+          borderColor: "#00bfff",
+          borderWidth: 2,
+          tension: 0.4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#ccc" } }
+      },
+      scales: {
+        x: { ticks: { color: "#aaa" } },
+        y: { ticks: { color: "#aaa" }, min: 0, max: 10 }
+      }
     }
-  }
-});
-</script>
-
-<!-- ====================== -->
-<!-- TOGGLES 100% FUNCIONALES -->
-<!-- ====================== -->
-<script>
-const boxGrafico = document.getElementById("boxGrafico");
-const boxMes = document.getElementById("boxMes");
-const boxComentarios = document.getElementById("boxComentarios");
-
-[boxGrafico, boxMes, boxComentarios].forEach(b => b.style.display = "none");
-
-function toggleSection(section) {
-  [boxGrafico, boxMes, boxComentarios].forEach(b => {
-    b.style.display = (b === section)
-      ? (b.style.display === "none" ? "block" : "none")
-      : "none";
   });
-
-  if (section.style.display === "block") {
-    window.scrollTo({ top: section.offsetTop - 120, behavior: "smooth" });
-  }
 }
 
-document.getElementById("btnToggleGrafico").onclick = () => toggleSection(boxGrafico);
-document.getElementById("btnToggleMes").onclick = () => toggleSection(boxMes);
-document.getElementById("btnToggleComentarios").onclick = () => toggleSection(boxComentarios);
+// =================== TABS VR TRAINING ===================
+document.addEventListener("DOMContentLoaded", function () {
+  const tabs = document.querySelectorAll(".nav-vr-tabs .nav-link");
+  const sections = {
+    semana: document.getElementById("tab-semana"),
+    calendario: document.getElementById("tab-calendario"),
+    progreso: document.getElementById("tab-progreso"),
+    comentarios: document.getElementById("tab-comentarios"),
+  };
+
+  function activateTab(name) {
+    // botones
+    tabs.forEach(btn => {
+      if (btn.dataset.tab === name) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+    // secciones
+    Object.entries(sections).forEach(([key, sec]) => {
+      if (!sec) return;
+      if (key === name) {
+        sec.classList.add("active");
+      } else {
+        sec.classList.remove("active");
+      }
+    });
+  }
+
+  tabs.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const name = btn.dataset.tab;
+      activateTab(name);
+    });
+  });
+
+  // Tab por defecto: semana
+  activateTab("semana");
+});
 </script>
 
 {% endblock %}

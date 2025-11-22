@@ -1,45 +1,45 @@
-/* ======================================
-   VR TRAINING PRO — Premium UI 2025
-   MyWellness Style + Glow VR Training
-====================================== */
+/* ===========================================
+   VR TRAINING PRO — ULTRA UI 2025
+   MyWellness Inspired + Neon VR Style
+=========================================== */
 
 :root {
   --cyan: #22d3ee;
-  --cyan-glow: rgba(34,211,238,0.45);
+  --cyan-soft: rgba(34, 211, 238, 0.25);
+  --cyan-glow: rgba(34, 211, 238, 0.55);
   --red: #ef4444;
   --green: #22c55e;
   --blue: #3b82f6;
   --yellow: #facc15;
   --gray: #4b5563;
 
-  --card-bg: #0b0f12;
-  --card-dark: #0e1114;
+  --card-bg: #05070a;
+  --card-soft: #0b0f12;
+  --border-soft: rgba(255, 255, 255, 0.08);
 }
 
-/* ============================ */
-/*        CONTENEDOR PERFIL     */
-/* ============================ */
+/* ===========================================
+   CONTENEDOR PERFIL
+=========================================== */
+
 .perfil-container {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 16px 40px;
+  padding: 0 12px 40px;
 }
 
-/* ============================ */
-/*             LOGO             */
-/* ============================ */
+/* ===========================================
+   HEADER DEL PERFIL
+=========================================== */
 
 .perfil-logo {
-  height: 120px !important;
-  max-height: 120px !important;
+  height: 110px;
+  max-height: 110px;
   margin-bottom: 10px;
-  filter: drop-shadow(0 0 18px var(--cyan));
+  filter: drop-shadow(0 0 22px var(--cyan-glow));
   object-fit: contain;
 }
 
-/* ============================ */
-/*          TITULOS             */
-/* ============================ */
 .perfil-nombre {
   font-size: 1.9rem;
   font-weight: 700;
@@ -48,192 +48,199 @@
 }
 
 .perfil-sub {
-  color: #a8bdc6;
-  font-size: 0.95rem;
+  color: #9fb6c0;
+  font-size: 0.98rem;
 }
 
-/* ============================ */
-/*    NAV TABS VR TRAINING      */
-/* ============================ */
+/* ===========================================
+   TABS SUPERIORES (NAV VR)
+=========================================== */
 
 .nav-vr-tabs {
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(34, 211, 238, 0.25);
 }
 
 .nav-vr-tabs .nav-link {
-  border: none;
-  color: #9fb9c9;
+  color: #9dd9f0;
   font-weight: 600;
-  letter-spacing: 0.6px;
-  padding: 0.4rem 1.5rem;
+  padding: 9px 22px;
+  margin: 0 6px;
+  border-radius: 999px;
+  border: none !important;
   background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.25s ease;
+}
+
+.nav-vr-tabs .nav-link i {
+  font-size: 1.05rem;
 }
 
 .nav-vr-tabs .nav-link:hover {
-  color: #eafaff;
+  background: rgba(34, 211, 238, 0.13);
+  color: #ffffff;
 }
 
 .nav-vr-tabs .nav-link.active {
-  color: #ffffff;
-  border: none;
-  border-bottom: 2px solid var(--cyan);
-  box-shadow: 0 4px 12px var(--cyan-glow);
+  background: var(--cyan);
+  color: #000;
+  box-shadow: 0 0 16px var(--cyan-glow);
 }
 
-/* Secciones de tabs */
+/* Contenido de tabs controlado vía JS */
 .vr-tab {
   display: none;
 }
-
 .vr-tab.active {
   display: block;
 }
 
-/* ============================ */
-/*    BOTONES (estándar BS)     */
-/* ============================ */
+/* ===========================================
+   CARDS BASE
+=========================================== */
 
-.btn-outline-info {
-  border-color: var(--cyan);
-  color: var(--cyan);
+.card-vr,
+.card.bg-black {
+  background: radial-gradient(circle at 0 0, rgba(34, 211, 238, 0.14), transparent 55%),
+              linear-gradient(145deg, #05070a, #080b10);
+  border-radius: 18px;
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
 }
 
-.btn-outline-info:hover {
-  background: var(--cyan);
-  color: #000;
-  box-shadow: 0 0 12px var(--cyan-glow);
+/* Titulares dentro de cards */
+.card-vr h5,
+.card.bg-black h5 {
+  letter-spacing: 0.5px;
 }
 
-/* ============================ */
-/*        CARD PRINCIPAL        */
-/* ============================ */
-.card-pro {
-  background: var(--card-bg);
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.07);
-  padding: 25px;
-  box-shadow: 0 0 18px rgba(34,211,238,0.22);
-}
-
-/* ============================ */
-/*        GRID SEMANAL          */
-/* ============================ */
+/* ===========================================
+   GRID SEMANAL
+=========================================== */
 
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  gap: 14px;
 }
 
-/* En escritorio ancho: 7 columnas fijas tipo calendario semanal */
-@media (min-width: 992px) {
-  .week-grid {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-  }
-}
-
-/* Tarjeta del día */
+/* Tarjeta de día */
 .day-card {
-  background: linear-gradient(145deg, #0f1317, #080a0d);
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: inset 0 0 10px rgba(255,255,255,0.03),
-              0 0 16px rgba(34,211,238,0.15);
-  transition: .25s ease;
+  background: linear-gradient(145deg, #0b0f14, #06080c);
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 0 8px rgba(255, 255, 255, 0.02),
+    0 0 16px rgba(0, 0, 0, 0.7);
   cursor: pointer;
+  transition: 0.22s ease;
 }
 
 .day-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 0 25px var(--cyan-glow);
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 18px var(--cyan-soft),
+    0 0 28px rgba(0, 0, 0, 0.9);
 }
 
 .day-card strong {
   font-size: 0.95rem;
-  color: #eafaff;
+  letter-spacing: 0.5px;
 }
 
-/* colores laterales por tipo */
+/* Bordes por tipo de entrenamiento */
 .day-fuerza   { border-left: 4px solid var(--yellow); }
 .day-pista    { border-left: 4px solid var(--red); }
 .day-bike     { border-left: 4px solid var(--green); }
 .day-natacion { border-left: 4px solid var(--blue); }
 .day-descanso { border-left: 4px solid var(--gray); }
 
-/* ============================ */
-/*        CALENDARIO PRO        */
-/* ============================ */
+/* Contenido interno */
+.day-card .small {
+  background: #080b0f;
+  border-radius: 10px;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.86rem;
+  color: #dde5ee;
+}
+
+/* ===========================================
+   CALENDARIO MENSUAL - MyWellness Style
+=========================================== */
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 14px;
-  margin-top: 15px;
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
 }
 
+/* Cada día del calendario */
 .calendar-day {
-  background: var(--card-dark);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 10px;
+  background: #05070a;
   border-radius: 12px;
-  min-height: 130px;
-  transition: .25s ease;
-  color: #e2e9ee;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  gap: 4px;
+  transition: 0.2s ease;
 }
 
 .calendar-day:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 22px var(--cyan-glow);
+  transform: translateY(-3px);
+  box-shadow: 0 0 18px var(--cyan-soft);
 }
 
-/* Cabecera del día */
+/* Cabecera (número + día semana) */
 .cal-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
+  align-items: baseline;
+  margin-bottom: 4px;
 }
 
 .cal-day-num {
-  font-size: 0.9rem;
-  font-weight: bold;
-  color: #d9ecf3;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #eaf5ff;
 }
 
 .cal-weekday {
-  font-size: 0.75rem;
-  color: #92a4b0;
+  font-size: 0.7rem;
+  letter-spacing: 0.9px;
+  color: #7c8a96;
 }
 
-/* ESTILO EVENTOS (MyWellness style) */
-
+/* Pastillas de evento estilo MyWellness */
 .event-pill {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.03);
   border-left: 4px solid var(--cyan);
-  padding: 5px 8px;
   border-radius: 10px;
-  margin-bottom: 5px;
-  font-size: 0.8rem;
+  padding: 5px 7px;
+  font-size: 0.78rem;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.event-pill i {
-  opacity: 0.9;
-  font-size: 0.9rem;
+.event-pill .event-icon {
+  opacity: 0.85;
 }
 
+/* Colores según tipo */
 .event-fuerza   { border-left-color: var(--yellow); }
 .event-pista    { border-left-color: var(--red); }
 .event-bike     { border-left-color: var(--green); }
 .event-natacion { border-left-color: var(--blue); }
 .event-descanso { border-left-color: var(--gray); }
 
-/* estado */
+/* Estado (OK / No) */
 .event-state-ok {
   border-left-color: var(--green);
 }
@@ -241,46 +248,73 @@
   border-left-color: var(--red);
 }
 
-/* dificultad */
+/* Dificultad */
 .event-diff-facil { border-left-color: #86efac; }
 .event-diff-media { border-left-color: #facc15; }
-.event-diff-dura  { border-left-color: #f87171; }
+.event-diff-dura  { border-left-color: #fb7185; }
 
-/* comentario */
+/* Comentario */
 .event-comment {
   border-left-color: #9ca3af;
 }
 
-/* Label “sin plan” */
+/* Día sin plan */
 .plan-empty {
-  color: #65727b;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-top: 6px;
 }
 
-/* ============================ */
-/*           MODALES            */
-/* ============================ */
+/* ===========================================
+   ESTADOS / BADGES
+=========================================== */
+
+.badge-fuerza   { background: var(--yellow); color: #000; }
+.badge-pista    { background: var(--red); }
+.badge-bike     { background: var(--green); }
+.badge-natacion { background: var(--blue); }
+.badge-descanso { background: var(--gray); }
+
+/* ===========================================
+   MODALES
+=========================================== */
+
 .modal-pro {
-  background: #0a0f14 !important;
-  border-radius: 14px;
-  border: 1px solid var(--cyan);
+  background: #05070a !important;
+  border-radius: 16px;
+  border: 1px solid var(--cyan-soft);
   box-shadow: 0 0 30px var(--cyan-glow);
-  color: white;
+  color: #ffffff;
 }
 
-/* ============================ */
-/*        RESPONSIVE            */
-/* ============================ */
+/* ===========================================
+   RESPONSIVE
+=========================================== */
 
-@media (max-width: 768px) {
-  .perfil-container {
-    padding: 0 10px 30px;
+@media (max-width: 992px) {
+  .week-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .calendar-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .perfil-logo {
-    height: 100px !important;
-    max-height: 100px !important;
+    height: 95px;
+  }
+}
+
+@media (max-width: 576px) {
+  .week-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .nav-vr-tabs .nav-link {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+  .perfil-nombre {
+    font-size: 1.6rem;
   }
 }

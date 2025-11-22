@@ -10,46 +10,45 @@
 <div class="perfil-container">
 
   <!-- ====================== -->
-  <!-- HEADER DEL ATLETA -->
+  <!-- HEADER -->
   <!-- ====================== -->
   <div class="text-center mb-4">
-    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-         class="perfil-logo">
+    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" class="perfil-logo">
     <h2 class="perfil-nombre mt-2">{{ user.nombre }}</h2>
     <div class="perfil-sub">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
   </div>
 
   <!-- ====================== -->
-  <!-- TABS NAV (MyWellness style) -->
+  <!-- TABS VR TRAINING -->
   <!-- ====================== -->
   <ul class="nav nav-tabs nav-vr-tabs justify-content-center mb-4" id="perfilTabs">
     <li class="nav-item">
-      <button class="nav-link active" data-tab="semana">
+      <button class="nav-link active" type="button" data-tab="semana">
         <i class="bi bi-calendar-week me-1"></i> Semana
       </button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" data-tab="calendario">
+      <button class="nav-link" type="button" data-tab="calendario">
         <i class="bi bi-calendar3-range me-1"></i> Calendario
       </button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" data-tab="progreso">
+      <button class="nav-link" type="button" data-tab="progreso">
         <i class="bi bi-graph-up-arrow me-1"></i> Progreso
       </button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" data-tab="comentarios">
+      <button class="nav-link" type="button" data-tab="comentarios">
         <i class="bi bi-chat-dots me-1"></i> Comentarios
       </button>
     </li>
   </ul>
 
   <!-- ====================== -->
-  <!-- TAB: SEMANA ACTUAL -->
+  <!-- TAB: SEMANA -->
   <!-- ====================== -->
   <section id="tab-semana" class="vr-tab active">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3 card-vr">
       <h5 class="text-light mb-3">
         <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
       </h5>
@@ -88,10 +87,10 @@
   </section>
 
   <!-- ====================== -->
-  <!-- TAB: CALENDARIO MENSUAL -->
+  <!-- TAB: CALENDARIO -->
   <!-- ====================== -->
   <section id="tab-calendario" class="vr-tab">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3 card-vr">
 
       <h5 class="text-info mb-3">
         <i class="bi bi-calendar3-range me-2"></i>
@@ -104,14 +103,15 @@
         {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
 
         <div class="calendar-day day-{{ tipo_mes }}">
-          <!-- cabecera día -->
+
           <div class="cal-header">
             <span class="cal-day-num">{{ f.day }}</span>
             <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
           </div>
 
           {% if plan_mes %}
-            <!-- tipo de día -->
+
+            <!-- Tipo de día -->
             <div class="event-pill event-{{ tipo_mes }}">
               <span class="event-icon">
                 {% if tipo_mes == 'fuerza' %}
@@ -129,10 +129,9 @@
               <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
             </div>
 
-            <!-- estado puede entrenar -->
+            <!-- Estado puede entrenar -->
             {% if plan_mes.puede_entrenar %}
-            <div class="event-pill event-state
-                        {% if plan_mes.puede_entrenar == 'no' %}event-state-no{% else %}event-state-ok{% endif %}">
+            <div class="event-pill event-state {% if plan_mes.puede_entrenar=='no' %}event-state-no{% else %}event-state-ok{% endif %}">
               <span class="event-text">
                 {% if plan_mes.puede_entrenar == 'no' %}
                   No puede entrenar
@@ -143,9 +142,9 @@
             </div>
             {% endif %}
 
-            <!-- dificultad -->
+            <!-- Dificultad -->
             {% if plan_mes.dificultad %}
-            <div class="event-pill event-diff event-diff-{{ plan_mes.dificultad }}">
+            <div class="event-pill event-diff-{{ plan_mes.dificultad }}">
               <span class="event-text">
                 {% if plan_mes.dificultad == 'facil' %}Fácil
                 {% elif plan_mes.dificultad == 'media' %}Media
@@ -155,7 +154,7 @@
             </div>
             {% endif %}
 
-            <!-- comentario -->
+            <!-- Comentario -->
             {% if plan_mes.comentario_atleta %}
             <div class="event-pill event-comment">
               <span class="event-icon"><i class="bi bi-chat-dots"></i></span>
@@ -167,6 +166,7 @@
             <span class="plan-empty mt-2">Sin plan</span>
           {% endif %}
         </div>
+
         {% endfor %}
       </div>
 
@@ -174,10 +174,10 @@
   </section>
 
   <!-- ====================== -->
-  <!-- TAB: PROGRESO (GRÁFICO) -->
+  <!-- TAB: PROGRESO -->
   <!-- ====================== -->
   <section id="tab-progreso" class="vr-tab">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3 card-vr">
       <h5 class="text-light mb-3">
         <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
       </h5>
@@ -192,7 +192,7 @@
   <!-- TAB: COMENTARIOS -->
   <!-- ====================== -->
   <section id="tab-comentarios" class="vr-tab">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-4">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-4 card-vr">
       <h5 class="text-info mb-3">
         <i class="bi bi-chat-left-text me-2"></i>Comentarios
       </h5>
@@ -202,27 +202,21 @@
     </div>
   </section>
 
-  <!-- ====================== -->
-  <!-- RUTINAS (fuera de tabs, siempre visible para el admin) -->
-  <!-- ====================== -->
+  <!-- RUTINAS (siempre visible debajo) -->
   {% include "components/rutinas.html" %}
 
 </div>  {# cierre .perfil-container #}
 
-<!-- ====================== -->
 <!-- MODALES -->
-<!-- ====================== -->
 {% include "components/modales.html" %}
 
 {% endblock %}
 
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+{% block extra_js %}
 <script>
 // =================== GRAFICO PROGRESO ===================
 const canvasProgreso = document.getElementById("graficoProgreso");
-if (canvasProgreso) {
+if (canvasProgreso && typeof Chart !== "undefined") {
   new Chart(canvasProgreso, {
     type: "line",
     data: {
@@ -247,12 +241,10 @@ if (canvasProgreso) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: "#ccc" } }
-      },
+      plugins: { legend: { labels: { color: "#ccc" } } },
       scales: {
         x: { ticks: { color: "#aaa" } },
-        y: { ticks: { color: "#aaa" }, min: 0, max: 10 }
+        y: { ticks: { color: "#aaa" } }
       }
     }
   });
@@ -269,35 +261,23 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   function activateTab(name) {
-    // botones
+    // Botones
     tabs.forEach(btn => {
-      if (btn.dataset.tab === name) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
+      btn.classList.toggle("active", btn.dataset.tab === name);
     });
-    // secciones
+    // Secciones
     Object.entries(sections).forEach(([key, sec]) => {
       if (!sec) return;
-      if (key === name) {
-        sec.classList.add("active");
-      } else {
-        sec.classList.remove("active");
-      }
+      sec.classList.toggle("active", key === name);
     });
   }
 
   tabs.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const name = btn.dataset.tab;
-      activateTab(name);
-    });
+    btn.addEventListener("click", () => activateTab(btn.dataset.tab));
   });
 
-  // Tab por defecto: semana
+  // Por defecto mostrar SEMANA
   activateTab("semana");
 });
 </script>
-
 {% endblock %}

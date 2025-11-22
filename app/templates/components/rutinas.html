@@ -1,29 +1,63 @@
-{% if current_user.email == "admin@vir.app" %}
-<div class="card card-pro mb-5">
+<!-- ========================================== -->
+<!-- RUTINAS ULTRA PRO — VR TRAINING 2025       -->
+<!-- Estilo MyWellness Premium                  -->
+<!-- ========================================== -->
+
+<div class="rutina-container">
+
   <h4 class="text-info mb-3">
-    <i class="bi bi-collection me-2"></i> Rutinas disponibles
+    <i class="bi bi-list-nested me-2"></i>Rutinas del atleta
   </h4>
 
-  <div class="d-flex flex-column gap-2">
+  {% if rutinas and rutinas|length > 0 %}
+    {% for sesion in rutinas %}
+    <div class="rutina-sesion mb-4">
 
-    {% for r in rutinas %}
-    <div class="p-3 bg-black border border-secondary rounded rutina-item"
-         draggable="true"
-         ondragstart="drag(event)"
-         data-id="{{ r.id }}"
-         data-tipo="{{ r.tipo }}"
-         data-nombre="{{ r.nombre }}">
-      <strong>{{ r.nombre }}</strong>
-      <div class="text-secondary small">{{ r.tipo|capitalize }}</div>
+      <!-- Cabecera de sesión -->
+      <div class="sesion-header">
+        <h5 class="sesion-titulo">Sesión {{ sesion.numero }}</h5>
+      </div>
+
+      <!-- GRID DE EJERCICIOS -->
+      <div class="rutina-grid">
+
+        {% for ej in sesion.ejercicios %}
+        <div class="ej-card">
+
+          <!-- Imagen -->
+          <div class="ej-img">
+            <img src="{{ ej.imagen or url_for('static', filename='img/placeholder_exercise.png') }}">
+          </div>
+
+          <!-- Info -->
+          <div class="ej-info">
+            <span class="ej-categoria">{{ ej.categoria or 'Actividad' }}</span>
+            <h6 class="ej-nombre">{{ ej.nombre }}</h6>
+
+            <div class="ej-detalles">
+              {% if ej.series and ej.reps %}
+                <div><strong>{{ ej.series }}x{{ ej.reps }}</strong> — {{ ej.tiempo or '––' }}</div>
+              {% endif %}
+              {% if ej.peso %}
+                <div>Peso: <strong>{{ ej.peso }}</strong></div>
+              {% endif %}
+              {% if ej.nivel %}
+                <div>Nivel: {{ ej.nivel }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Número -->
+          <div class="ej-num">{{ loop.index | format("%02d") }}</div>
+
+        </div>
+        {% endfor %}
+
+      </div>
     </div>
     {% endfor %}
-  </div>
 
-  <style>
-    .rutina-item:hover {
-      transform: translateX(4px);
-      box-shadow: 0 0 12px rgba(34,211,238,0.5);
-    }
-  </style>
+  {% else %}
+    <p class="text-secondary">Aún no se cargaron rutinas para este atleta.</p>
+  {% endif %}
 </div>
-{% endif %}

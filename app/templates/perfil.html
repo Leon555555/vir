@@ -13,12 +13,22 @@
   <div class="text-secondary">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
 </div>
 
-
 <!-- ====================== -->
 <!-- BOTONES TOGGLE -->
 <!-- ====================== -->
-{% include "partials/botones_toggle.html" %}
+<div class="text-center mb-4">
+  <button class="btn btn-outline-info me-2" data-toggle="grafico">
+    <i class="bi bi-graph-up"></i> Mostrar gráfico
+  </button>
 
+  <button class="btn btn-outline-info me-2" data-toggle="mes">
+    <i class="bi bi-calendar3"></i> Mostrar mes completo
+  </button>
+
+  <button class="btn btn-outline-info" data-toggle="comentarios">
+    <i class="bi bi-chat-dots"></i> Mostrar comentarios
+  </button>
+</div>
 
 <!-- ====================== -->
 <!-- SEMANA ACTUAL -->
@@ -33,7 +43,7 @@
     {% set plan = planes[f] %}
     {% set tipo = (plan.plan_type or 'descanso')|lower %}
     {% set idx = loop.index %}
-    
+
     <div class="day-card day-{{ tipo }}"
          data-bs-toggle="modal"
          data-bs-target="#modal{{ idx }}"
@@ -61,7 +71,6 @@
   </div>
 </div>
 
-
 <!-- ====================== -->
 <!-- GRÁFICO PROGRESO -->
 <!-- ====================== -->
@@ -75,7 +84,6 @@
     </div>
   </div>
 </div>
-
 
 <!-- ====================== -->
 <!-- CALENDARIO MENSUAL -->
@@ -117,60 +125,77 @@
   </div>
 </div>
 
-
 <!-- ====================== -->
 <!-- BLOQUES / RUTINAS -->
 <!-- ====================== -->
 {% include "components/rutinas.html" %}
-
 
 <!-- ====================== -->
 <!-- MODALES -->
 <!-- ====================== -->
 {% include "components/modales.html" %}
 
-
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- GRAFICO -->
+<!-- GRÁFICO FUNCIONAL -->
 <script>
 new Chart(document.getElementById("graficoProgreso"), {
   type: "line",
   data: {
     labels: {{ labels|tojson }},
     datasets: [
-      { label: "Propuesto",
-        data: {{ propuesto|tojson }},
-        borderColor: "#22d3ee",
-        borderWidth: 2,
-        tension: 0.4 },
-      { label: "Realizado",
-        data: {{ realizado|tojson }},
-        borderColor: "#00bfff",
-        borderWidth: 2,
-        tension: 0.4 }
+      { label: "Propuesto", data: {{ propuesto|tojson }},
+        borderColor: "#22d3ee", borderWidth: 2, tension: 0.4 },
+      { label: "Realizado", data: {{ realizado|tojson }},
+        borderColor: "#00bfff", borderWidth: 2, tension: 0.4 }
     ]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
     plugins: { legend: { labels: { color: "#ccc" } } },
-    scales: { x: { ticks: { color: "#aaa" } },
+    scales: { x: { ticks: { color: "#aaa" }},
               y: { ticks: { color: "#aaa" }, min: 0, max: 10 } }
   }
 });
 </script>
 
-<!-- TOGGLE CARDS -->
+<!-- ===========================
+     TOGGLE FUNCIONAL UNIVERSAL
+=========================== -->
 <script>
-document.getElementById("btnToggleGrafico").onclick =
-  () => document.querySelector("#boxGrafico").classList.toggle("show");
+document.addEventListener("DOMContentLoaded", function () {
 
-document.getElementById("btnToggleMes").onclick =
-  () => document.querySelector("#boxMes").classList.toggle("show");
+  const btnGraf = document.querySelector("[data-toggle='grafico']");
+  const btnMes  = document.querySelector("[data-toggle='mes']");
+  const btnCom  = document.querySelector("[data-toggle='comentarios']");
+
+  const boxGraf = document.getElementById("boxGrafico");
+  const boxMes  = document.getElementById("boxMes");
+  const boxCom  = document.getElementById("boxComentarios");
+
+  if (btnGraf && boxGraf) {
+    btnGraf.addEventListener("click", () => {
+      boxGraf.classList.toggle("show");
+      boxMes.classList.remove("show");
+      if (boxCom) boxCom.classList.remove("show");
+      window.scrollTo({ top: boxGraf.offsetTop - 120, behavior: 'smooth' });
+    });
+  }
+
+  if (btnMes && boxMes) {
+    btnMes.addEventListener("click", () => {
+      boxMes.classList.toggle("show");
+      boxGraf.classList.remove("show");
+      if (boxCom) boxCom.classList.remove("show");
+      window.scrollTo({ top: boxMes.offsetTop - 120, behavior: 'smooth' });
+    });
+  }
+
+});
 </script>
 
 {% endblock %}

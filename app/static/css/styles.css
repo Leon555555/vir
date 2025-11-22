@@ -1,6 +1,6 @@
 /* ================================
    VR TRAINING PRO 2025 UI THEME
-   Optimized + Premium Look
+   Premium + Calendario tipo CRM
 ================================ */
 
 :root {
@@ -15,32 +15,12 @@
   --card: #0b0f12;
 }
 
-/* CONTENEDOR CENTRAL PERFIL */
+/* CONTENEDOR PERFIL (si lo necesitas en otras vistas) */
 .perfil-container {
   max-width: 1100px;
   margin: 0 auto;
   margin-top: 25px;
   padding: 0 10px;
-}
-
-/* HEADER PERFIL */
-.perfil-logo {
-  height: 70px;
-  filter: drop-shadow(0 0 20px var(--cyan));
-  opacity: 0.95;
-}
-
-.perfil-nombre {
-  font-weight: 700;
-  margin-top: 10px;
-  letter-spacing: 1px;
-  color: #eafaff;
-}
-
-.perfil-sub {
-  color: #9ab7c0;
-  font-size: 1rem;
-  letter-spacing: 0.5px;
 }
 
 /* CARD GENERAL */
@@ -63,7 +43,7 @@
 }
 
 /* ================================================== */
-/* GRID SEMANA — Premium Version                      */
+/* GRID SEMANA                                        */
 /* ================================================== */
 
 .week-grid {
@@ -91,7 +71,7 @@
   box-shadow: 0 0 22px var(--cyan-glow);
 }
 
-/* HEADER DÍA */
+/* HEADER DÍA (SEMANA) */
 .day-card .d-flex strong {
   font-size: 1.05rem;
   letter-spacing: 1px;
@@ -99,7 +79,7 @@
   font-weight: 600;
 }
 
-/* CUERPO */
+/* CUERPO TARJETA SEMANA */
 .day-card .small {
   background: #0d0f12;
   border-radius: 10px;
@@ -117,7 +97,14 @@
 .day-natacion { border-left: 4px solid var(--blue); }
 .day-descanso { border-left: 4px solid var(--gray); }
 
-/* ESTADOS EN TARJETA */
+/* BADGES TIPO DÍA */
+.badge-fuerza   { background: var(--yellow); color: #000; }
+.badge-pista    { background: var(--red); }
+.badge-bike     { background: var(--green); }
+.badge-natacion { background: var(--blue); }
+.badge-descanso { background: var(--gray); }
+
+/* ESTADOS */
 .estado {
   margin-top: 12px;
   text-align: center;
@@ -139,17 +126,8 @@
   box-shadow: 0 0 10px rgba(34,197,94,0.4);
 }
 
-/* Mini estados, por si los usas */
-.estado-no-small,
-.estado-ok-small {
-  font-size: 0.75rem;
-  padding: 4px 6px;
-  border-radius: 6px;
-  display: inline-block;
-}
-
 /* ================================================== */
-/* CALENDARIO — Clean + Glow VR Training / tipo CRM   */
+/* CALENDARIO MENSUAL — estilo MyWellness VR          */
 /* ================================================== */
 
 .calendar-grid {
@@ -159,12 +137,12 @@
   margin-top: 25px;
 }
 
-/* DÍA DEL CALENDARIO */
+/* CELDA DÍA CALENDARIO */
 .calendar-day {
   background: #0e1114;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
-  padding: 10px;
+  padding: 8px;
   min-height: 120px;
   display: flex;
   flex-direction: column;
@@ -177,32 +155,32 @@
   box-shadow: 0 0 18px var(--cyan-glow);
 }
 
-/* CABECERA DEL DÍA (NÚMERO + DÍA SEMANA) */
-.date-number {
+/* CABECERA DÍA (NÚMERO + DÍA SEMANA) */
+.cal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
-.date-num {
+.cal-day-num {
   font-size: 0.9rem;
   font-weight: 700;
   color: #e5f0ff;
 }
 
-.date-week {
+.cal-weekday {
   font-size: 0.7rem;
   letter-spacing: 1px;
   color: #94a3b8;
 }
 
-/* PILLA DE EVENTO (tipo MyWellness) */
+/* PASTILLA DE EVENTO */
 .event-pill {
-  margin-top: 6px;
-  padding: 5px 8px;
+  margin-top: 4px;
+  padding: 4px 6px;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   display: inline-flex;
   align-items: center;
   max-width: 100%;
@@ -213,44 +191,72 @@
   border: 1px solid rgba(148,163,184,0.4);
 }
 
-/* Colores por tipo */
+/* icono + texto */
+.event-icon {
+  margin-right: 4px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.event-text {
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+/* colores por tipo principal */
 .event-fuerza   { border-left: 4px solid var(--yellow); }
 .event-pista    { border-left: 4px solid var(--red); }
 .event-bike     { border-left: 4px solid var(--green); }
 .event-natacion { border-left: 4px solid var(--blue); }
 .event-descanso { border-left: 4px solid var(--gray); }
 
-.event-type {
-  color: #e5e7eb;
-  font-weight: 500;
+/* estado puede entrenar */
+.event-state-ok {
+  border-left: 4px solid var(--green);
 }
 
-.event-flag {
-  font-size: 0.7rem;
+.event-state-no {
+  border-left: 4px solid var(--red);
 }
 
-/* día sin entrenamiento especial */
-.plan-empty {
-  margin-top: 20px;
-  color: #566067;
+/* dificultad */
+.event-diff-facil {
+  border-left: 4px solid var(--green);
 }
 
-/* día no apto */
+.event-diff-media {
+  border-left: 4px solid var(--yellow);
+}
+
+.event-diff-dura {
+  border-left: 4px solid var(--red);
+}
+
+/* comentario */
+.event-comment {
+  border-left: 4px solid var(--cyan);
+}
+
+/* día no apto (borde rojo y glow) */
 .dia-no-entrena {
   border: 2px solid var(--red) !important;
   box-shadow: 0 0 18px rgba(239,68,68,0.45) !important;
 }
 
-/* BADGES GENERALES */
-.badge-fuerza   { background: var(--yellow); color: #000; }
-.badge-pista    { background: var(--red); }
-.badge-bike     { background: var(--green); }
-.badge-natacion { background: var(--blue); }
-.badge-descanso { background: var(--gray); }
+/* día sin plan */
+.plan-empty {
+  margin-top: 20px;
+  color: #566067;
+  font-size: 0.78rem;
+}
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-  .perfil-container { padding: 0 12px; }
-  .week-grid { grid-template-columns: 1fr; }
-  .calendar-grid { grid-template-columns: repeat(3, 1fr); }
+  .week-grid {
+    grid-template-columns: 1fr;
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }

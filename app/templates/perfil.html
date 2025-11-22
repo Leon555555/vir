@@ -1,154 +1,209 @@
 {% extends "layout.html" %}
 {% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
 
+{# Cargamos el CSS pro del perfil #}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+{% endblock %}
+
 {% block content %}
 
-<div class="perfil-container">
+<!-- ====================== -->
+<!-- HEADER DEL ATLETA -->
+<!-- ====================== -->
+<div class="text-center mb-4">
+  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
+       style="height:70px;filter:drop-shadow(0 0 15px #22d3ee);">
+  <h2 class="fw-bold mt-2 text-light">{{ user.nombre }}</h2>
+  <div class="text-secondary">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
+</div>
 
-  <!-- ====================== -->
-  <!-- HEADER DEL ATLETA -->
-  <!-- ====================== -->
-  <div class="text-center mb-4">
-    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-         class="perfil-logo">
-    <h2 class="perfil-nombre">{{ user.nombre }}</h2>
-    <div class="perfil-sub">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
+<!-- ====================== -->
+<!-- BOTONES TOGGLE -->
+<!-- ====================== -->
+<div class="text-center mb-4">
+  <button id="btnToggleGrafico" class="btn btn-outline-info me-2">
+    <i class="bi bi-graph-up"></i> Mostrar gráfico
+  </button>
+
+  <button id="btnToggleMes" class="btn btn-outline-info me-2">
+    <i class="bi bi-calendar3"></i> Mostrar mes completo
+  </button>
+
+  <button id="btnToggleComentarios" class="btn btn-outline-info">
+    <i class="bi bi-chat-dots"></i> Mostrar comentarios
+  </button>
+</div>
+
+<!-- ====================== -->
+<!-- SEMANA ACTUAL -->
+<!-- ====================== -->
+<div class="card bg-black border-0 shadow-lg mb-4 p-3">
+  <h5 class="text-light mb-3">
+    <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
+  </h5>
+
+  <div class="week-grid">
+    {% for f in fechas %}
+    {% set plan = planes[f] %}
+    {% set tipo = (plan.plan_type or 'descanso')|lower %}
+    {% set idx = loop.index %}
+
+    <div class="day-card day-{{ tipo }}"
+         data-bs-toggle="modal"
+         data-bs-target="#modal{{ idx }}"
+         style="cursor:pointer;">
+
+      <div class="d-flex justify-content-between mb-1">
+        <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
+        <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
+      </div>
+
+      <div class="small bg-dark rounded p-2 border border-secondary">
+        <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
+        <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
+        <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
+      </div>
+
+      {% if plan.puede_entrenar == 'no' %}
+      <div class="badge bg-danger w-100 mt-2">NO puede entrenar</div>
+      {% elif plan.puede_entrenar == 'si' %}
+      <div class="badge bg-success w-100 mt-2">OK para entrenar</div>
+      {% endif %}
+
+    </div>
+    {% endfor %}
   </div>
+</div>
 
-  <!-- ====================== -->
-  <!-- BOTONES TOGGLE -->
-  <!-- ====================== -->
-  <div class="text-center mb-4">
-    <button class="btn btn-outline-info me-2" data-toggle="grafico">
-      <i class="bi bi-graph-up"></i> Mostrar gráfico
-    </button>
-
-    <button class="btn btn-outline-info me-2" data-toggle="mes">
-      <i class="bi bi-calendar3"></i> Mostrar mes completo
-    </button>
-
-    <button class="btn btn-outline-info" data-toggle="comentarios">
-      <i class="bi bi-chat-dots"></i> Mostrar comentarios
-    </button>
+<!-- ====================== -->
+<!-- GRÁFICO PROGRESO -->
+<!-- ====================== -->
+<div id="boxGrafico" class="collapse">
+  <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+    <h5 class="text-light mb-3">
+      <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
+    </h5>
+    <div style="height:220px;">
+      <canvas id="graficoProgreso"></canvas>
+    </div>
   </div>
+</div>
 
-  <!-- ====================== -->
-  <!-- SEMANA ACTUAL -->
-  <!-- ====================== -->
-  <div class="card bg-black border-0 shadow-lg mb-4 p-3 perfil-card">
-    <h5 class="perfil-titulo">
-      <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
+<!-- ====================== -->
+<!-- CALENDARIO MENSUAL (ESTILO MYWELLNESS VR) -->
+<!-- ====================== -->
+<div id="boxMes" class="collapse">
+  <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+
+    <h5 class="text-info mb-3">
+      <i class="bi bi-calendar3-range me-2"></i>
+      Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
     </h5>
 
-    <div class="week-grid">
-      {% for f in fechas %}
-      {% set plan = planes[f] %}
-      {% set tipo = (plan.plan_type or 'descanso')|lower %}
-      {% set idx = loop.index %}
+    <div class="calendar-grid">
+      {% for f in dias_mes %}
+      {% set plan_mes = planes_mes.get(f) %}
+      {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
 
-      <div class="day-card day-{{ tipo }}"
-           data-bs-toggle="modal"
-           data-bs-target="#modal{{ idx }}">
+      <div class="calendar-day day-{{ tipo_mes }}
+           {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
 
-        <div class="d-flex justify-content-between mb-1">
-          <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
-          <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
+        <!-- cabecera día -->
+        <div class="cal-header">
+          <span class="cal-day-num">{{ f.day }}</span>
+          <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
         </div>
 
-        <div class="small bg-dark rounded p-2 border border-secondary">
-          <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
-          <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
-          <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
-        </div>
+        {% if plan_mes %}
 
-        {% if plan.puede_entrenar == 'no' %}
-          <div class="estado estado-no mt-2">NO puede entrenar</div>
-        {% elif plan.puede_entrenar == 'si' %}
-          <div class="estado estado-ok mt-2">OK para entrenar</div>
+          <!-- evento principal: tipo de día -->
+          <div class="event-pill event-{{ tipo_mes }}">
+            <span class="event-icon">
+              {% if tipo_mes == 'fuerza' %}
+                <i class="bi bi-barbell"></i>
+              {% elif tipo_mes == 'pista' %}
+                <i class="bi bi-speedometer2"></i>
+              {% elif tipo_mes == 'bike' %}
+                <i class="bi bi-bicycle"></i>
+              {% elif tipo_mes == 'natacion' %}
+                <i class="bi bi-droplet"></i>
+              {% else %}
+                <i class="bi bi-moon-stars"></i>
+              {% endif %}
+            </span>
+            <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
+          </div>
+
+          <!-- estado puede entrenar -->
+          {% if plan_mes.puede_entrenar %}
+          <div class="event-pill event-state
+                      {% if plan_mes.puede_entrenar == 'no' %}event-state-no{% else %}event-state-ok{% endif %}">
+            <span class="event-text">
+              {% if plan_mes.puede_entrenar == 'no' %}No puede entrenar{% else %}OK para entrenar{% endif %}
+            </span>
+          </div>
+          {% endif %}
+
+          <!-- dificultad -->
+          {% if plan_mes.dificultad %}
+          <div class="event-pill event-diff event-diff-{{ plan_mes.dificultad }}">
+            <span class="event-text">
+              {% if plan_mes.dificultad == 'facil' %}Fácil
+              {% elif plan_mes.dificultad == 'media' %}Media
+              {% elif plan_mes.dificultad == 'dura' %}Dura
+              {% else %}No realicé{% endif %}
+            </span>
+          </div>
+          {% endif %}
+
+          <!-- comentario -->
+          {% if plan_mes.comentario_atleta %}
+          <div class="event-pill event-comment">
+            <span class="event-icon"><i class="bi bi-chat-dots"></i></span>
+            <span class="event-text">Comentario del atleta</span>
+          </div>
+          {% endif %}
+
+        {% else %}
+          <span class="plan-empty mt-2">Sin plan</span>
         {% endif %}
 
       </div>
       {% endfor %}
     </div>
+
   </div>
+</div>
 
-  <!-- ====================== -->
-  <!-- GRÁFICO PROGRESO -->
-  <!-- ====================== -->
-  <div id="boxGrafico" class="collapse">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3 perfil-card">
-      <h5 class="perfil-titulo">
-        <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
-      </h5>
-      <div style="height:220px;">
-        <canvas id="graficoProgreso"></canvas>
-      </div>
-    </div>
+<!-- ====================== -->
+<!-- COMENTARIOS (placeholder) -->
+<!-- ====================== -->
+<div id="boxComentarios" class="collapse">
+  <div class="card bg-black border-0 shadow-lg mb-4 p-4">
+    <h5 class="text-info mb-3">
+      <i class="bi bi-chat-left-text me-2"></i>Comentarios
+    </h5>
+    <p class="text-secondary">Próximamente aquí podrás ver un resumen de comentarios y feedback.</p>
   </div>
+</div>
 
-  <!-- ====================== -->
-  <!-- CALENDARIO MENSUAL -->
-  <!-- ====================== -->
-  <div id="boxMes" class="collapse">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3 perfil-card">
+<!-- ====================== -->
+<!-- BLOQUES / RUTINAS -->
+<!-- ====================== -->
+{% include "components/rutinas.html" %}
 
-      <h5 class="perfil-titulo text-info">
-        <i class="bi bi-calendar3-range me-2"></i>
-        Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
-      </h5>
-
-      <div class="calendar-grid">
-        {% for f in dias_mes %}
-        {% set plan_mes = planes_mes.get(f) %}
-        {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
-
-        <div class="calendar-day day-{{ tipo_mes }}
-             {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
-
-          <div class="date-number">
-            <span class="date-num">{{ f.day }}</span>
-            <span class="date-week">{{ f.strftime('%a')|upper }}</span>
-          </div>
-
-          {% if plan_mes %}
-            <div class="event-pill event-{{ tipo_mes }}">
-              <span class="event-type">{{ plan_mes.plan_type|capitalize }}</span>
-
-              {% if plan_mes.puede_entrenar == 'no' %}
-                <span class="event-flag text-danger ms-2">No apto</span>
-              {% elif plan_mes.puede_entrenar == 'si' %}
-                <span class="event-flag text-success ms-2">OK</span>
-              {% endif %}
-            </div>
-          {% else %}
-            <span class="text-secondary small mt-3">Sin plan</span>
-          {% endif %}
-
-        </div>
-        {% endfor %}
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ====================== -->
-  <!-- BLOQUES / RUTINAS -->
-  <!-- ====================== -->
-  {% include "components/rutinas.html" %}
-
-  <!-- ====================== -->
-  <!-- MODALES -->
-  <!-- ====================== -->
-  {% include "components/modales.html" %}
-
-</div>  {# cierre .perfil-container #}
+<!-- ====================== -->
+<!-- MODALES -->
+<!-- ====================== -->
+{% include "components/modales.html" %}
 
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- GRÁFICO FUNCIONAL -->
+<!-- GRÁFICO -->
 <script>
 const canvasProgreso = document.getElementById("graficoProgreso");
 if (canvasProgreso) {
@@ -188,41 +243,29 @@ if (canvasProgreso) {
 }
 </script>
 
-<!-- ===========================
-     TOGGLE FUNCIONAL UNIVERSAL
-=========================== -->
+<!-- TOGGLES -->
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+const boxGrafico      = document.getElementById("boxGrafico");
+const boxMes          = document.getElementById("boxMes");
+const boxComentarios  = document.getElementById("boxComentarios");
 
-  const btnGraf = document.querySelector("[data-toggle='grafico']");
-  const btnMes  = document.querySelector("[data-toggle='mes']");
-  const btnCom  = document.querySelector("[data-toggle='comentarios']");
+document.getElementById("btnToggleGrafico").onclick = () => {
+  boxGrafico.classList.toggle("show");
+  boxMes.classList.remove("show");
+  boxComentarios.classList.remove("show");
+};
 
-  const boxGraf = document.getElementById("boxGrafico");
-  const boxMes  = document.getElementById("boxMes");
-  const boxCom  = document.getElementById("boxComentarios"); // futuro
+document.getElementById("btnToggleMes").onclick = () => {
+  boxMes.classList.toggle("show");
+  boxGrafico.classList.remove("show");
+  boxComentarios.classList.remove("show");
+};
 
-  if (btnGraf && boxGraf) {
-    btnGraf.addEventListener("click", () => {
-      boxGraf.classList.toggle("show");
-      boxMes && boxMes.classList.remove("show");
-      boxCom && boxCom.classList.remove("show");
-      window.scrollTo({ top: boxGraf.offsetTop - 120, behavior: "smooth" });
-    });
-  }
-
-  if (btnMes && boxMes) {
-    btnMes.addEventListener("click", () => {
-      boxMes.classList.toggle("show");
-      boxGraf && boxGraf.classList.remove("show");
-      boxCom && boxCom.classList.remove("show");
-      window.scrollTo({ top: boxMes.offsetTop - 120, behavior: "smooth" });
-    });
-  }
-
-  // botón comentarios queda preparado para futuro
-
-});
+document.getElementById("btnToggleComentarios").onclick = () => {
+  boxComentarios.classList.toggle("show");
+  boxGrafico.classList.remove("show");
+  boxMes.classList.remove("show");
+};
 </script>
 
 {% endblock %}

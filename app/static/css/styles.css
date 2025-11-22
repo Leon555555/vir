@@ -15,7 +15,7 @@
   --card: #0b0f12;
 }
 
-/* CONTENEDOR CENTRAL */
+/* CONTENEDOR CENTRAL PERFIL */
 .perfil-container {
   max-width: 1100px;
   margin: 0 auto;
@@ -23,7 +23,7 @@
   padding: 0 10px;
 }
 
-/* HEADER */
+/* HEADER PERFIL */
 .perfil-logo {
   height: 70px;
   filter: drop-shadow(0 0 20px var(--cyan));
@@ -54,7 +54,7 @@
 }
 
 .perfil-titulo {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   color: #eafaff;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   padding-bottom: 10px;
@@ -117,7 +117,7 @@
 .day-natacion { border-left: 4px solid var(--blue); }
 .day-descanso { border-left: 4px solid var(--gray); }
 
-/* ESTADOS */
+/* ESTADOS EN TARJETA */
 .estado {
   margin-top: 12px;
   text-align: center;
@@ -139,7 +139,7 @@
   box-shadow: 0 0 10px rgba(34,197,94,0.4);
 }
 
-/* Mini estados */
+/* Mini estados, por si los usas */
 .estado-no-small,
 .estado-ok-small {
   font-size: 0.75rem;
@@ -149,7 +149,7 @@
 }
 
 /* ================================================== */
-/* CALENDARIO — Clean + Glow VR Training              */
+/* CALENDARIO — Clean + Glow VR Training / tipo CRM   */
 /* ================================================== */
 
 .calendar-grid {
@@ -159,12 +159,13 @@
   margin-top: 25px;
 }
 
+/* DÍA DEL CALENDARIO */
 .calendar-day {
   background: #0e1114;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
-  padding: 12px;
-  min-height: 125px;
+  padding: 10px;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
   transition: 0.25s ease;
@@ -176,22 +177,59 @@
   box-shadow: 0 0 18px var(--cyan-glow);
 }
 
-/* número del día */
+/* CABECERA DEL DÍA (NÚMERO + DÍA SEMANA) */
 .date-number {
-  text-align: right;
-  font-size: 0.88rem;
-  color: #b7c7d1;
-  margin-bottom: 8px;
-  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
 }
 
-/* tipo */
-.plan-type {
-  margin-top: 20px;
-  color: #e8f9ff;
-  font-weight: 600;
+.date-num {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e5f0ff;
 }
 
+.date-week {
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  color: #94a3b8;
+}
+
+/* PILLA DE EVENTO (tipo MyWellness) */
+.event-pill {
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(15,23,42,0.9);
+  border: 1px solid rgba(148,163,184,0.4);
+}
+
+/* Colores por tipo */
+.event-fuerza   { border-left: 4px solid var(--yellow); }
+.event-pista    { border-left: 4px solid var(--red); }
+.event-bike     { border-left: 4px solid var(--green); }
+.event-natacion { border-left: 4px solid var(--blue); }
+.event-descanso { border-left: 4px solid var(--gray); }
+
+.event-type {
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+.event-flag {
+  font-size: 0.7rem;
+}
+
+/* día sin entrenamiento especial */
 .plan-empty {
   margin-top: 20px;
   color: #566067;
@@ -203,7 +241,7 @@
   box-shadow: 0 0 18px rgba(239,68,68,0.45) !important;
 }
 
-/* BADGES */
+/* BADGES GENERALES */
 .badge-fuerza   { background: var(--yellow); color: #000; }
 .badge-pista    { background: var(--red); }
 .badge-bike     { background: var(--green); }

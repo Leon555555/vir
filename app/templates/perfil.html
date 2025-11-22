@@ -3,137 +3,145 @@
 
 {% block content %}
 
-<!-- ====================== -->
-<!-- HEADER DEL ATLETA -->
-<!-- ====================== -->
-<div class="text-center mb-4">
-  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-       style="height:70px;filter:drop-shadow(0 0 15px #22d3ee);">
-  <h2 class="fw-bold mt-2 text-light">{{ user.nombre }}</h2>
-  <div class="text-secondary">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
-</div>
+<div class="perfil-container">
 
-<!-- ====================== -->
-<!-- BOTONES TOGGLE -->
-<!-- ====================== -->
-<div class="text-center mb-4">
-  <button class="btn btn-outline-info me-2" data-toggle="grafico">
-    <i class="bi bi-graph-up"></i> Mostrar gráfico
-  </button>
-
-  <button class="btn btn-outline-info me-2" data-toggle="mes">
-    <i class="bi bi-calendar3"></i> Mostrar mes completo
-  </button>
-
-  <button class="btn btn-outline-info" data-toggle="comentarios">
-    <i class="bi bi-chat-dots"></i> Mostrar comentarios
-  </button>
-</div>
-
-<!-- ====================== -->
-<!-- SEMANA ACTUAL -->
-<!-- ====================== -->
-<div class="card bg-black border-0 shadow-lg mb-4 p-3">
-  <h5 class="text-light mb-3">
-    <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
-  </h5>
-
-  <div class="week-grid">
-    {% for f in fechas %}
-    {% set plan = planes[f] %}
-    {% set tipo = (plan.plan_type or 'descanso')|lower %}
-    {% set idx = loop.index %}
-
-    <div class="day-card day-{{ tipo }}"
-         data-bs-toggle="modal"
-         data-bs-target="#modal{{ idx }}"
-         style="cursor:pointer;">
-
-      <div class="d-flex justify-content-between mb-1">
-        <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
-        <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
-      </div>
-
-      <div class="small bg-dark rounded p-2 border border-secondary">
-        <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
-        <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
-        <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
-      </div>
-
-      {% if plan.puede_entrenar == 'no' %}
-      <div class="badge bg-danger w-100 mt-2">NO puede entrenar</div>
-      {% elif plan.puede_entrenar == 'si' %}
-      <div class="badge bg-success w-100 mt-2">OK para entrenar</div>
-      {% endif %}
-
-    </div>
-    {% endfor %}
+  <!-- ====================== -->
+  <!-- HEADER DEL ATLETA -->
+  <!-- ====================== -->
+  <div class="text-center mb-4">
+    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
+         class="perfil-logo">
+    <h2 class="perfil-nombre">{{ user.nombre }}</h2>
+    <div class="perfil-sub">{{ user.email }} • Grupo: {{ user.grupo or '—' }}</div>
   </div>
-</div>
 
-<!-- ====================== -->
-<!-- GRÁFICO PROGRESO -->
-<!-- ====================== -->
-<div id="boxGrafico" class="collapse">
-  <div class="card bg-black border-0 shadow-lg mb-4 p-3">
-    <h5 class="text-light mb-3">
-      <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
-    </h5>
-    <div style="height:220px;">
-      <canvas id="graficoProgreso"></canvas>
-    </div>
+  <!-- ====================== -->
+  <!-- BOTONES TOGGLE -->
+  <!-- ====================== -->
+  <div class="text-center mb-4">
+    <button class="btn btn-outline-info me-2" data-toggle="grafico">
+      <i class="bi bi-graph-up"></i> Mostrar gráfico
+    </button>
+
+    <button class="btn btn-outline-info me-2" data-toggle="mes">
+      <i class="bi bi-calendar3"></i> Mostrar mes completo
+    </button>
+
+    <button class="btn btn-outline-info" data-toggle="comentarios">
+      <i class="bi bi-chat-dots"></i> Mostrar comentarios
+    </button>
   </div>
-</div>
 
-<!-- ====================== -->
-<!-- CALENDARIO MENSUAL -->
-<!-- ====================== -->
-<div id="boxMes" class="collapse">
-  <div class="card bg-black border-0 shadow-lg mb-4 p-3">
-
-    <h5 class="text-info mb-3">
-      <i class="bi bi-calendar3-range me-2"></i>Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
+  <!-- ====================== -->
+  <!-- SEMANA ACTUAL -->
+  <!-- ====================== -->
+  <div class="card bg-black border-0 shadow-lg mb-4 p-3 perfil-card">
+    <h5 class="perfil-titulo">
+      <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
     </h5>
 
-    <div class="calendar-grid">
-      {% for f in dias_mes %}
-      {% set plan_mes = planes_mes.get(f) %}
-      {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
+    <div class="week-grid">
+      {% for f in fechas %}
+      {% set plan = planes[f] %}
+      {% set tipo = (plan.plan_type or 'descanso')|lower %}
+      {% set idx = loop.index %}
 
-      <div class="calendar-day day-{{ tipo_mes }}
-           {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
+      <div class="day-card day-{{ tipo }}"
+           data-bs-toggle="modal"
+           data-bs-target="#modal{{ idx }}">
 
-        <div class="date-number">{{ f.day }}</div>
+        <div class="d-flex justify-content-between mb-1">
+          <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
+          <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
+        </div>
 
-        {% if plan_mes %}
-        <div class="fw-bold small mt-4">{{ plan_mes.plan_type|capitalize }}</div>
+        <div class="small bg-dark rounded p-2 border border-secondary">
+          <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
+          <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
+          <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
+        </div>
 
-        {% if plan_mes.puede_entrenar == 'no' %}
-          <span class="badge bg-danger mt-1">No puede entrenar</span>
-        {% elif plan_mes.puede_entrenar == 'si' %}
-          <span class="badge bg-success mt-1">OK</span>
-        {% endif %}
-
-        {% else %}
-        <span class="text-secondary small mt-4">Sin plan</span>
+        {% if plan.puede_entrenar == 'no' %}
+          <div class="estado estado-no mt-2">NO puede entrenar</div>
+        {% elif plan.puede_entrenar == 'si' %}
+          <div class="estado estado-ok mt-2">OK para entrenar</div>
         {% endif %}
 
       </div>
       {% endfor %}
     </div>
-
   </div>
-</div>
 
-<!-- ====================== -->
-<!-- BLOQUES / RUTINAS -->
-<!-- ====================== -->
-{% include "components/rutinas.html" %}
+  <!-- ====================== -->
+  <!-- GRÁFICO PROGRESO -->
+  <!-- ====================== -->
+  <div id="boxGrafico" class="collapse">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3 perfil-card">
+      <h5 class="perfil-titulo">
+        <i class="bi bi-graph-up-arrow text-info me-2"></i>Propuesto vs Realizado
+      </h5>
+      <div style="height:220px;">
+        <canvas id="graficoProgreso"></canvas>
+      </div>
+    </div>
+  </div>
 
-<!-- ====================== -->
-<!-- MODALES -->
-<!-- ====================== -->
-{% include "components/modales.html" %}
+  <!-- ====================== -->
+  <!-- CALENDARIO MENSUAL -->
+  <!-- ====================== -->
+  <div id="boxMes" class="collapse">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3 perfil-card">
+
+      <h5 class="perfil-titulo text-info">
+        <i class="bi bi-calendar3-range me-2"></i>
+        Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
+      </h5>
+
+      <div class="calendar-grid">
+        {% for f in dias_mes %}
+        {% set plan_mes = planes_mes.get(f) %}
+        {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
+
+        <div class="calendar-day day-{{ tipo_mes }}
+             {% if plan_mes and plan_mes.puede_entrenar == 'no' %} dia-no-entrena{% endif %}">
+
+          <div class="date-number">
+            <span class="date-num">{{ f.day }}</span>
+            <span class="date-week">{{ f.strftime('%a')|upper }}</span>
+          </div>
+
+          {% if plan_mes %}
+            <div class="event-pill event-{{ tipo_mes }}">
+              <span class="event-type">{{ plan_mes.plan_type|capitalize }}</span>
+
+              {% if plan_mes.puede_entrenar == 'no' %}
+                <span class="event-flag text-danger ms-2">No apto</span>
+              {% elif plan_mes.puede_entrenar == 'si' %}
+                <span class="event-flag text-success ms-2">OK</span>
+              {% endif %}
+            </div>
+          {% else %}
+            <span class="text-secondary small mt-3">Sin plan</span>
+          {% endif %}
+
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ====================== -->
+  <!-- BLOQUES / RUTINAS -->
+  <!-- ====================== -->
+  {% include "components/rutinas.html" %}
+
+  <!-- ====================== -->
+  <!-- MODALES -->
+  <!-- ====================== -->
+  {% include "components/modales.html" %}
+
+</div>  {# cierre .perfil-container #}
 
 {% endblock %}
 
@@ -142,25 +150,42 @@
 
 <!-- GRÁFICO FUNCIONAL -->
 <script>
-new Chart(document.getElementById("graficoProgreso"), {
-  type: "line",
-  data: {
-    labels: {{ labels|tojson }},
-    datasets: [
-      { label: "Propuesto", data: {{ propuesto|tojson }},
-        borderColor: "#22d3ee", borderWidth: 2, tension: 0.4 },
-      { label: "Realizado", data: {{ realizado|tojson }},
-        borderColor: "#00bfff", borderWidth: 2, tension: 0.4 }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: "#ccc" } } },
-    scales: { x: { ticks: { color: "#aaa" }},
-              y: { ticks: { color: "#aaa" }, min: 0, max: 10 } }
-  }
-});
+const canvasProgreso = document.getElementById("graficoProgreso");
+if (canvasProgreso) {
+  new Chart(canvasProgreso, {
+    type: "line",
+    data: {
+      labels: {{ labels|tojson }},
+      datasets: [
+        {
+          label: "Propuesto",
+          data: {{ propuesto|tojson }},
+          borderColor: "#22d3ee",
+          borderWidth: 2,
+          tension: 0.4
+        },
+        {
+          label: "Realizado",
+          data: {{ realizado|tojson }},
+          borderColor: "#00bfff",
+          borderWidth: 2,
+          tension: 0.4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#ccc" } }
+      },
+      scales: {
+        x: { ticks: { color: "#aaa" } },
+        y: { ticks: { color: "#aaa" }, min: 0, max: 10 }
+      }
+    }
+  });
+}
 </script>
 
 <!-- ===========================
@@ -175,25 +200,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const boxGraf = document.getElementById("boxGrafico");
   const boxMes  = document.getElementById("boxMes");
-  const boxCom  = document.getElementById("boxComentarios");
+  const boxCom  = document.getElementById("boxComentarios"); // futuro
 
   if (btnGraf && boxGraf) {
     btnGraf.addEventListener("click", () => {
       boxGraf.classList.toggle("show");
-      boxMes.classList.remove("show");
-      if (boxCom) boxCom.classList.remove("show");
-      window.scrollTo({ top: boxGraf.offsetTop - 120, behavior: 'smooth' });
+      boxMes && boxMes.classList.remove("show");
+      boxCom && boxCom.classList.remove("show");
+      window.scrollTo({ top: boxGraf.offsetTop - 120, behavior: "smooth" });
     });
   }
 
   if (btnMes && boxMes) {
     btnMes.addEventListener("click", () => {
       boxMes.classList.toggle("show");
-      boxGraf.classList.remove("show");
-      if (boxCom) boxCom.classList.remove("show");
-      window.scrollTo({ top: boxMes.offsetTop - 120, behavior: 'smooth' });
+      boxGraf && boxGraf.classList.remove("show");
+      boxCom && boxCom.classList.remove("show");
+      window.scrollTo({ top: boxMes.offsetTop - 120, behavior: "smooth" });
     });
   }
+
+  // botón comentarios queda preparado para futuro
 
 });
 </script>

@@ -29,13 +29,11 @@
 /* ============================ */
 /*             LOGO             */
 /* ============================ */
-
 .perfil-logo {
-  height: 160px !important;     /* << CORREGIDO: no gigante */
-  max-height: 160px !important; 
+  height: 150px !important;
+  max-height: 150px !important;
   margin-bottom: 12px;
   filter: drop-shadow(0 0 18px var(--cyan));
-  border-radius: 6px;
   object-fit: contain;
 }
 
@@ -57,12 +55,10 @@
 /* ============================ */
 /*    BOTONES TOGGLE PRO        */
 /* ============================ */
-
 .btn-outline-info {
   border-color: var(--cyan);
   color: var(--cyan);
 }
-
 .btn-outline-info:hover {
   background: var(--cyan);
   color: #000;
@@ -83,11 +79,31 @@
 /* ============================ */
 /*        GRID SEMANAL          */
 /* ============================ */
-
+/* ⭐ Nuevo — 7 columnas fijas estilo MyWellness */
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(7, 1fr);
   gap: 22px;
+  width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .week-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .week-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .week-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Tarjeta del día */
@@ -101,18 +117,16 @@
   transition: .25s ease;
   cursor: pointer;
 }
-
 .day-card:hover {
   transform: translateY(-4px) scale(1.01);
   box-shadow: 0 0 25px var(--cyan-glow);
 }
-
 .day-card strong {
   font-size: 1rem;
   color: #eafaff;
 }
 
-/* colores laterales por tipo */
+/* Colores laterales */
 .day-fuerza   { border-left: 4px solid var(--yellow); }
 .day-pista    { border-left: 4px solid var(--red); }
 .day-bike     { border-left: 4px solid var(--green); }
@@ -122,7 +136,6 @@
 /* ============================ */
 /*        CALENDARIO PRO        */
 /* ============================ */
-
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -140,34 +153,20 @@
   color: #e2e9ee;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
 }
-
 .calendar-day:hover {
   transform: translateY(-4px);
   box-shadow: 0 0 22px var(--cyan-glow);
 }
 
-/* Cabecera del día */
-.cal-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
+.date-number {
+  text-align: right;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #b7c7d1;
 }
 
-.cal-day-num {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #d9ecf3;
-}
-
-.cal-weekday {
-  font-size: 0.8rem;
-  color: #92a4b0;
-}
-
-/* ESTILO EVENTOS (MyWellness style) */
-
+/* EVENTOS */
 .event-pill {
   background: rgba(255,255,255,0.05);
   border-left: 4px solid var(--cyan);
@@ -180,33 +179,18 @@
   gap: 6px;
 }
 
-.event-pill i {
-  opacity: 0.85;
-}
-
 .event-fuerza   { border-left-color: var(--yellow); }
 .event-pista    { border-left-color: var(--red); }
 .event-bike     { border-left-color: var(--green); }
 .event-natacion { border-left-color: var(--blue); }
 .event-descanso { border-left-color: var(--gray); }
 
-/* estado */
-.event-state-ok {
-  border-left-color: var(--green);
-}
-.event-state-no {
-  border-left-color: var(--red);
-}
+.event-state-ok { border-left-color: var(--green); }
+.event-state-no { border-left-color: var(--red); }
 
-/* dificultad */
 .event-diff-facil { border-left-color: #86efac; }
 .event-diff-media { border-left-color: #facc15; }
 .event-diff-dura  { border-left-color: #f87171; }
-
-/* comentario */
-.event-comment {
-  border-left-color: #999;
-}
 
 /* ============================ */
 /*           MODALES            */
@@ -222,9 +206,7 @@
 /* ============================ */
 /*        RESPONSIVE            */
 /* ============================ */
-
 @media (max-width: 768px) {
-  .week-grid { grid-template-columns: 1fr; }
   .calendar-grid { grid-template-columns: repeat(2, 1fr); }
   .perfil-logo { height: 120px !important; }
 }

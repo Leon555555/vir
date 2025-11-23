@@ -101,6 +101,14 @@
   box-shadow: 0 0 20px rgba(0,0,0,0.65);
 }
 
+.card-pro {
+  background: linear-gradient(150deg, #05070a, #090d12);
+  border-radius: 16px;
+  border: 1px solid var(--border-soft);
+  padding: 18px;
+  box-shadow: 0 0 18px rgba(0,0,0,0.7);
+}
+
 /* ===========================================
    GRID SEMANAL
 =========================================== */
@@ -243,37 +251,6 @@
 }
 
 /* ===========================================
-   RESPONSIVE
-=========================================== */
-
-@media (max-width: 992px) {
-  .week-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .calendar-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .perfil-logo {
-    height: 95px;
-  }
-}
-
-@media (max-width: 576px) {
-  .week-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .calendar-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .nav-vr-tabs .nav-link {
-    padding: 8px 12px;
-    font-size: 0.85rem;
-  }
-  .perfil-nombre {
-    font-size: 1.6rem;
-  }
-}
-/* ===========================================
    RUTINAS ULTRA PRO — MyWellness + VR Glow
 =========================================== */
 
@@ -378,4 +355,51 @@
   color: #6c7a88;
   font-weight: 700;
   opacity: 0.65;
+}
+
+/* Rutinas base (antiguas) */
+.rutina-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 0 12px var(--cyan-soft);
+}
+
+/* ===========================================
+   RESPONSIVE
+=========================================== */
+
+@media (max-width: 992px) {
+  .week-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .perfil-logo {
+    height: 95px;
+  }
+}
+
+@media (max-width: 768px) {
+  .rutina-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .week-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .rutina-grid {
+    grid-template-columns: 1fr;
+  }
+  .nav-vr-tabs .nav-link {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+  .perfil-nombre {
+    font-size: 1.6rem;
+  }
 }

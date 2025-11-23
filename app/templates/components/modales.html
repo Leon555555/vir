@@ -9,7 +9,7 @@
   {% if current_user.email == "admin@vir.app" %}
   <div class="modal fade" id="modal{{ idx }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content modal-pro border-info">
+      <div class="modal-content modal-pro">
 
         <div class="modal-header border-info">
           <h5 class="modal-title text-info fw-bold">
@@ -66,7 +66,7 @@
               </div>
             </div>
 
-            <button class="btn btn-glow w-100 mt-4">
+            <button class="btn btn-glow w-100 mt-4 btn btn-info">
               <i class="bi bi-save2 me-2"></i>Guardar cambios
             </button>
 
@@ -94,7 +94,7 @@
   {# =============================== #}
   <div class="modal fade" id="modal{{ idx }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content modal-pro border-info">
+      <div class="modal-content modal-pro">
 
         <div class="modal-header border-info">
           <h5 class="modal-title text-info fw-bold">
@@ -144,7 +144,7 @@
                       class="form-control bg-black text-light border-info mb-3"
                       rows="3">{{ plan.comentario_atleta or '' }}</textarea>
 
-            <button class="btn btn-glow w-100 mt-2">
+            <button class="btn btn-glow w-100 mt-2 btn btn-info">
               <i class="bi bi-save2 me-2"></i>Guardar feedback
             </button>
 
@@ -157,12 +157,3 @@
 
   {% endif %}
 {% endfor %}
-
-<style>
-.modal-pro {
-  background: #0a0f14 !important;
-  border-radius: 14px;
-  box-shadow: 0 0 30px rgba(34,211,238,0.4);
-  color: white;
-}
-</style>

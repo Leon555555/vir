@@ -2,7 +2,6 @@
 {% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -83,7 +82,6 @@
           {% elif plan.puede_entrenar == 'si' %}
             <div class="badge bg-success w-100 mt-2">OK para entrenar</div>
           {% endif %}
-
         </div>
         {% endfor %}
       </div>
@@ -107,14 +105,12 @@
         {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
 
         <div class="calendar-day day-{{ tipo_mes }}">
-          <!-- cabecera día -->
           <div class="cal-header">
             <span class="cal-day-num">{{ f.day }}</span>
             <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
           </div>
 
           {% if plan_mes %}
-            <!-- tipo de día -->
             <div class="event-pill event-{{ tipo_mes }}">
               <span class="event-icon">
                 {% if tipo_mes == 'fuerza' %}
@@ -132,52 +128,42 @@
               <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
             </div>
 
-            <!-- estado puede entrenar -->
             {% if plan_mes.puede_entrenar %}
-            <div class="event-pill event-state
-                        {% if plan_mes.puede_entrenar == 'no' %}event-state-no{% else %}event-state-ok{% endif %}">
+            <div class="event-pill {% if plan_mes.puede_entrenar=='no' %}event-state-no{% else %}event-state-ok{% endif %}">
               <span class="event-text">
-                {% if plan_mes.puede_entrenar == 'no' %}
-                  No puede entrenar
-                {% else %}
-                  OK para entrenar
-                {% endif %}
+                {% if plan_mes.puede_entrenar == 'no' %}No puede entrenar{% else %}OK para entrenar{% endif %}
               </span>
             </div>
             {% endif %}
 
-            <!-- dificultad -->
             {% if plan_mes.dificultad %}
             <div class="event-pill event-diff event-diff-{{ plan_mes.dificultad }}">
               <span class="event-text">
                 {% if plan_mes.dificultad == 'facil' %}Fácil
                 {% elif plan_mes.dificultad == 'media' %}Media
                 {% elif plan_mes.dificultad == 'dura' %}Dura
-                {% else %}No realicé{% endif %}
+                {% endif %}
               </span>
             </div>
             {% endif %}
 
-            <!-- comentario -->
             {% if plan_mes.comentario_atleta %}
             <div class="event-pill event-comment">
               <span class="event-icon"><i class="bi bi-chat-dots"></i></span>
               <span class="event-text">Comentario del atleta</span>
             </div>
             {% endif %}
-
           {% else %}
             <span class="plan-empty mt-2">Sin plan</span>
           {% endif %}
         </div>
         {% endfor %}
       </div>
-
     </div>
   </section>
 
   <!-- ====================== -->
-  <!-- TAB: PROGRESO (GRÁFICO) -->
+  <!-- TAB: PROGRESO -->
   <!-- ====================== -->
   <section id="tab-progreso" class="vr-tab">
     <div class="card bg-black border-0 shadow-lg mb-4 p-3">
@@ -199,107 +185,46 @@
       <h5 class="text-info mb-3">
         <i class="bi bi-chat-left-text me-2"></i>Comentarios
       </h5>
-      <p class="text-secondary">
-        Próximamente aquí podrás ver un resumen de comentarios y feedback del atleta.
-      </p>
+      <p class="text-secondary">Próximamente aquí podrás ver feedback.</p>
     </div>
   </section>
 
   <!-- ====================== -->
-  <!-- RUTINAS (siempre abajo) -->
+  <!-- RUTINAS -->
   <!-- ====================== -->
   {% include "components/rutinas.html" %}
 
-</div>  {# cierre .perfil-container #}
+</div>
 
-<!-- ====================== -->
-<!-- MODALES -->
-<!-- ====================== -->
 {% include "components/modales.html" %}
 
 {% endblock %}
 
 {% block extra_js %}
-
 <script>
-// =================== GRAFICO PROGRESO ===================
-const canvasProgreso = document.getElementById("graficoProgreso");
-if (canvasProgreso) {
-  new Chart(canvasProgreso, {
-    type: "line",
-    data: {
-      labels: {{ labels|tojson }},
-      datasets: [
-        {
-          label: "Propuesto",
-          data: {{ propuesto|tojson }},
-          borderColor: "#22d3ee",
-          borderWidth: 2,
-          tension: 0.4
-        },
-        {
-          label: "Realizado",
-          data: {{ realizado|tojson }},
-          borderColor: "#00bfff",
-          borderWidth: 2,
-          tension: 0.4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: "#ccc" } }
-      },
-      scales: {
-        x: { ticks: { color: "#aaa" } },
-        y: { ticks: { color: "#aaa" }, min: 0, max: 10 }
-      }
-    }
-  });
-}
-
-// =================== TABS VR TRAINING ===================
 document.addEventListener("DOMContentLoaded", function () {
   const tabs = document.querySelectorAll(".nav-vr-tabs .nav-link");
   const sections = {
     semana: document.getElementById("tab-semana"),
     calendario: document.getElementById("tab-calendario"),
     progreso: document.getElementById("tab-progreso"),
-    comentarios: document.getElementById("tab-comentarios"),
+    comentarios: document.getElementById("tab-comentarios")
   };
 
   function activateTab(name) {
-    // botones
-    tabs.forEach(btn => {
-      if (btn.dataset.tab === name) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
-    });
-    // secciones
-    Object.entries(sections).forEach(([key, sec]) => {
-      if (!sec) return;
-      if (key === name) {
-        sec.classList.add("active");
-      } else {
-        sec.classList.remove("active");
-      }
-    });
+    tabs.forEach(btn =>
+      btn.classList.toggle("active", btn.dataset.tab === name)
+    );
+    Object.entries(sections).forEach(([key, sec]) =>
+      sec.classList.toggle("active", key === name)
+    );
   }
 
-  tabs.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const name = btn.dataset.tab;
-      activateTab(name);
-    });
-  });
+  tabs.forEach(btn =>
+    btn.addEventListener("click", () => activateTab(btn.dataset.tab))
+  );
 
-  // Tab por defecto: semana
   activateTab("semana");
 });
 </script>
-
 {% endblock %}

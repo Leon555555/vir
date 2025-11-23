@@ -23,7 +23,6 @@
       flex-direction: column;
     }
 
-    /* NAVBAR */
     header.navbar {
       background-color: rgba(0, 0, 0, 0.7);
       border-bottom: 1px solid #22d3ee;
@@ -47,18 +46,14 @@
     }
   </style>
 
-  <!-- 🎨 CSS extra (perfil.css, styles.css, etc.) -->
-  <!-- IMPORTANTE: este es el archivo correcto -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}">
+  <!-- 🎨 CSS global cargado una sola vez + rompemos cache -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}?v=6">
 
   {% block extra_css %}{% endblock %}
 </head>
 
 <body>
 
-<!-- ============================== -->
-<!-- NAVBAR -->
-<!-- ============================== -->
 <header class="navbar">
   <div class="brand-wrap d-flex align-items-center gap-2">
     <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" style="height:48px">
@@ -79,11 +74,7 @@
 </header>
 
 
-<!-- ============================== -->
-<!-- CONTENIDO -->
-<!-- ============================== -->
 <main class="container py-4">
-
   {% with msgs = get_flashed_messages(with_categories=true) %}
     {% if msgs %}
       {% for cat, msg in msgs %}
@@ -95,18 +86,10 @@
   {% block content %}{% endblock %}
 </main>
 
-
-<!-- ============================== -->
-<!-- SCRIPTS GLOBALES -->
-<!-- ============================== -->
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- Arrastrar / Soltar global -->
 <script src="{{ url_for('static', filename='dragdrop.js') }}"></script>
-
-<!-- JS global de la app -->
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 
 {% block extra_js %}{% endblock %}

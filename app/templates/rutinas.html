@@ -1,36 +1,64 @@
-{% extends "layout.html" %}
-{% block title %}Biblioteca de Rutinas{% endblock %}
-{% block content %}
+{# ==========================================
+   PARTIAL: FORMULARIO RUTINAS BASE (ADMIN)
+   Reutilizado dentro de components/rutinas.html
+========================================== #}
 
-<div class="container mt-4">
-  <h3 class="text-light mb-4">📚 Biblioteca de Rutinas</h3>
+<div class="mb-3">
+  {% if current_user.email == 'admin@vir.app' %}
+  <form action="{{ url_for('main.crear_rutina') }}" method="POST" class="mb-3">
+    <div class="mb-1 text-secondary small">Crear nueva rutina base</div>
 
-  {% if rutinas %}
-  <div class="row">
-    {% for r in rutinas %}
-    <div class="col-md-4 mb-3">
-      <div class="card bg-dark text-light h-100 shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title">{{ r.nombre }}</h5>
-          <p class="card-text small">{{ r.descripcion or "Sin descripción" }}</p>
-
-          {% if r.items %}
-          <ul class="small">
-            {% for it in r.items %}
-            <li>{{ it.nombre }} {% if it.reps %}— {{ it.reps }}{% endif %}</li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <p class="text-secondary small">Sin ejercicios cargados.</p>
-          {% endif %}
-        </div>
-      </div>
+    <div class="mb-2">
+      <input type="text" name="nombre"
+             class="form-control form-control-sm"
+             placeholder="Nombre de la rutina" required>
     </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="alert alert-secondary">No hay rutinas disponibles.</div>
+
+    <div class="mb-2">
+      <select name="tipo" class="form-select form-select-sm">
+        <option value="fuerza">Fuerza</option>
+        <option value="pista">Pista / Running</option>
+        <option value="bike">Bike</option>
+        <option value="natacion">Natación</option>
+      </select>
+    </div>
+
+    <div class="mb-2">
+      <textarea name="descripcion" rows="3"
+                class="form-control form-control-sm"
+                placeholder="Descripción / Bloque principal"></textarea>
+    </div>
+
+    <button class="btn btn-sm btn-glow w-100" type="submit">
+      <i class="bi bi-plus-circle me-1"></i>Guardar rutina
+    </button>
+  </form>
   {% endif %}
 </div>
 
-{% endblock %}
+{% if rutinas %}
+<div class="list-group small">
+  {% for r in rutinas %}
+  <div class="list-group-item bg-black text-light border-secondary mb-1 d-flex justify-content-between align-items-center">
+    <div>
+      <strong>{{ r.nombre }}</strong>
+      <span class="badge bg-info text-dark ms-2">{{ r.tipo|upper }}</span>
+
+      {% if r.descripcion %}
+        <div class="rutina-list-desc mt-1">
+          {{ r.descripcion[:140] }}{% if r.descripcion|length > 140 %}...{% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    {% if current_user.email == 'admin@vir.app' %}
+    <span class="badge bg-danger-subtle text-danger border border-danger small">
+      ID: {{ r.id }}
+    </span>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+  <div class="text-secondary small">No hay rutinas creadas aún.</div>
+{% endif %}

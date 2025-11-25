@@ -251,11 +251,36 @@
 }
 
 /* ===========================================
+   BOTÓN GLOW (usado en creación de rutinas)
+=========================================== */
+
+.btn-glow {
+  background: var(--cyan);
+  color: #000;
+  font-weight: 600;
+  border-radius: 999px;
+  border: none;
+  box-shadow: 0 0 10px var(--cyan-soft);
+  transition: 0.2s ease;
+}
+
+.btn-glow:hover {
+  background: #5ee7ff;
+  color: #000;
+  box-shadow: 0 0 16px var(--cyan-glow);
+}
+
+/* ===========================================
    RUTINAS ULTRA PRO — MyWellness + VR Glow
 =========================================== */
 
 .rutina-container {
   margin-top: 40px;
+}
+
+.rutina-empty {
+  color: #9ca3af;
+  font-size: 0.9rem;
 }
 
 .sesion-header {
@@ -357,10 +382,17 @@
   opacity: 0.65;
 }
 
-/* Rutinas base (antiguas) */
+/* Rutinas base (listado antiguo) */
+
 .rutina-item:hover {
   transform: translateX(4px);
   box-shadow: 0 0 12px var(--cyan-soft);
+}
+
+.rutina-list-desc {
+  white-space: pre-line;
+  font-size: 0.8rem;
+  color: #9ca3af;
 }
 
 /* ===========================================

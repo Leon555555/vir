@@ -1,6 +1,6 @@
 {# ========================================== #}
 {#  RUTINAS ULTRA PRO — VR TRAINING 2025      #}
-{#  Programa por sesiones + listado antiguo   #}
+{#  Programa por sesiones + rutinas base      #}
 {# ========================================== #}
 
 <div class="rutina-container">
@@ -9,9 +9,13 @@
     <i class="bi bi-list-nested me-2"></i>Programa de entrenamiento
   </h4>
 
-  {# ============================ #}
-  {# PROGRAMA TIPO MYWELLNESS    #}
-  {# ============================ #}
+  {# ==================================== #}
+  {# 1) PROGRAMA TIPO MYWELLNESS (sesiones)
+      sesiones_programa = [
+        { numero: 1, ejercicios: [ {nombre, imagen, ...}, ...] },
+        ...
+      ]
+  #}
   {% if sesiones_programa is defined and sesiones_programa and sesiones_programa|length > 0 %}
 
     {% for sesion in sesiones_programa %}
@@ -42,7 +46,10 @@
 
             <div class="ej-detalles">
               {% if ej.series and ej.reps %}
-                <div><strong>{{ ej.series }} x {{ ej.reps }}</strong>{% if ej.tiempo %} — {{ ej.tiempo }}{% endif %}</div>
+                <div>
+                  <strong>{{ ej.series }} x {{ ej.reps }}</strong>
+                  {% if ej.tiempo %} — {{ ej.tiempo }}{% endif %}
+                </div>
               {% elif ej.tiempo %}
                 <div>Duración: <strong>{{ ej.tiempo }}</strong></div>
               {% endif %}
@@ -68,24 +75,78 @@
     </div>
     {% endfor %}
 
+  {# ==================================== #}
+  {# 2) SIN sesiones_programa, PERO HAY RUTINAS
+        → mostramos las rutinas creadas como
+          "tarjetas MyWellness" en una sesión única
+  #}
+  {% elif rutinas is defined and rutinas and rutinas|length > 0 %}
+
+    <div class="rutina-sesion mb-4">
+      <div class="sesion-header">
+        <h5 class="sesion-titulo">Sesión 1 — Rutinas base</h5>
+      </div>
+
+      <div class="rutina-grid">
+        {% for r in rutinas %}
+        <div class="ej-card">
+          <!-- Imagen placeholder genérica (a futuro podrás mapear por tipo) -->
+          <div class="ej-img">
+            <img src="{{ url_for('static', filename='img/placeholder_exercise.png') }}"
+                 alt="{{ r.nombre }}">
+          </div>
+
+          <div class="ej-info">
+            <span class="ej-categoria">{{ r.tipo|capitalize if r.tipo else 'Actividad' }}</span>
+            <h6 class="ej-nombre">{{ r.nombre }}</h6>
+
+            {% if r.descripcion %}
+            <div class="ej-detalles">
+              <div>{{ r.descripcion[:140] }}{% if r.descripcion|length > 140 %}...{% endif %}</div>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="ej-num">
+            {{ "%02d"|format(loop.index) }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  {# ==================================== #}
+  {# 3) NO HAY NADA TODAVÍA                   #}
+  {# ==================================== #}
   {% else %}
-    <p class="text-secondary mb-4">
+    <p class="rutina-empty mb-4">
       Aún no se cargó un programa de entrenamiento para este atleta.
     </p>
   {% endif %}
 
   {# ======================================== #}
-  {# BLOQUE ANTIGUO: RUTINAS DISPONIBLES     #}
-  {# (solo admin, para drag&drop en el plan) #}
+  {# 4) ZONA ADMIN: RUTINAS BASE + DRAG/DROP #}
   {# ======================================== #}
-  {% if current_user.email == "admin@vir.app" and rutinas %}
+  {% if current_user.email == "admin@vir.app" %}
+
   <div class="card card-pro mt-4">
     <h5 class="text-info mb-3">
-      <i class="bi bi-collection me-2"></i>Rutinas base disponibles
+      <i class="bi bi-sliders me-2"></i>Gestionar rutinas base
     </h5>
 
-    <div class="d-flex flex-column gap-2">
+    {# Formulario de creación reutiliza el partial #}
+    {% include "partials/rutinas.html" %}
 
+    {# Si quieres conservar el bloque drag & drop antiguo,
+       lo dejamos aquí, usando la lista de rutinas #}
+    {% if rutinas %}
+    <hr class="border-secondary">
+
+    <h6 class="text-light mb-2">
+      <i class="bi bi-lightning-charge me-1"></i>Arrastrar como bloques (modo avanzado)
+    </h6>
+
+    <div class="d-flex flex-column gap-2">
       {% for r in rutinas %}
       <div class="p-3 bg-black border border-secondary rounded rutina-item"
            draggable="true"
@@ -98,6 +159,7 @@
       </div>
       {% endfor %}
     </div>
+    {% endif %}
   </div>
   {% endif %}
 

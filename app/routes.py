@@ -485,6 +485,37 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
 
 # =============================================================
+# PARCHE: CREAR COLUMNA ejercicio_id EN rutina_item
+# =============================================================
+@main_bp.route("/fix-ejercicio-columna")
+@login_required
+def fix_ejercicio_columna():
+    # Solo el admin puede ejecutar este parche
+    if current_user.email != "admin@vir.app":
+        return "Acceso denegado", 403
+
+    try:
+        # Crear columna ejercicio_id
+        db.session.execute(text("""
+            ALTER TABLE rutina_item
+            ADD COLUMN ejercicio_id INTEGER;
+        """))
+
+        # Crear la foreign key
+        db.session.execute(text("""
+            ALTER TABLE rutina_item
+            ADD CONSTRAINT rutina_item_ejercicio_id_fkey
+            FOREIGN KEY (ejercicio_id) REFERENCES ejercicio(id);
+        """))
+
+        db.session.commit()
+        return "COLUMNA CREADA ✔ YA ESTÁ SOLUCIONADO", 200
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR aplicando parche: {e}", 500
+
+
+# =============================================================
 # HEALTHCHECK
 # =============================================================
 @main_bp.route("/healthz")

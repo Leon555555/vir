@@ -10,7 +10,6 @@ from flask import (
     flash, request, jsonify, current_app
 )
 from flask_login import login_user, logout_user, login_required, current_user
-from sqlalchemy.exc import InternalError
 from sqlalchemy import text
 
 from werkzeug.utils import secure_filename
@@ -88,9 +87,9 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
         "finisher": p.finisher or "",
         "propuesto_score": p.propuesto_score or 0,
         "realizado_score": p.realizado_score or 0,
-        "puede_entrenar": p.puede_entrenar or "",
-        "dificultad": p.dificultad or "",
-        "comentario_atleta": p.comentario_atleta or "",
+        "puede_entrenar": getattr(p, "puede_entrenar", "") or "",
+        "dificultad": getattr(p, "dificultad", "") or "",
+        "comentario_atleta": getattr(p, "comentario_atleta", "") or "",
     }
 
 
@@ -495,21 +494,31 @@ def fix_ejercicio_columna():
         return "Acceso denegado", 403
 
     try:
-        # Crear columna ejercicio_id
+        # Crear columna ejercicio_id si no existe
         db.session.execute(text("""
             ALTER TABLE rutina_item
-            ADD COLUMN ejercicio_id INTEGER;
+            ADD COLUMN IF NOT EXISTS ejercicio_id INTEGER;
         """))
 
-        # Crear la foreign key
+        # Crear la foreign key solo si no existe
         db.session.execute(text("""
-            ALTER TABLE rutina_item
-            ADD CONSTRAINT rutina_item_ejercicio_id_fkey
-            FOREIGN KEY (ejercicio_id) REFERENCES ejercicio(id);
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.constraint_column_usage
+                WHERE table_name = 'rutina_item'
+                  AND constraint_name = 'rutina_item_ejercicio_id_fkey'
+            ) THEN
+                ALTER TABLE rutina_item
+                ADD CONSTRAINT rutina_item_ejercicio_id_fkey
+                FOREIGN KEY (ejercicio_id) REFERENCES ejercicio(id);
+            END IF;
+        END$$;
         """))
 
         db.session.commit()
-        return "COLUMNA CREADA ✔ YA ESTÁ SOLUCIONADO", 200
+        return "COLUMNA/FOREIGN KEY OK ✔", 200
     except Exception as e:
         db.session.rollback()
         return f"ERROR aplicando parche: {e}", 500

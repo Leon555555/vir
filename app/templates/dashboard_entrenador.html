@@ -9,6 +9,7 @@
   <h2 class="fw-bold mt-2 text-danger">Panel del Entrenador</h2>
 </div>
 
+<!-- ===================== ATLETAS ======================= -->
 <div class="card bg-dark border-0 shadow-lg mb-5 p-4">
   <h4 class="text-light mb-4">
     <i class="bi bi-people-fill text-danger me-2"></i>Atletas registrados
@@ -44,6 +45,7 @@
   </div>
 </div>
 
+<!-- ===================== RUTINAS ======================= -->
 <div class="card bg-dark border-0 shadow-lg mb-4 p-4">
   <h4 class="text-light mb-3">
     <i class="bi bi-list-task text-danger me-2"></i>Rutinas disponibles
@@ -95,6 +97,74 @@
 
 </div>
 
+<!-- ===================== BANCO DE EJERCICIOS ======================= -->
+<div class="card bg-dark border-0 shadow-lg mb-5 p-4">
+  <h4 class="text-light mb-3">
+    <i class="bi bi-collection-play text-danger me-2"></i>Banco de ejercicios (vídeo)
+  </h4>
+
+  <!-- Form para subir un nuevo ejercicio -->
+  <form action="{{ url_for('main.admin_nuevo_ejercicio') }}"
+        method="POST" enctype="multipart/form-data"
+        class="row g-2 align-items-end mb-4">
+
+    <div class="col-md-3">
+      <label class="form-label text-light small mb-1">Nombre del ejercicio</label>
+      <input name="nombre" class="form-control" placeholder="Sentadillas, Push up…" required>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label text-light small mb-1">Categoría</label>
+      <select name="categoria" class="form-select">
+        <option value="">—</option>
+        <option value="fuerza">Fuerza</option>
+        <option value="core">Core</option>
+        <option value="movilidad">Movilidad</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label text-light small mb-1">Descripción (opcional)</label>
+      <input name="descripcion" class="form-control" placeholder="Ej: sentadilla profunda, tempo 3-1-1…">
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label text-light small mb-1">Vídeo (mp4, mov…)</label>
+      <input type="file" name="video" class="form-control" accept="video/*" required>
+    </div>
+
+    <div class="col-12 col-md-3 mt-3">
+      <button class="btn btn-outline-info w-100">
+        <i class="bi bi-upload me-1"></i> Subir ejercicio
+      </button>
+    </div>
+  </form>
+
+  <!-- Listado de ejercicios del banco -->
+  <div class="row g-3">
+    {% for e in ejercicios %}
+    <div class="col-md-3">
+      <div class="exercise-card p-2 rounded">
+        <div class="small text-light fw-semibold mb-1">
+          {{ e.nombre }}
+        </div>
+        {% if e.categoria %}
+        <span class="badge bg-secondary small mb-1">{{ e.categoria }}</span>
+        {% endif %}
+        <video
+          src="{{ url_for('static', filename='videos_ejercicios/' ~ e.video_filename) }}"
+          class="w-100 mt-1 rounded"
+          muted
+          loop
+          onmouseenter="this.play()"
+          onmouseleave="this.pause(); this.currentTime=0;">
+        </video>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
 <style>
 .athlete-card {
   background: #0e0e0e;
@@ -114,6 +184,17 @@
 .routine-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 0 12px rgba(34,211,238,0.3);
+}
+
+.exercise-card {
+  background: #050505;
+  border: 1px solid rgba(148,163,184,0.35);
+  cursor: default;
+  transition: .2s ease;
+}
+.exercise-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 10px rgba(59,130,246,0.35);
 }
 </style>
 

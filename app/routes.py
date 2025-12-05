@@ -7,13 +7,16 @@ from typing import Any, Dict, List
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    flash, request, jsonify
+    flash, request, jsonify, current_app
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import InternalError
 from sqlalchemy import text
 
-from app.models import User, DiaPlan, Rutina
+from werkzeug.utils import secure_filename
+import os
+
+from app.models import User, DiaPlan, Rutina, Ejercicio
 from app.extensions import db
 
 
@@ -284,6 +287,7 @@ def dashboard_entrenador():
 
     atletas_db = User.query.filter(User.email != "admin@vir.app").all()
     rutinas_db = Rutina.query.order_by(Rutina.id.desc()).all()
+    ejercicios_db = Ejercicio.query.order_by(Ejercicio.nombre).all()
 
     atletas = [serialize_user(a) for a in atletas_db]
     rutinas = [serialize_rutina(r) for r in rutinas_db]
@@ -293,6 +297,7 @@ def dashboard_entrenador():
         "dashboard_entrenador.html",
         atletas=atletas,
         rutinas=rutinas,
+        ejercicios=ejercicios_db,
         hoy=hoy
     )
 
@@ -355,9 +360,53 @@ def crear_rutina():
 
 
 # =============================================================
+# CREAR EJERCICIO DEL BANCO (CON VIDEO)
+# =============================================================
+@main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
+@login_required
+def admin_nuevo_ejercicio():
+
+    if current_user.email != "admin@vir.app":
+        flash("Solo el admin puede crear ejercicios", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    nombre = request.form.get("nombre", "").strip()
+    categoria = request.form.get("categoria", "").strip()
+    descripcion = request.form.get("descripcion", "").strip()
+    file = request.files.get("video")
+
+    if not nombre or not file:
+        flash("Falta el nombre o el vídeo del ejercicio", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    filename = secure_filename(file.filename)
+    if not filename:
+        flash("Nombre de archivo no válido", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    upload_folder = os.path.join(current_app.static_folder, "videos_ejercicios")
+    os.makedirs(upload_folder, exist_ok=True)
+
+    save_path = os.path.join(upload_folder, filename)
+    file.save(save_path)
+
+    ejercicio = Ejercicio(
+        nombre=nombre,
+        categoria=categoria,
+        descripcion=descripcion,
+        video_filename=filename
+    )
+
+    db.session.add(ejercicio)
+    db.session.commit()
+
+    flash("Ejercicio subido al banco correctamente", "success")
+    return redirect(url_for("main.dashboard_entrenador"))
+
+
+# =============================================================
 # HEALTHCHECK
 # =============================================================
 @main_bp.route("/healthz")
 def healthz():
     return jsonify({"status": "ok", "time": datetime.utcnow().isoformat()})
-

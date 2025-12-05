@@ -6,7 +6,7 @@ from app.extensions import db
 # ===================================
 # 👤 Modelo de usuario
 # ===================================
-class User(db.Model, UserMixin):  # ✅ Agregado UserMixin
+class User(db.Model, UserMixin):  # ✅ UserMixin para flask-login
     __tablename__ = "user"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -32,21 +32,57 @@ class Rutina(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(200), nullable=False)
     descripcion = db.Column(db.Text)
-    tipo = db.Column(db.String(100), default="General")  # Nueva columna
+    tipo = db.Column(db.String(100), default="General")  # fuerza, pista, bike, etc.
     created_by = db.Column(db.Integer, db.ForeignKey("user.id"))
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
 
-    items = db.relationship("RutinaItem", backref="rutina", cascade="all, delete-orphan")
+    items = db.relationship(
+        "RutinaItem",
+        backref="rutina",
+        cascade="all, delete-orphan",
+        order_by="RutinaItem.id"
+    )
 
 
 # ===================================
-# 🏋️‍♀️ Modelo de Ejercicio (RutinaItem)
+# 🎥 Banco de Ejercicios
+# ===================================
+class Ejercicio(db.Model):
+    __tablename__ = "ejercicio"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(200), nullable=False)
+    categoria = db.Column(db.String(50))  # fuerza, core, movilidad, etc.
+    descripcion = db.Column(db.Text)
+
+    # Nombre del archivo de vídeo guardado en /static/videos_ejercicios
+    video_filename = db.Column(db.String(255), nullable=False)
+
+    # Opcional: miniatura (si algún día la generas)
+    imagen_filename = db.Column(db.String(255))
+
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Items de rutina que usan este ejercicio
+    rutina_items = db.relationship(
+        "RutinaItem",
+        back_populates="ejercicio"
+    )
+
+
+# ===================================
+# 🏋️‍♀️ Ejercicio dentro de una Rutina (RutinaItem)
 # ===================================
 class RutinaItem(db.Model):
     __tablename__ = "rutina_item"
 
     id = db.Column(db.Integer, primary_key=True)
     rutina_id = db.Column(db.Integer, db.ForeignKey("rutina.id"), nullable=False)
+
+    # 🔗 Opción de enlazar con un ejercicio del banco
+    ejercicio_id = db.Column(db.Integer, db.ForeignKey("ejercicio.id"))
+
+    # Campos que ya tenías (los dejamos por compatibilidad)
     nombre = db.Column(db.String(200), nullable=False)
     series = db.Column(db.String(50))
     reps = db.Column(db.String(50))
@@ -54,6 +90,12 @@ class RutinaItem(db.Model):
     imagen_url = db.Column(db.String(255))
     video_url = db.Column(db.String(255))
     nota = db.Column(db.Text)
+
+    # Relación con Ejercicio (banco)
+    ejercicio = db.relationship(
+        "Ejercicio",
+        back_populates="rutina_items"
+    )
 
 
 # ===================================
@@ -71,5 +113,10 @@ class DiaPlan(db.Model):
     finisher = db.Column(db.Text)
     propuesto_score = db.Column(db.Integer, default=0)
     realizado_score = db.Column(db.Integer, default=0)
+
+    # Estos campos los usas en routes.serialize_plan
+    puede_entrenar = db.Column(db.String(50))
+    dificultad = db.Column(db.String(50))
+    comentario_atleta = db.Column(db.Text)
 
     user = db.relationship("User", backref="dias", lazy=True)

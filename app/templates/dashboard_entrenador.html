@@ -1,202 +1,122 @@
 {% extends "layout.html" %}
-{% block title %}Dashboard Entrenador — VR Training{% endblock %}
+{% block title %}Dashboard Entrenador{% endblock %}
 
 {% block content %}
+<div class="container-fluid mt-4">
+  <h2 class="mb-3">🏋️ Panel del entrenador — {{ current_user.nombre }}</h2>
 
-<div class="text-center mb-4">
-  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-       style="height:70px; filter:drop-shadow(0 0 18px #ef4444);">
-  <h2 class="fw-bold mt-2 text-danger">Panel del Entrenador</h2>
-</div>
-
-<!-- ===================== ATLETAS ======================= -->
-<div class="card bg-dark border-0 shadow-lg mb-5 p-4">
-  <h4 class="text-light mb-4">
-    <i class="bi bi-people-fill text-danger me-2"></i>Atletas registrados
-  </h4>
-
-  <div class="row g-4">
-    {% for a in atletas %}
-    <div class="col-md-4">
-      <div class="athlete-card p-3 rounded shadow-sm">
-        <h5 class="text-light mb-1">{{ a["nombre"] }}</h5>
-        <div class="text-secondary small mb-2">{{ a["email"] }}</div>
-
-        <div class="d-flex justify-content-between mt-3">
-          <a href="{{ url_for('main.perfil_usuario', user_id=a['id']) }}"
-             class="btn btn-outline-info btn-sm w-50 me-2">
-            <i class="bi bi-eye me-1"></i> Ver perfil
-          </a>
-
-          <form action="{{ url_for('main.admin_delete_user', user_id=a['id']) }}"
-                method="POST" class="w-50"
-                onsubmit="return confirm('¿Eliminar a {{ a['nombre'] }}?');">
-            <button class="btn btn-danger btn-sm w-100">
-              <i class="bi bi-trash"></i>
-            </button>
+  <!-- ================== RUTINAS ================== -->
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="card bg-dark border-secondary">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Rutinas</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" action="{{ url_for('main.crear_rutina') }}" class="row g-2 mb-3">
+            <div class="col-md-4">
+              <input type="text" name="nombre" class="form-control form-control-sm"
+                     placeholder="Nombre rutina" required>
+            </div>
+            <div class="col-md-3">
+              <input type="text" name="tipo" class="form-control form-control-sm"
+                     placeholder="Tipo (fuerza, run…)">
+            </div>
+            <div class="col-md-4">
+              <input type="text" name="descripcion" class="form-control form-control-sm"
+                     placeholder="Descripción corta">
+            </div>
+            <div class="col-md-1 d-grid">
+              <button type="submit" class="btn btn-sm btn-primary">Crear</button>
+            </div>
           </form>
+
+          <ul class="list-group list-group-flush">
+            {% for r in rutinas %}
+              <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ r.nombre }}</strong>
+                  {% if r.tipo %}<span class="badge bg-info ms-2">{{ r.tipo }}</span>{% endif %}
+                </div>
+                <div class="btn-group btn-group-sm">
+                  <a href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}"
+                     class="btn btn-outline-light">
+                    Editar
+                  </a>
+                </div>
+              </li>
+            {% else %}
+              <li class="list-group-item bg-dark text-muted">
+                Aún no hay rutinas creadas.
+              </li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
     </div>
-    {% endfor %}
-  </div>
-</div>
 
-<!-- ===================== RUTINAS ======================= -->
-<div class="card bg-dark border-0 shadow-lg mb-4 p-4">
-  <h4 class="text-light mb-3">
-    <i class="bi bi-list-task text-danger me-2"></i>Rutinas disponibles
-  </h4>
-
-  <div class="row g-3">
-    {% for r in rutinas %}
-    <div class="col-md-4">
-      <div class="routine-card p-3 rounded">
-        <h6 class="fw-bold text-info">{{ r.nombre }}</h6>
-        <span class="badge bg-secondary mb-2">{{ r.tipo|capitalize }}</span>
-
-        <p class="small mb-2">{{ r.descripcion }}</p>
-
-        <button class="btn btn-outline-light btn-sm w-100 mt-2"
-                draggable="true"
-                ondragstart="event.dataTransfer.setData('rutina_id','{{ r.id }}');">
-          <i class="bi bi-hand-index-thumb me-1"></i> Arrastrar a un día
-        </button>
-
-        <a href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}"
-           class="btn btn-outline-info btn-sm w-100 mt-2">
-          <i class="bi bi-sliders"></i> Editar ejercicios
-        </a>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <hr class="border-secondary mt-4 mb-3">
-
-  <form action="{{ url_for('main.crear_rutina') }}" method="POST" class="row g-2">
-    <div class="col-md-3">
-      <input name="nombre" class="form-control" placeholder="Nombre rutina" required>
-    </div>
-    <div class="col-md-2">
-      <select name="tipo" class="form-select">
-        <option value="fuerza">Fuerza</option>
-        <option value="pista">Pista</option>
-        <option value="bike">Bike</option>
-        <option value="natacion">Natación</option>
-      </select>
-    </div>
-    <div class="col-md-5">
-      <input name="descripcion" class="form-control" placeholder="Descripción…">
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-danger w-100">
-        <i class="bi bi-plus-lg"></i> Crear
-      </button>
-    </div>
-  </form>
-
-</div>
-
-<!-- ===================== BANCO DE EJERCICIOS ======================= -->
-<div class="card bg-dark border-0 shadow-lg mb-5 p-4">
-  <h4 class="text-light mb-3">
-    <i class="bi bi-collection-play text-danger me-2"></i>Banco de ejercicios (vídeo)
-  </h4>
-
-  <!-- Form para subir un nuevo ejercicio -->
-  <form action="{{ url_for('main.admin_nuevo_ejercicio') }}"
-        method="POST" enctype="multipart/form-data"
-        class="row g-2 align-items-end mb-4">
-
-    <div class="col-md-3">
-      <label class="form-label text-light small mb-1">Nombre del ejercicio</label>
-      <input name="nombre" class="form-control" placeholder="Sentadillas, Push up…" required>
-    </div>
-
-    <div class="col-md-3">
-      <label class="form-label text-light small mb-1">Categoría</label>
-      <select name="categoria" class="form-select">
-        <option value="">—</option>
-        <option value="fuerza">Fuerza</option>
-        <option value="core">Core</option>
-        <option value="movilidad">Movilidad</option>
-      </select>
-    </div>
-
-    <div class="col-md-3">
-      <label class="form-label text-light small mb-1">Descripción (opcional)</label>
-      <input name="descripcion" class="form-control" placeholder="Ej: sentadilla profunda, tempo 3-1-1…">
-    </div>
-
-    <div class="col-md-3">
-      <label class="form-label text-light small mb-1">Vídeo (mp4, mov…)</label>
-      <input type="file" name="video" class="form-control" accept="video/*" required>
-    </div>
-
-    <div class="col-12 col-md-3 mt-3">
-      <button class="btn btn-outline-info w-100">
-        <i class="bi bi-upload me-1"></i> Subir ejercicio
-      </button>
-    </div>
-  </form>
-
-  <!-- Listado de ejercicios del banco -->
-  <div class="row g-3">
-    {% for e in ejercicios %}
-    <div class="col-md-3">
-      <div class="exercise-card p-2 rounded">
-        <div class="small text-light fw-semibold mb-1">
-          {{ e.nombre }}
+    <!-- ================== BANCO DE EJERCICIOS ================== -->
+    <div class="col-lg-6">
+      <div class="card bg-dark border-secondary">
+        <div class="card-header">
+          <h5 class="mb-0">Banco de ejercicios (vídeo)</h5>
         </div>
-        {% if e.categoria %}
-        <span class="badge bg-secondary small mb-1">{{ e.categoria }}</span>
-        {% endif %}
-        <video
-          src="{{ url_for('static', filename='videos_ejercicios/' ~ e.video_filename) }}"
-          class="w-100 mt-1 rounded"
-          muted
-          loop
-          onmouseenter="this.play()"
-          onmouseleave="this.pause(); this.currentTime=0;">
-        </video>
+        <div class="card-body">
+          <!-- FORM NUEVO EJERCICIO -->
+          <form method="post" action="{{ url_for('main.admin_nuevo_ejercicio') }}"
+                enctype="multipart/form-data" class="row g-2 mb-3">
+            <div class="col-md-3">
+              <input type="text" name="nombre" class="form-control form-control-sm"
+                     placeholder="Nombre del ejercicio" required>
+            </div>
+            <div class="col-md-2">
+              <input type="text" name="categoria" class="form-control form-control-sm"
+                     placeholder="Categoría">
+            </div>
+            <div class="col-md-4">
+              <input type="text" name="descripcion" class="form-control form-control-sm"
+                     placeholder="Descripción (opcional)">
+            </div>
+            <div class="col-md-2">
+              <input type="file" name="video" accept="video/*"
+                     class="form-control form-control-sm" required>
+            </div>
+            <div class="col-md-1 d-grid">
+              <button type="submit" class="btn btn-sm btn-primary">
+                Subir
+              </button>
+            </div>
+          </form>
+
+          <!-- LISTA DE EJERCICIOS -->
+          <div class="row">
+            {% for ej in ejercicios %}
+              <div class="col-md-4 mb-3">
+                <div class="card bg-secondary bg-opacity-25 border-0 h-100">
+                  <div class="card-header py-2">
+                    <strong class="small">{{ ej.nombre }}</strong><br>
+                    {% if ej.categoria %}
+                      <span class="badge bg-info">{{ ej.categoria }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="card-body p-2">
+                    <video class="w-100 rounded" controls preload="metadata" style="max-height: 160px;">
+                      <source src="{{ url_for('static', filename='videos_ejercicios/' ~ ej.video_filename) }}"
+                              type="video/mp4">
+                      Tu navegador no soporta vídeo HTML5.
+                    </video>
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <p class="text-muted">Aún no has subido ejercicios.</p>
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
-    {% endfor %}
   </div>
+
+  <!-- Aquí seguiría la parte de atletas, etc... -->
 </div>
-
-<style>
-.athlete-card {
-  background: #0e0e0e;
-  border: 1px solid rgba(255,255,255,0.08);
-  transition: .25s ease;
-}
-.athlete-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 14px rgba(239,68,68,0.4);
-}
-
-.routine-card {
-  background: #0b0b0b;
-  border: 1px solid rgba(34,211,238,0.15);
-  transition: .25s ease;
-}
-.routine-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 12px rgba(34,211,238,0.3);
-}
-
-.exercise-card {
-  background: #050505;
-  border: 1px solid rgba(148,163,184,0.35);
-  cursor: default;
-  transition: .2s ease;
-}
-.exercise-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0 10px rgba(59,130,246,0.35);
-}
-</style>
-
 {% endblock %}

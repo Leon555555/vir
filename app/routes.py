@@ -146,6 +146,7 @@ def perfil_redirect():
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id: int):
+
     try:
         user = User.query.get_or_404(user_id)
 
@@ -217,6 +218,7 @@ def perfil_usuario(user_id: int):
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
 def save_day():
+
     if current_user.email != "admin@vir.app":
         flash("Solo el admin puede editar entrenamientos", "danger")
         return redirect(url_for("main.perfil_redirect"))
@@ -247,6 +249,7 @@ def save_day():
 @main_bp.route("/dia/feedback", methods=["POST"])
 @login_required
 def save_feedback():
+
     user_id = int(request.form["user_id"])
 
     if current_user.id != user_id and current_user.email != "admin@vir.app":
@@ -304,6 +307,7 @@ def dashboard_entrenador():
 @main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required
 def admin_delete_user(user_id: int):
+
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
@@ -328,6 +332,7 @@ def admin_delete_user(user_id: int):
 @main_bp.route("/crear_rutina", methods=["POST"])
 @login_required
 def crear_rutina():
+
     if current_user.email != "admin@vir.app":
         flash("Solo el admin puede crear rutinas", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
@@ -359,6 +364,7 @@ def crear_rutina():
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
 def admin_nuevo_ejercicio():
+
     if current_user.email != "admin@vir.app":
         flash("Solo el admin puede crear ejercicios", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
@@ -441,7 +447,6 @@ def rutina_add_item(rutina_id: int):
     series = request.form.get("series", "").strip()
     reps = request.form.get("reps", "").strip()
     descanso = request.form.get("descanso", "").strip()
-    nota = request.form.get("nota", "").strip()
 
     item = RutinaItem(
         rutina_id=rutina.id,
@@ -450,7 +455,6 @@ def rutina_add_item(rutina_id: int):
         series=series,
         reps=reps,
         descanso=descanso,
-        nota=nota,
         video_url=f"videos_ejercicios/{ejercicio.video_filename}",
     )
 
@@ -462,7 +466,7 @@ def rutina_add_item(rutina_id: int):
 
 
 # =============================================================
-# EDITAR UN EJERCICIO DE LA RUTINA
+# ACTUALIZAR EJERCICIO DE UNA RUTINA
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
@@ -479,7 +483,12 @@ def rutina_update_item(rutina_id: int, item_id: int):
     item.nota = request.form.get("nota", "").strip()
 
     db.session.commit()
+
+    redirect_mode = request.form.get("redirect", "builder")
     flash("Ejercicio actualizado", "success")
+
+    if redirect_mode == "dashboard":
+        return redirect(url_for("main.dashboard_entrenador"))
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
 
@@ -499,21 +508,6 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
     flash("Ejercicio eliminado de la rutina", "info")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
-
-
-# =============================================================
-# BOTÓN FINAL: GUARDAR Y VOLVER AL DASHBOARD
-# =============================================================
-@main_bp.route("/rutinas/<int:rutina_id>/finish", methods=["POST"])
-@login_required
-def rutina_finish(rutina_id: int):
-    if current_user.email != "admin@vir.app":
-        flash("Solo el admin puede editar rutinas", "danger")
-        return redirect(url_for("main.perfil_redirect"))
-
-    # Los cambios ya se guardan en cada formulario de item.
-    flash("Rutina guardada correctamente", "success")
-    return redirect(url_for("main.dashboard_entrenador"))
 
 
 # =============================================================

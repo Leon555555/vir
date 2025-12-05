@@ -6,7 +6,7 @@ from app.extensions import db
 # ===================================
 # 👤 Modelo de usuario
 # ===================================
-class User(db.Model, UserMixin):  # ✅ UserMixin para flask-login
+class User(db.Model, UserMixin):
     __tablename__ = "user"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -16,10 +16,10 @@ class User(db.Model, UserMixin):  # ✅ UserMixin para flask-login
     grupo = db.Column(db.String(50), default="Atleta")
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def set_password(self, password):
+    def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):
+    def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
 
@@ -40,7 +40,7 @@ class Rutina(db.Model):
         "RutinaItem",
         backref="rutina",
         cascade="all, delete-orphan",
-        order_by="RutinaItem.id"
+        order_by="RutinaItem.id",
     )
 
 
@@ -58,15 +58,14 @@ class Ejercicio(db.Model):
     # Nombre del archivo de vídeo guardado en /static/videos_ejercicios
     video_filename = db.Column(db.String(255), nullable=False)
 
-    # Opcional: miniatura (si algún día la generas)
+    # Opcional: miniatura
     imagen_filename = db.Column(db.String(255))
 
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Items de rutina que usan este ejercicio
     rutina_items = db.relationship(
         "RutinaItem",
-        back_populates="ejercicio"
+        back_populates="ejercicio",
     )
 
 
@@ -79,22 +78,21 @@ class RutinaItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     rutina_id = db.Column(db.Integer, db.ForeignKey("rutina.id"), nullable=False)
 
-    # 🔗 Opción de enlazar con un ejercicio del banco
+    # link opcional al banco de ejercicios
     ejercicio_id = db.Column(db.Integer, db.ForeignKey("ejercicio.id"))
 
-    # Campos que ya tenías (los dejamos por compatibilidad)
+    # Campos de detalle
     nombre = db.Column(db.String(200), nullable=False)
     series = db.Column(db.String(50))
     reps = db.Column(db.String(50))
     descanso = db.Column(db.String(50))
     imagen_url = db.Column(db.String(255))
-    video_url = db.Column(db.String(255))
+    video_url = db.Column(db.String(255))  # aquí guardamos p.ej. "videos_ejercicios/archivo.mp4"
     nota = db.Column(db.Text)
 
-    # Relación con Ejercicio (banco)
     ejercicio = db.relationship(
         "Ejercicio",
-        back_populates="rutina_items"
+        back_populates="rutina_items",
     )
 
 
@@ -114,7 +112,6 @@ class DiaPlan(db.Model):
     propuesto_score = db.Column(db.Integer, default=0)
     realizado_score = db.Column(db.Integer, default=0)
 
-    # Estos campos los usas en routes.serialize_plan
     puede_entrenar = db.Column(db.String(50))
     dificultad = db.Column(db.String(50))
     comentario_atleta = db.Column(db.Text)

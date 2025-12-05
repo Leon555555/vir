@@ -16,7 +16,7 @@ from sqlalchemy import text
 from werkzeug.utils import secure_filename
 import os
 
-from app.models import User, DiaPlan, Rutina, Ejercicio
+from app.models import User, DiaPlan, Rutina, Ejercicio, RutinaItem
 from app.extensions import db
 
 
@@ -402,6 +402,86 @@ def admin_nuevo_ejercicio():
 
     flash("Ejercicio subido al banco correctamente", "success")
     return redirect(url_for("main.dashboard_entrenador"))
+
+
+# =============================================================
+# CONSTRUCTOR DE RUTINA (VER / EDITAR EJERCICIOS)
+# =============================================================
+@main_bp.route("/rutinas/<int:rutina_id>/builder")
+@login_required
+def rutina_builder(rutina_id: int):
+    if current_user.email != "admin@vir.app":
+        flash("Solo el admin puede editar rutinas", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+    items = RutinaItem.query.filter_by(rutina_id=rutina.id).order_by(RutinaItem.id).all()
+    ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
+
+    return render_template(
+        "rutina_builder.html",
+        rutina=rutina,
+        items=items,
+        ejercicios=ejercicios
+    )
+
+
+# =============================================================
+# AÑADIR EJERCICIO DEL BANCO A UNA RUTINA
+# =============================================================
+@main_bp.route("/rutinas/<int:rutina_id>/add_item", methods=["POST"])
+@login_required
+def rutina_add_item(rutina_id: int):
+    if current_user.email != "admin@vir.app":
+        flash("Solo el admin puede editar rutinas", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+    ejercicio_id = request.form.get("ejercicio_id", type=int)
+
+    if not ejercicio_id:
+        flash("Falta el ejercicio a añadir", "danger")
+        return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+
+    ejercicio = Ejercicio.query.get_or_404(ejercicio_id)
+
+    series = request.form.get("series", "").strip()
+    reps = request.form.get("reps", "").strip()
+    descanso = request.form.get("descanso", "").strip()
+
+    item = RutinaItem(
+        rutina_id=rutina.id,
+        ejercicio_id=ejercicio.id,
+        nombre=ejercicio.nombre,
+        series=series,
+        reps=reps,
+        descanso=descanso,
+        video_url=f"videos_ejercicios/{ejercicio.video_filename}",
+    )
+
+    db.session.add(item)
+    db.session.commit()
+
+    flash("Ejercicio añadido a la rutina", "success")
+    return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+
+
+# =============================================================
+# ELIMINAR EJERCICIO DE UNA RUTINA
+# =============================================================
+@main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
+@login_required
+def rutina_delete_item(rutina_id: int, item_id: int):
+    if current_user.email != "admin@vir.app":
+        flash("Solo el admin puede editar rutinas", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    item = RutinaItem.query.get_or_404(item_id)
+    db.session.delete(item)
+    db.session.commit()
+
+    flash("Ejercicio eliminado de la rutina", "info")
+    return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
 
 # =============================================================

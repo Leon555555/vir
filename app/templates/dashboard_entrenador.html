@@ -2,48 +2,72 @@
 {% block title %}Dashboard Entrenador{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-  <h2 class="mb-3">🏋️ Panel del entrenador — {{ current_user.nombre }}</h2>
+<div class="container-fluid mt-4 dashboard-entrenador">
 
-  <!-- ================== RUTINAS ================== -->
-  <div class="row mb-4">
+  <!-- Título -->
+  <h2 class="mb-4 text-uppercase" style="font-weight:700;">
+    🏋️ Panel del entrenador — Admin ViR
+  </h2>
+
+  <div class="row g-4">
+    <!-- ===================================================== -->
+    <!--        BLOQUE IZQUIERDO: RUTINAS                     -->
+    <!-- ===================================================== -->
     <div class="col-lg-6">
-      <div class="card bg-dark border-secondary">
-        <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="card bg-dark border-secondary shadow-sm">
+        <div class="card-header d-flex align-items-center">
           <h5 class="mb-0">Rutinas</h5>
         </div>
+
         <div class="card-body">
-          <form method="post" action="{{ url_for('main.crear_rutina') }}" class="row g-2 mb-3">
+
+          <!-- Form crear rutina -->
+          <form method="post"
+                action="{{ url_for('main.crear_rutina') }}"
+                class="row g-2 mb-3">
             <div class="col-md-4">
-              <input type="text" name="nombre" class="form-control form-control-sm"
-                     placeholder="Nombre rutina" required>
+              <input type="text"
+                     name="nombre"
+                     class="form-control form-control-sm"
+                     placeholder="Nombre rutina"
+                     required>
             </div>
             <div class="col-md-3">
-              <input type="text" name="tipo" class="form-control form-control-sm"
-                     placeholder="Tipo (fuerza, run…)">
+              <input type="text"
+                     name="tipo"
+                     class="form-control form-control-sm"
+                     placeholder="Tipo (fuerza, run...)">
             </div>
             <div class="col-md-4">
-              <input type="text" name="descripcion" class="form-control form-control-sm"
+              <input type="text"
+                     name="descripcion"
+                     class="form-control form-control-sm"
                      placeholder="Descripción corta">
             </div>
             <div class="col-md-1 d-grid">
-              <button type="submit" class="btn btn-sm btn-primary">Crear</button>
+              <button type="submit" class="btn btn-sm btn-primary">
+                Crear
+              </button>
             </div>
           </form>
 
+          <!-- Lista de rutinas -->
           <ul class="list-group list-group-flush">
             {% for r in rutinas %}
               <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
                 <div>
                   <strong>{{ r.nombre }}</strong>
-                  {% if r.tipo %}<span class="badge bg-info ms-2">{{ r.tipo }}</span>{% endif %}
+                  {% if r.tipo %}
+                    <span class="badge bg-info ms-2">{{ r.tipo }}</span>
+                  {% endif %}
+                  {% if r.descripcion %}
+                    <small class="text-muted ms-2">{{ r.descripcion }}</small>
+                  {% endif %}
                 </div>
-                <div class="btn-group btn-group-sm">
-                  <a href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}"
-                     class="btn btn-outline-light">
-                    Editar
-                  </a>
-                </div>
+                <a href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}"
+                   class="btn btn-sm btn-outline-light">
+                  Editar
+                </a>
               </li>
             {% else %}
               <li class="list-group-item bg-dark text-muted">
@@ -55,31 +79,47 @@
       </div>
     </div>
 
-    <!-- ================== BANCO DE EJERCICIOS ================== -->
+    <!-- ===================================================== -->
+    <!--        BLOQUE DERECHO: BANCO DE EJERCICIOS (VÍDEO)    -->
+    <!-- ===================================================== -->
     <div class="col-lg-6">
-      <div class="card bg-dark border-secondary">
-        <div class="card-header">
+      <div class="card bg-dark border-secondary shadow-sm">
+        <div class="card-header d-flex align-items-center">
           <h5 class="mb-0">Banco de ejercicios (vídeo)</h5>
         </div>
+
         <div class="card-body">
-          <!-- FORM NUEVO EJERCICIO -->
-          <form method="post" action="{{ url_for('main.admin_nuevo_ejercicio') }}"
-                enctype="multipart/form-data" class="row g-2 mb-3">
+
+          <!-- Form subir ejercicio -->
+          <form method="post"
+                action="{{ url_for('main.admin_nuevo_ejercicio') }}"
+                enctype="multipart/form-data"
+                class="row g-2 mb-3">
             <div class="col-md-3">
-              <input type="text" name="nombre" class="form-control form-control-sm"
-                     placeholder="Nombre del ejercicio" required>
+              <input type="text"
+                     name="nombre"
+                     class="form-control form-control-sm"
+                     placeholder="Nombre del ejercicio"
+                     required>
             </div>
             <div class="col-md-2">
-              <input type="text" name="categoria" class="form-control form-control-sm"
+              <input type="text"
+                     name="categoria"
+                     class="form-control form-control-sm"
                      placeholder="Categoría">
             </div>
             <div class="col-md-4">
-              <input type="text" name="descripcion" class="form-control form-control-sm"
+              <input type="text"
+                     name="descripcion"
+                     class="form-control form-control-sm"
                      placeholder="Descripción (opcional)">
             </div>
             <div class="col-md-2">
-              <input type="file" name="video" accept="video/*"
-                     class="form-control form-control-sm" required>
+              <input type="file"
+                     name="video"
+                     accept="video/*"
+                     class="form-control form-control-sm"
+                     required>
             </div>
             <div class="col-md-1 d-grid">
               <button type="submit" class="btn btn-sm btn-primary">
@@ -88,7 +128,7 @@
             </div>
           </form>
 
-          <!-- LISTA DE EJERCICIOS -->
+          <!-- Tarjetas de ejercicios con vídeo -->
           <div class="row">
             {% for ej in ejercicios %}
               <div class="col-md-4 mb-3">
@@ -100,7 +140,7 @@
                     {% endif %}
                   </div>
                   <div class="card-body p-2">
-                    <video class="w-100 rounded" controls preload="metadata" style="max-height: 160px;">
+                    <video class="w-100 rounded" controls preload="metadata" style="max-height: 170px;">
                       <source src="{{ url_for('static', filename='videos_ejercicios/' ~ ej.video_filename) }}"
                               type="video/mp4">
                       Tu navegador no soporta vídeo HTML5.
@@ -109,7 +149,7 @@
                 </div>
               </div>
             {% else %}
-              <p class="text-muted">Aún no has subido ejercicios.</p>
+              <p class="text-muted">Todavía no has subido ejercicios al banco.</p>
             {% endfor %}
           </div>
         </div>
@@ -117,6 +157,64 @@
     </div>
   </div>
 
-  <!-- Aquí seguiría la parte de atletas, etc... -->
+  <!-- ========================================================= -->
+  <!--            BLOQUE ATLETAS / USUARIOS                     -->
+  <!-- ========================================================= -->
+  <div class="row g-4 mt-4">
+    <div class="col-12">
+      <div class="card bg-dark border-secondary shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Atletas</h5>
+          <!-- si más adelante tienes ruta para crear atleta, la pones aquí -->
+          <!-- <a href="{{ url_for('main.nuevo_atleta') }}" class="btn btn-sm btn-primary">➕ Nuevo atleta</a> -->
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-striped align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Grupo</th>
+                  <th style="width: 220px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for atleta in atletas %}
+                  <tr>
+                    <td>{{ atleta.nombre }}</td>
+                    <td>{{ atleta.email }}</td>
+                    <td>{{ atleta.grupo or "—" }}</td>
+                    <td>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}"
+                           class="btn btn-outline-light">
+                          Ver perfil
+                        </a>
+                        <form method="post"
+                              action="{{ url_for('main.admin_delete_user', user_id=atleta.id) }}"
+                              onsubmit="return confirm('¿Eliminar a {{ atleta.nombre }}? Esta acción no se puede deshacer.');">
+                          <button type="submit" class="btn btn-outline-danger">
+                            Eliminar
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="text-muted text-center">
+                      Todavía no hay atletas (usuarios) creados.
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

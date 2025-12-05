@@ -1,179 +1,205 @@
 {% extends "layout.html" %}
-{% block title %}Editar rutina — VR Training{% endblock %}
+{% block title %}Editar rutina{% endblock %}
 
 {% block content %}
+<div class="container-fluid builder-page mt-4 mb-5">
 
-<div class="text-center mb-4">
-  <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-       style="height:70px; filter:drop-shadow(0 0 18px #ef4444);">
-  <h2 class="fw-bold mt-2 text-danger">Editar rutina</h2>
-  <div class="text-secondary">
-    Rutina: <span class="fw-bold">{{ rutina.nombre }}</span>
-    <span class="ms-2 text-muted">({{ rutina.tipo }})</span>
+  <div class="text-center mb-4">
+    <h1 class="builder-title">Editar rutina</h1>
+    <p class="text-muted">
+      Rutina: <strong>{{ rutina.nombre }}</strong>
+      {% if rutina.tipo %} <span>({{ rutina.tipo }})</span>{% endif %}
+    </p>
   </div>
-</div>
 
-<div class="row g-4">
+  <div class="row">
+    <!-- ================= IZQUIERDA: EJERCICIOS DE LA RUTINA ================= -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100 builder-panel">
+        <div class="card-header">
+          <h3 class="mb-0">🏋️‍♂️ Ejercicios de la rutina</h3>
+        </div>
+        <div class="card-body builder-panel-body">
 
-  <!-- ==========================
-       EJERCICIOS DE LA RUTINA
-       ========================== -->
-  <div class="col-lg-6">
-    <div class="card bg-dark border-0 shadow-lg h-100">
-      <div class="card-header bg-transparent border-secondary d-flex align-items-center">
-        <i class="bi bi-list-ul text-info me-2"></i>
-        <h5 class="mb-0 text-light">Ejercicios de la rutina</h5>
-      </div>
+          {% if items %}
+            {% for item in items %}
+              <div class="card mb-4 rutina-item-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="text-muted me-2">{{ loop.index }}.</span>
+                    <strong>{{ item.nombre }}</strong>
+                  </div>
 
-      <div class="card-body" style="background:#0c0c10;">
-        {% if items %}
-          {% for it in items %}
-            <div class="mb-4 p-3 rounded" style="background:#101218; border:1px solid rgba(148,163,184,.35);">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="text-light fw-semibold">
-                  {{ loop.index }}. {{ it.nombre }}
-                </div>
-                <form method="POST"
-                      action="{{ url_for('main.rutina_delete_item',
-                                         rutina_id=rutina.id,
-                                         item_id=it.id) }}"
-                      onsubmit="return confirm('¿Quitar {{ it.nombre }} de la rutina?');">
-                  <button class="btn btn-outline-danger btn-sm">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </form>
-              </div>
-
-              <div class="row g-3">
-                <div class="col-md-6">
-                  {% if it.video_url %}
-                    <video class="w-100 rounded"
-                           src="{{ url_for('static', filename=it.video_url) }}"
-                           controls
-                           muted
-                           preload="metadata"
-                           style="max-height:240px; background:#000;">
-                      Tu navegador no soporta vídeo.
-                    </video>
-                  {% else %}
-                    <div class="text-muted small">
-                      (Sin vídeo asociado)
-                    </div>
-                  {% endif %}
-                </div>
-
-                <div class="col-md-6">
-                  <form method="POST"
-                        action="{{ url_for('main.rutina_update_item',
+                  <form method="post"
+                        action="{{ url_for('main.rutina_delete_item',
                                            rutina_id=rutina.id,
-                                           item_id=it.id) }}">
-                    <div class="row g-2 mb-2">
-                      <div class="col-4">
-                        <input name="series"
-                               class="form-control form-control-sm"
-                               placeholder="Series"
-                               value="{{ it.series or '' }}">
-                      </div>
-                      <div class="col-4">
-                        <input name="reps"
-                               class="form-control form-control-sm"
-                               placeholder="Reps"
-                               value="{{ it.reps or '' }}">
-                      </div>
-                      <div class="col-4">
-                        <input name="descanso"
-                               class="form-control form-control-sm"
-                               placeholder="Descanso"
-                               value="{{ it.descanso or '' }}">
-                      </div>
-                    </div>
-
-                    <textarea name="nota"
-                              rows="2"
-                              class="form-control form-control-sm mb-2"
-                              placeholder="Notas (tempo, RPE, indicaciones)…">{{ it.nota or '' }}</textarea>
-
-                    <button class="btn btn-info btn-sm w-100">
-                      <i class="bi bi-save me-1"></i>Guardar cambios
+                                           item_id=item.id) }}">
+                    <button type="submit"
+                            class="btn btn-sm btn-outline-danger">
+                      🗑 Eliminar
                     </button>
                   </form>
                 </div>
+
+                <div class="card-body">
+                  <div class="mb-3">
+                    <video class="w-100" controls preload="metadata">
+                      <source src="{{ url_for('static', filename=item.video_url) }}" type="video/mp4">
+                      Tu navegador no soporta vídeo.
+                    </video>
+                  </div>
+
+                  <form method="post"
+                        action="{{ url_for('main.rutina_update_item',
+                                           rutina_id=rutina.id,
+                                           item_id=item.id) }}">
+                    <div class="row mb-3">
+                      <div class="col-4 mb-2">
+                        <label class="form-label mb-1">Series</label>
+                        <input type="text"
+                               name="series"
+                               class="form-control"
+                               value="{{ item.series or '' }}"
+                               placeholder="3">
+                      </div>
+                      <div class="col-4 mb-2">
+                        <label class="form-label mb-1">Reps</label>
+                        <input type="text"
+                               name="reps"
+                               class="form-control"
+                               value="{{ item.reps or '' }}"
+                               placeholder="12">
+                      </div>
+                      <div class="col-4 mb-2">
+                        <label class="form-label mb-1">Descanso</label>
+                        <input type="text"
+                               name="descanso"
+                               class="form-control"
+                               value="{{ item.descanso or '' }}"
+                               placeholder="1' entre serie">
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label mb-1">
+                        Notas (tempo, técnica, RPE, indicaciones…)
+                      </label>
+                      <textarea name="nota"
+                                class="form-control"
+                                rows="2"
+                                placeholder="Vigila las lumbares">{{ item.nota or '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid">
+                      <button type="submit" class="btn btn-primary">
+                        💾 Guardar cambios
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-            </div>
-          {% endfor %}
-        {% else %}
-          <p class="text-muted mb-0">
-            Aún no has añadido ejercicios a esta rutina. Usa el banco de ejercicios de la derecha.
-          </p>
-        {% endif %}
+            {% endfor %}
+          {% else %}
+            <p class="text-muted">Todavía no hay ejercicios en esta rutina.</p>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= DERECHA: BANCO DE EJERCICIOS ================= -->
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100 builder-panel">
+        <div class="card-header">
+          <h3 class="mb-0">📚 Banco de ejercicios</h3>
+        </div>
+        <div class="card-body builder-panel-body">
+
+          {% if ejercicios %}
+            {% for ej in ejercicios %}
+              <div class="card mb-4 banco-ej-card">
+                <div class="card-header">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <strong>{{ ej.nombre }}</strong>
+                    {% if ej.categoria %}
+                      <span class="badge bg-secondary">{{ ej.categoria }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <video class="w-100" controls preload="metadata">
+                      <source src="{{ url_for('static',
+                                              filename='videos_ejercicios/' ~ ej.video_filename) }}"
+                              type="video/mp4">
+                      Tu navegador no soporta vídeo.
+                    </video>
+                  </div>
+
+                  <form method="post"
+                        action="{{ url_for('main.rutina_add_item', rutina_id=rutina.id) }}">
+                    <input type="hidden" name="ejercicio_id" value="{{ ej.id }}">
+
+                    <div class="row mb-3">
+                      <div class="col-4 mb-2">
+                        <input type="text"
+                               name="series"
+                               class="form-control"
+                               placeholder="Series">
+                      </div>
+                      <div class="col-4 mb-2">
+                        <input type="text"
+                               name="reps"
+                               class="form-control"
+                               placeholder="Reps">
+                      </div>
+                      <div class="col-4 mb-2">
+                        <input type="text"
+                               name="descanso"
+                               class="form-control"
+                               placeholder="Descanso">
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <textarea name="nota"
+                                class="form-control"
+                                rows="2"
+                                placeholder="Notas (opcional)"></textarea>
+                    </div>
+
+                    <div class="d-grid">
+                      <button type="submit" class="btn btn-outline-info">
+                        ➕ Añadir a rutina
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted">
+              Todavía no hay ejercicios en el banco. Crea alguno desde el dashboard.
+            </p>
+          {% endif %}
+
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ==========================
-       BANCO DE EJERCICIOS
-       ========================== -->
-  <div class="col-lg-6">
-    <div class="card bg-dark border-0 shadow-lg h-100">
-      <div class="card-header bg-transparent border-secondary d-flex align-items-center">
-        <i class="bi bi-collection-play text-danger me-2"></i>
-        <h5 class="mb-0 text-light">Banco de ejercicios</h5>
-      </div>
-
-      <div class="card-body" style="background:#0c0c10; max-height:70vh; overflow-y:auto;">
-        {% for e in ejercicios %}
-          <div class="mb-4 p-3 rounded" style="background:#101218; border:1px solid rgba(37,99,235,.4);">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div>
-                <div class="fw-semibold text-light">{{ e.nombre }}</div>
-                {% if e.categoria %}
-                  <span class="badge bg-secondary mt-1">{{ e.categoria }}</span>
-                {% endif %}
-              </div>
-            </div>
-
-            {% if e.video_filename %}
-              <video class="w-100 rounded mb-2"
-                     src="{{ url_for('static',
-                                     filename='videos_ejercicios/' ~ e.video_filename) }}"
-                     controls
-                     muted
-                     preload="metadata"
-                     style="max-height:220px; background:#000;">
-                Tu navegador no soporta vídeo.
-              </video>
-            {% endif %}
-
-            <form method="POST"
-                  action="{{ url_for('main.rutina_add_item', rutina_id=rutina.id) }}"
-                  class="mt-2">
-              <input type="hidden" name="ejercicio_id" value="{{ e.id }}">
-
-              <div class="row g-2 mb-2">
-                <div class="col-4">
-                  <input name="series" class="form-control form-control-sm" placeholder="Series">
-                </div>
-                <div class="col-4">
-                  <input name="reps" class="form-control form-control-sm" placeholder="Reps">
-                </div>
-                <div class="col-4">
-                  <input name="descanso" class="form-control form-control-sm" placeholder="Descanso">
-                </div>
-              </div>
-
-              <button class="btn btn-outline-info btn-sm w-100">
-                <i class="bi bi-plus-lg me-1"></i> Añadir a rutina
-              </button>
-            </form>
-          </div>
-        {% else %}
-          <p class="text-muted mb-0">
-            Aún no hay ejercicios en el banco. Súbelos desde el dashboard del entrenador.
-          </p>
-        {% endfor %}
-      </div>
+  <!-- ================= BOTÓN GLOBAL: GUARDAR Y VOLVER ================= -->
+  <div class="row mt-3">
+    <div class="col-12">
+      <form method="post"
+            action="{{ url_for('main.rutina_finish', rutina_id=rutina.id) }}"
+            class="text-center">
+        <button type="submit" class="btn btn-success btn-lg px-5">
+          ✅ Guardar cambios y volver al panel
+        </button>
+      </form>
     </div>
   </div>
+
 </div>
-
 {% endblock %}

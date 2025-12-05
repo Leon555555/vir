@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block title %}Editar rutina — {{ rutina.nombre }}{% endblock %}
+{% block title %}Editar rutina — VR Training{% endblock %}
 
 {% block content %}
 
@@ -7,93 +7,149 @@
   <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
        style="height:70px; filter:drop-shadow(0 0 18px #ef4444);">
   <h2 class="fw-bold mt-2 text-danger">Editar rutina</h2>
-  <p class="text-secondary mb-0">
-    Rutina: <strong>{{ rutina.nombre }}</strong> ({{ rutina.tipo }})
-  </p>
+  <div class="text-secondary">
+    Rutina: <span class="fw-bold">{{ rutina.nombre }}</span>
+    <span class="ms-2 text-muted">({{ rutina.tipo }})</span>
+  </div>
 </div>
 
 <div class="row g-4">
-  <!-- LADO IZQUIERDO: EJERCICIOS DE LA RUTINA -->
-  <div class="col-lg-6">
-    <div class="card bg-dark border-0 shadow-lg p-3 h-100">
-      <h4 class="text-light mb-3">
-        <i class="bi bi-list-check text-danger me-2"></i>
-        Ejercicios de la rutina
-      </h4>
 
-      {% if items %}
-      <ul class="list-group list-group-flush">
-        {% for it in items %}
-        <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
-          <div class="me-2">
-            <div class="fw-semibold small">{{ loop.index }}. {{ it.nombre }}</div>
-            <div class="small text-secondary">
-              {% if it.series %}{{ it.series }}{% endif %}
-              {% if it.reps %} — {{ it.reps }}{% endif %}
-              {% if it.descanso %} — descanso: {{ it.descanso }}{% endif %}
+  <!-- ==========================
+       EJERCICIOS DE LA RUTINA
+       ========================== -->
+  <div class="col-lg-6">
+    <div class="card bg-dark border-0 shadow-lg h-100">
+      <div class="card-header bg-transparent border-secondary d-flex align-items-center">
+        <i class="bi bi-list-ul text-info me-2"></i>
+        <h5 class="mb-0 text-light">Ejercicios de la rutina</h5>
+      </div>
+
+      <div class="card-body" style="background:#0c0c10;">
+        {% if items %}
+          {% for it in items %}
+            <div class="mb-4 p-3 rounded" style="background:#101218; border:1px solid rgba(148,163,184,.35);">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="text-light fw-semibold">
+                  {{ loop.index }}. {{ it.nombre }}
+                </div>
+                <form method="POST"
+                      action="{{ url_for('main.rutina_delete_item',
+                                         rutina_id=rutina.id,
+                                         item_id=it.id) }}"
+                      onsubmit="return confirm('¿Quitar {{ it.nombre }} de la rutina?');">
+                  <button class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  {% if it.video_url %}
+                    <video class="w-100 rounded"
+                           src="{{ url_for('static', filename=it.video_url) }}"
+                           controls
+                           muted
+                           preload="metadata"
+                           style="max-height:240px; background:#000;">
+                      Tu navegador no soporta vídeo.
+                    </video>
+                  {% else %}
+                    <div class="text-muted small">
+                      (Sin vídeo asociado)
+                    </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                  <form method="POST"
+                        action="{{ url_for('main.rutina_update_item',
+                                           rutina_id=rutina.id,
+                                           item_id=it.id) }}">
+                    <div class="row g-2 mb-2">
+                      <div class="col-4">
+                        <input name="series"
+                               class="form-control form-control-sm"
+                               placeholder="Series"
+                               value="{{ it.series or '' }}">
+                      </div>
+                      <div class="col-4">
+                        <input name="reps"
+                               class="form-control form-control-sm"
+                               placeholder="Reps"
+                               value="{{ it.reps or '' }}">
+                      </div>
+                      <div class="col-4">
+                        <input name="descanso"
+                               class="form-control form-control-sm"
+                               placeholder="Descanso"
+                               value="{{ it.descanso or '' }}">
+                      </div>
+                    </div>
+
+                    <textarea name="nota"
+                              rows="2"
+                              class="form-control form-control-sm mb-2"
+                              placeholder="Notas (tempo, RPE, indicaciones)…">{{ it.nota or '' }}</textarea>
+
+                    <button class="btn btn-info btn-sm w-100">
+                      <i class="bi bi-save me-1"></i>Guardar cambios
+                    </button>
+                  </form>
+                </div>
+              </div>
             </div>
-            {% if it.video_url %}
-            <video
-              src="{{ url_for('static', filename=it.video_url) }}"
-              style="height:80px; border-radius:8px; margin-top:4px;"
-              muted loop
-              onmouseenter="this.play()"
-              onmouseleave="this.pause(); this.currentTime=0;">
-            </video>
-            {% endif %}
-          </div>
-          <form method="POST"
-                action="{{ url_for('main.rutina_delete_item', rutina_id=rutina.id, item_id=it.id) }}"
-                onsubmit="return confirm('¿Quitar este ejercicio de la rutina?');">
-            <button class="btn btn-sm btn-outline-danger">
-              <i class="bi bi-trash"></i>
-            </button>
-          </form>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p class="text-secondary small mb-0">
-        Aún no hay ejercicios en esta rutina. Añádelos desde el banco de ejercicios.
-      </p>
-      {% endif %}
+          {% endfor %}
+        {% else %}
+          <p class="text-muted mb-0">
+            Aún no has añadido ejercicios a esta rutina. Usa el banco de ejercicios de la derecha.
+          </p>
+        {% endif %}
+      </div>
     </div>
   </div>
 
-  <!-- LADO DERECHO: BANCO DE EJERCICIOS -->
+  <!-- ==========================
+       BANCO DE EJERCICIOS
+       ========================== -->
   <div class="col-lg-6">
-    <div class="card bg-dark border-0 shadow-lg p-3 h-100">
-      <h4 class="text-light mb-3">
+    <div class="card bg-dark border-0 shadow-lg h-100">
+      <div class="card-header bg-transparent border-secondary d-flex align-items-center">
         <i class="bi bi-collection-play text-danger me-2"></i>
-        Banco de ejercicios
-      </h4>
+        <h5 class="mb-0 text-light">Banco de ejercicios</h5>
+      </div>
 
-      <div class="row g-3">
+      <div class="card-body" style="background:#0c0c10; max-height:70vh; overflow-y:auto;">
         {% for e in ejercicios %}
-        <div class="col-md-6">
-          <div class="exercise-card p-2 rounded h-100 d-flex flex-column">
-            <div class="small text-light fw-semibold mb-1">
-              {{ e.nombre }}
+          <div class="mb-4 p-3 rounded" style="background:#101218; border:1px solid rgba(37,99,235,.4);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <div class="fw-semibold text-light">{{ e.nombre }}</div>
+                {% if e.categoria %}
+                  <span class="badge bg-secondary mt-1">{{ e.categoria }}</span>
+                {% endif %}
+              </div>
             </div>
-            {% if e.categoria %}
-            <span class="badge bg-secondary small mb-1">{{ e.categoria }}</span>
-            {% endif %}
 
-            <video
-              src="{{ url_for('static', filename='videos_ejercicios/' ~ e.video_filename) }}"
-              class="w-100 mt-1 rounded flex-grow-1"
-              muted loop
-              onmouseenter="this.play()"
-              onmouseleave="this.pause(); this.currentTime=0;">
-            </video>
+            {% if e.video_filename %}
+              <video class="w-100 rounded mb-2"
+                     src="{{ url_for('static',
+                                     filename='videos_ejercicios/' ~ e.video_filename) }}"
+                     controls
+                     muted
+                     preload="metadata"
+                     style="max-height:220px; background:#000;">
+                Tu navegador no soporta vídeo.
+              </video>
+            {% endif %}
 
             <form method="POST"
                   action="{{ url_for('main.rutina_add_item', rutina_id=rutina.id) }}"
                   class="mt-2">
               <input type="hidden" name="ejercicio_id" value="{{ e.id }}">
-              <!-- Si quieres, puedes permitir poner series/reps/descanso aquí -->
-              <!--
-              <div class="row g-1 mb-1">
+
+              <div class="row g-2 mb-2">
                 <div class="col-4">
                   <input name="series" class="form-control form-control-sm" placeholder="Series">
                 </div>
@@ -101,33 +157,23 @@
                   <input name="reps" class="form-control form-control-sm" placeholder="Reps">
                 </div>
                 <div class="col-4">
-                  <input name="descanso" class="form-control form-control-sm" placeholder="Desc.">
+                  <input name="descanso" class="form-control form-control-sm" placeholder="Descanso">
                 </div>
               </div>
-              -->
-              <button class="btn btn-sm btn-outline-info w-100">
-                <i class="bi bi-plus-lg"></i> Añadir a rutina
+
+              <button class="btn btn-outline-info btn-sm w-100">
+                <i class="bi bi-plus-lg me-1"></i> Añadir a rutina
               </button>
             </form>
           </div>
-        </div>
+        {% else %}
+          <p class="text-muted mb-0">
+            Aún no hay ejercicios en el banco. Súbelos desde el dashboard del entrenador.
+          </p>
         {% endfor %}
       </div>
     </div>
   </div>
 </div>
-
-<style>
-.exercise-card {
-  background: #050505;
-  border: 1px solid rgba(148,163,184,0.35);
-  cursor: default;
-  transition: .2s ease;
-}
-.exercise-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0 10px rgba(59,130,246,0.35);
-}
-</style>
 
 {% endblock %}

@@ -466,6 +466,28 @@ def rutina_add_item(rutina_id: int):
 
 
 # =============================================================
+# ACTUALIZAR EJERCICIO DE UNA RUTINA
+# =============================================================
+@main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
+@login_required
+def rutina_update_item(rutina_id: int, item_id: int):
+    if current_user.email != "admin@vir.app":
+        flash("Solo el admin puede editar rutinas", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    item = RutinaItem.query.filter_by(id=item_id, rutina_id=rutina_id).first_or_404()
+
+    item.series = request.form.get("series", "").strip()
+    item.reps = request.form.get("reps", "").strip()
+    item.descanso = request.form.get("descanso", "").strip()
+    item.nota = request.form.get("nota", "").strip()
+
+    db.session.commit()
+    flash("Ejercicio de la rutina actualizado", "success")
+    return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
+
+
+# =============================================================
 # ELIMINAR EJERCICIO DE UNA RUTINA
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])

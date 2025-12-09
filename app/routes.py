@@ -61,7 +61,7 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
 
 
 # =============================================================
-# SERIALIZADORES SEGUROS (para usar en dashboards)
+# SERIALIZADORES SEGUROS
 # =============================================================
 def serialize_user(u: User) -> Dict[str, Any]:
     return {
@@ -481,14 +481,12 @@ def rutina_update_item(rutina_id: int, item_id: int):
     item.series = request.form.get("series", "").strip()
     item.reps = request.form.get("reps", "").strip()
     item.descanso = request.form.get("descanso", "").strip()
-    # si tu modelo tiene campo nota:
     if hasattr(item, "nota"):
         item.nota = request.form.get("nota", "").strip()
 
     db.session.commit()
     flash("Ejercicio de la rutina actualizado", "success")
 
-    # este botón siempre vuelve al dashboard como pediste
     return redirect(url_for("main.dashboard_entrenador"))
 
 
@@ -513,7 +511,7 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
 
 # =============================================================
-# PARCHE: CREAR COLUMNA ejercicio_id EN rutina_item
+# PARCHE: COLUMNA ejercicio_id EN rutina_item
 # =============================================================
 @main_bp.route("/fix-ejercicio-columna")
 @login_required
@@ -522,7 +520,6 @@ def fix_ejercicio_columna():
         return "Acceso denegado", 403
 
     try:
-        # 1) Crear columna si no existe
         db.session.execute(
             text(
                 """
@@ -532,7 +529,6 @@ def fix_ejercicio_columna():
             )
         )
 
-        # 2) Crear la FK solo si no existe
         db.session.execute(
             text(
                 """
@@ -558,6 +554,48 @@ def fix_ejercicio_columna():
     except Exception as e:
         db.session.rollback()
         return f"ERROR aplicando parche: {e}", 500
+
+
+# =============================================================
+# PARCHE: COLUMNAS NUEVAS EN dia_plan
+# =============================================================
+@main_bp.route("/fix-diaplan-columnas")
+@login_required
+def fix_diaplan_columnas():
+    if current_user.email != "admin@vir.app":
+        return "Acceso denegado", 403
+
+    try:
+        db.session.execute(
+            text(
+                """
+            ALTER TABLE dia_plan
+            ADD COLUMN IF NOT EXISTS puede_entrenar TEXT;
+        """
+            )
+        )
+        db.session.execute(
+            text(
+                """
+            ALTER TABLE dia_plan
+            ADD COLUMN IF NOT EXISTS dificultad TEXT;
+        """
+            )
+        )
+        db.session.execute(
+            text(
+                """
+            ALTER TABLE dia_plan
+            ADD COLUMN IF NOT EXISTS comentario_atleta TEXT;
+        """
+            )
+        )
+
+        db.session.commit()
+        return "COLUMNAS dia_plan OK ✔", 200
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR aplicando parche dia_plan: {e}", 500
 
 
 # =============================================================

@@ -5,21 +5,15 @@ from datetime import datetime, timedelta, date
 from calendar import monthrange
 from typing import Any, Dict, List
 
-import os
-
 from flask import (
-    Blueprint,
-    render_template,
-    redirect,
-    url_for,
-    flash,
-    request,
-    jsonify,
-    current_app,
+    Blueprint, render_template, redirect, url_for,
+    flash, request, jsonify, current_app
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import text
+
 from werkzeug.utils import secure_filename
+import os
 
 from app.models import User, DiaPlan, Rutina, Ejercicio, RutinaItem
 from app.extensions import db
@@ -50,7 +44,7 @@ def month_dates(year: int, month: int) -> List[date]:
 
 
 def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
-    """Parse seguro YYYY-MM-DD."""
+    """Parse seguro YYYY-MM-DD"""
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
     except Exception:
@@ -83,6 +77,7 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
 
 
 def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
+    # OJO: usamos getattr por si alguna columna no existe aún en la tabla
     return {
         "id": p.id,
         "user_id": p.user_id,
@@ -100,7 +95,7 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
 
 
 # =============================================================
-# HOME / LOGIN / LOGOUT
+# HOME / LOGIN
 # =============================================================
 @main_bp.route("/")
 def index():
@@ -152,67 +147,64 @@ def perfil_redirect():
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id: int):
-    try:
-        user = User.query.get_or_404(user_id)
 
-        # Seguridad: atleta no puede ver otro perfil
-        if current_user.email != "admin@vir.app" and current_user.id != user.id:
-            flash("Acceso denegado", "danger")
-            return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+    user = User.query.get_or_404(user_id)
 
-        # Semana actual
-        fechas = week_dates()
-        planes_db = DiaPlan.query.filter(
+    # Seguridad: atleta no puede ver otro perfil
+    if current_user.email != "admin@vir.app" and current_user.id != user.id:
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+
+    # Semana + planes
+    fechas = week_dates()
+    planes_db = DiaPlan.query.filter(
+        DiaPlan.user_id == user.id,
+        DiaPlan.fecha.in_(fechas)
+    ).all()
+
+    planes = {p.fecha: p for p in planes_db}
+
+    # Crear entries vacías que falten
+    for f in fechas:
+        if f not in planes:
+            nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
+            planes[f] = nuevo
+            db.session.add(nuevo)
+    db.session.commit()
+
+    labels = [f.strftime("%d/%m") for f in fechas]
+    propuesto = [planes[f].propuesto_score or 0 for f in fechas]
+    realizado = [planes[f].realizado_score or 0 for f in fechas]
+
+    # MES COMPLETO
+    hoy = date.today()
+    dias_mes = month_dates(hoy.year, hoy.month)
+    planes_mes = {
+        p.fecha: p
+        for p in DiaPlan.query.filter(
             DiaPlan.user_id == user.id,
-            DiaPlan.fecha.in_(fechas),
+            DiaPlan.fecha.in_(dias_mes)
         ).all()
-        planes = {p.fecha: p for p in planes_db}
+    }
 
-        # Crear entradas vacías que falten
-        for f in fechas:
-            if f not in planes:
-                nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
-                planes[f] = nuevo
-                db.session.add(nuevo)
-        db.session.commit()
+    semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
-        labels = [f.strftime("%d/%m") for f in fechas]
-        propuesto = [planes[f].propuesto_score or 0 for f in fechas]
-        realizado = [planes[f].realizado_score or 0 for f in fechas]
+    rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
-        # Mes completo
-        hoy = date.today()
-        dias_mes = month_dates(hoy.year, hoy.month)
-        planes_mes = {
-            p.fecha: p
-            for p in DiaPlan.query.filter(
-                DiaPlan.user_id == user.id,
-                DiaPlan.fecha.in_(dias_mes),
-            ).all()
-        }
-
-        semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
-
-        rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
-
-        return render_template(
-            "perfil.html",
-            user=user,
-            fechas=fechas,
-            planes=planes,
-            labels=labels,
-            propuesto=propuesto,
-            realizado=realizado,
-            semana_str=semana_str,
-            hoy=hoy,
-            dias_mes=dias_mes,
-            planes_mes=planes_mes,
-            rutinas=rutinas,
-        )
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Error cargando perfil: {e}", "danger")
-        return redirect(url_for("main.index"))
+    return render_template(
+        "perfil.html",
+        user=user,
+        fechas=fechas,
+        planes=planes,
+        labels=labels,
+        propuesto=propuesto,
+        realizado=realizado,
+        semana_str=semana_str,
+        hoy=hoy,
+        dias_mes=dias_mes,
+        planes_mes=planes_mes,
+        rutinas=rutinas,
+    )
 
 
 # =============================================================
@@ -221,6 +213,7 @@ def perfil_usuario(user_id: int):
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
 def save_day():
+
     if current_user.email != "admin@vir.app":
         flash("Solo el admin puede editar entrenamientos", "danger")
         return redirect(url_for("main.perfil_redirect"))
@@ -241,6 +234,7 @@ def save_day():
 
     db.session.commit()
     flash("Entrenamiento actualizado", "success")
+
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
 
@@ -250,6 +244,7 @@ def save_day():
 @main_bp.route("/dia/feedback", methods=["POST"])
 @login_required
 def save_feedback():
+
     user_id = int(request.form["user_id"])
 
     if current_user.id != user_id and current_user.email != "admin@vir.app":
@@ -269,6 +264,7 @@ def save_feedback():
     plan.realizado_score = int(request.form.get("realizado_score", 0))
 
     db.session.commit()
+
     flash("Feedback guardado correctamente", "success")
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
@@ -296,16 +292,17 @@ def dashboard_entrenador():
         atletas=atletas,
         rutinas=rutinas,
         ejercicios=ejercicios_db,
-        hoy=hoy,
+        hoy=hoy
     )
 
 
 # =============================================================
-# CRUD USUARIOS (ADMIN)
+# CRUD USUARIOS
 # =============================================================
 @main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required
 def admin_delete_user(user_id: int):
+
     if current_user.email != "admin@vir.app":
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
@@ -330,6 +327,7 @@ def admin_delete_user(user_id: int):
 @main_bp.route("/crear_rutina", methods=["POST"])
 @login_required
 def crear_rutina():
+
     if current_user.email != "admin@vir.app":
         flash("Solo el admin puede crear rutinas", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
@@ -346,7 +344,7 @@ def crear_rutina():
         nombre=nombre,
         tipo=tipo,
         descripcion=descripcion,
-        created_by=current_user.id,
+        created_by=current_user.id
     )
     db.session.add(nueva)
     db.session.commit()
@@ -361,6 +359,7 @@ def crear_rutina():
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
 def admin_nuevo_ejercicio():
+
     if current_user.email != "admin@vir.app":
         flash("Solo el admin puede crear ejercicios", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
@@ -379,7 +378,8 @@ def admin_nuevo_ejercicio():
         flash("Nombre de archivo no válido", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    upload_folder = os.path.join(current_app.static_folder, "videos_ejercicios")
+    # ----- IMPORTANTÍSIMO: carpeta static/videos -----
+    upload_folder = os.path.join(current_app.static_folder, "videos")
     os.makedirs(upload_folder, exist_ok=True)
 
     save_path = os.path.join(upload_folder, filename)
@@ -389,8 +389,9 @@ def admin_nuevo_ejercicio():
         nombre=nombre,
         categoria=categoria,
         descripcion=descripcion,
-        video_filename=filename,
+        video_filename=filename
     )
+
     db.session.add(ejercicio)
     db.session.commit()
 
@@ -409,18 +410,14 @@ def rutina_builder(rutina_id: int):
         return redirect(url_for("main.perfil_redirect"))
 
     rutina = Rutina.query.get_or_404(rutina_id)
-    items = (
-        RutinaItem.query.filter_by(rutina_id=rutina.id)
-        .order_by(RutinaItem.id)
-        .all()
-    )
+    items = RutinaItem.query.filter_by(rutina_id=rutina.id).order_by(RutinaItem.id).all()
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
 
     return render_template(
         "rutina_builder.html",
         rutina=rutina,
         items=items,
-        ejercicios=ejercicios,
+        ejercicios=ejercicios
     )
 
 
@@ -446,6 +443,7 @@ def rutina_add_item(rutina_id: int):
     series = request.form.get("series", "").strip()
     reps = request.form.get("reps", "").strip()
     descanso = request.form.get("descanso", "").strip()
+    nota = request.form.get("nota", "").strip()
 
     item = RutinaItem(
         rutina_id=rutina.id,
@@ -454,7 +452,9 @@ def rutina_add_item(rutina_id: int):
         series=series,
         reps=reps,
         descanso=descanso,
-        video_url=f"videos_ejercicios/{ejercicio.video_filename}",
+        nota=nota,
+        # guardamos ruta relativa dentro de static
+        video_url=f"videos/{ejercicio.video_filename}",
     )
 
     db.session.add(item)
@@ -465,37 +465,9 @@ def rutina_add_item(rutina_id: int):
 
 
 # =============================================================
-# ACTUALIZAR EJERCICIO DE UNA RUTINA (GUARDAR Y VOLVER)
-# =============================================================
-@main_bp.route(
-    "/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"]
-)
-@login_required
-def rutina_update_item(rutina_id: int, item_id: int):
-    if current_user.email != "admin@vir.app":
-        flash("Solo el admin puede editar rutinas", "danger")
-        return redirect(url_for("main.perfil_redirect"))
-
-    item = RutinaItem.query.get_or_404(item_id)
-
-    item.series = request.form.get("series", "").strip()
-    item.reps = request.form.get("reps", "").strip()
-    item.descanso = request.form.get("descanso", "").strip()
-    if hasattr(item, "nota"):
-        item.nota = request.form.get("nota", "").strip()
-
-    db.session.commit()
-    flash("Ejercicio de la rutina actualizado", "success")
-
-    return redirect(url_for("main.dashboard_entrenador"))
-
-
-# =============================================================
 # ELIMINAR EJERCICIO DE UNA RUTINA
 # =============================================================
-@main_bp.route(
-    "/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"]
-)
+@main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
 @login_required
 def rutina_delete_item(rutina_id: int, item_id: int):
     if current_user.email != "admin@vir.app":
@@ -511,27 +483,22 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
 
 # =============================================================
-# PARCHE: COLUMNA ejercicio_id EN rutina_item
+# PARCHE: CREAR COLUMNA ejercicio_id EN rutina_item
 # =============================================================
 @main_bp.route("/fix-ejercicio-columna")
 @login_required
 def fix_ejercicio_columna():
+    # Solo el admin puede ejecutar este parche
     if current_user.email != "admin@vir.app":
         return "Acceso denegado", 403
 
     try:
-        db.session.execute(
-            text(
-                """
+        db.session.execute(text("""
             ALTER TABLE rutina_item
             ADD COLUMN IF NOT EXISTS ejercicio_id INTEGER;
-        """
-            )
-        )
+        """))
 
-        db.session.execute(
-            text(
-                """
+        db.session.execute(text("""
         DO $$
         BEGIN
             IF NOT EXISTS (
@@ -545,9 +512,7 @@ def fix_ejercicio_columna():
                 FOREIGN KEY (ejercicio_id) REFERENCES ejercicio(id);
             END IF;
         END$$;
-        """
-            )
-        )
+        """))
 
         db.session.commit()
         return "COLUMNA/FOREIGN KEY OK ✔", 200
@@ -559,38 +524,19 @@ def fix_ejercicio_columna():
 # =============================================================
 # PARCHE: COLUMNAS NUEVAS EN dia_plan
 # =============================================================
-@main_bp.route("/fix-diaplan-columnas")
+@main_bp.route("/fix-dia-plan")
 @login_required
-def fix_diaplan_columnas():
+def fix_dia_plan():
     if current_user.email != "admin@vir.app":
         return "Acceso denegado", 403
 
     try:
-        db.session.execute(
-            text(
-                """
+        db.session.execute(text("""
             ALTER TABLE dia_plan
-            ADD COLUMN IF NOT EXISTS puede_entrenar TEXT;
-        """
-            )
-        )
-        db.session.execute(
-            text(
-                """
-            ALTER TABLE dia_plan
-            ADD COLUMN IF NOT EXISTS dificultad TEXT;
-        """
-            )
-        )
-        db.session.execute(
-            text(
-                """
-            ALTER TABLE dia_plan
+            ADD COLUMN IF NOT EXISTS puede_entrenar VARCHAR(50),
+            ADD COLUMN IF NOT EXISTS dificultad VARCHAR(50),
             ADD COLUMN IF NOT EXISTS comentario_atleta TEXT;
-        """
-            )
-        )
-
+        """))
         db.session.commit()
         return "COLUMNAS dia_plan OK ✔", 200
     except Exception as e:

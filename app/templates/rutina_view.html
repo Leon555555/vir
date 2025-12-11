@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+{% block title %}Rutina {{ rutina.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 rutina-view-page">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="mb-1 text-uppercase">
+        🧨 Rutina: {{ rutina.nombre }}
+      </h2>
+      <p class="mb-0 text-muted">
+        Tipo: {{ rutina.tipo or '—' }}
+        {% if rutina.descripcion %}
+          · {{ rutina.descripcion }}
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="text-end">
+      <a href="{{ url_for('main.perfil_redirect') }}"
+         class="btn btn-outline-light btn-sm">
+        ← Volver al perfil
+      </a>
+      {% if current_user.email == "admin@vir.app" %}
+        <a href="{{ url_for('main.rutina_builder', rutina_id=rutina.id) }}"
+           class="btn btn-primary btn-sm ms-2">
+          ✏️ Editar rutina
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if items %}
+    <div class="row g-4">
+      {% for item in items %}
+        <div class="col-12">
+          <div class="card bg-dark border-secondary shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <div>
+                <span class="badge bg-info me-2">{{ loop.index }}</span>
+                <strong>{{ item.nombre }}</strong>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="row g-3 align-items-start">
+                <!-- Vídeo -->
+                <div class="col-lg-6">
+                  {% if item.video_url %}
+                    <video class="w-100 rounded" controls preload="metadata" style="max-height: 260px;">
+                      <source src="{{ url_for('static', filename=item.video_url) }}" type="video/mp4">
+                      Tu navegador no soporta vídeo HTML5.
+                    </video>
+                  {% else %}
+                    <div class="alert alert-secondary mb-0">
+                      Este ejercicio todavía no tiene vídeo asociado.
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- Datos del ejercicio -->
+                <div class="col-lg-6">
+                  <div class="row g-2 mb-2">
+                    <div class="col-4">
+                      <label class="form-label small mb-0 text-muted">Series</label>
+                      <div class="form-control form-control-sm bg-black text-light">
+                        {{ item.series or '—' }}
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <label class="form-label small mb-0 text-muted">Reps</label>
+                      <div class="form-control form-control-sm bg-black text-light">
+                        {{ item.reps or '—' }}
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <label class="form-label small mb-0 text-muted">Descanso</label>
+                      <div class="form-control form-control-sm bg-black text-light">
+                        {{ item.descanso or '—' }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <label class="form-label small mb-0 text-muted">Notas / indicaciones</label>
+                  <div class="form-control form-control-sm bg-black text-light"
+                       style="min-height: 60px; white-space: pre-line;">
+                    {{ item.nota or '—' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-warning">
+      Esta rutina todavía no tiene ejercicios añadidos.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -58,31 +58,69 @@
 
       <div class="week-grid">
         {% for f in fechas %}
-        {% set plan = planes[f] %}
-        {% set tipo = (plan.plan_type or 'descanso')|lower %}
-        {% set idx = loop.index %}
+          {% set plan = planes[f] %}
+          {% set tipo = (plan.plan_type or 'descanso')|lower %}
+          {% set idx = loop.index %}
 
-        <div class="day-card day-{{ tipo }}"
-             data-bs-toggle="modal"
-             data-bs-target="#modal{{ idx }}">
+          <div class="day-card day-{{ tipo }}"
+               data-bs-toggle="modal"
+               data-bs-target="#modal{{ idx }}">
 
-          <div class="d-flex justify-content-between mb-1">
-            <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
-            <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
+            <div class="d-flex justify-content-between mb-1">
+              <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
+              <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
+            </div>
+
+            <div class="small">
+              <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
+              <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
+              <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
+            </div>
+
+            {% if plan.puede_entrenar == 'no' %}
+              <div class="badge bg-danger w-100 mt-2">NO puede entrenar</div>
+            {% elif plan.puede_entrenar == 'si' %}
+              <div class="badge bg-success w-100 mt-2">OK para entrenar</div>
+            {% endif %}
+
+            {# ==== BOTÓN VER RUTINA EN VÍDEO (si el nombre coincide) ==== #}
+            {% if plan.main %}
+              {% set rutina_match = None %}
+              {% for r in rutinas %}
+                {% if r.nombre == plan.main %}
+                  {% set rutina_match = r %}
+                {% endif %}
+              {% endfor %}
+              {% if rutina_match %}
+                <a href="{{ url_for('main.rutina_view', rutina_id=rutina_match.id) }}"
+                   class="btn btn-sm btn-outline-info w-100 mt-2"
+                   onclick="event.stopPropagation();">
+                  🎥 Ver rutina en vídeo
+                </a>
+              {% endif %}
+            {% endif %}
+
+            {# ==== BOTÓN REALIZADO (solo atleta dueño) ==== #}
+            {% if current_user.id == user.id %}
+              {% if (plan.realizado_score or 0) == 0 %}
+                <form method="post"
+                      action="{{ url_for('main.marcar_realizado') }}"
+                      class="mt-2"
+                      onclick="event.stopPropagation();">
+                  <input type="hidden" name="user_id" value="{{ user.id }}">
+                  <input type="hidden" name="fecha" value="{{ f.strftime('%Y-%m-%d') }}">
+                  <button type="submit" class="btn btn-success btn-sm w-100">
+                    ✅ Realizado
+                  </button>
+                </form>
+              {% else %}
+                <div class="badge bg-success w-100 mt-2">
+                  ✅ Entrenamiento realizado
+                </div>
+              {% endif %}
+            {% endif %}
+
           </div>
-
-          <div class="small">
-            <div><strong>Calentamiento:</strong> {{ plan.warmup or '—' }}</div>
-            <div><strong>Bloque:</strong> {{ plan.main or '—' }}</div>
-            <div><strong>Final:</strong> {{ plan.finisher or '—' }}</div>
-          </div>
-
-          {% if plan.puede_entrenar == 'no' %}
-            <div class="badge bg-danger w-100 mt-2">NO puede entrenar</div>
-          {% elif plan.puede_entrenar == 'si' %}
-            <div class="badge bg-success w-100 mt-2">OK para entrenar</div>
-          {% endif %}
-        </div>
         {% endfor %}
       </div>
     </div>
@@ -101,62 +139,62 @@
 
       <div class="calendar-grid">
         {% for f in dias_mes %}
-        {% set plan_mes = planes_mes.get(f) %}
-        {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
+          {% set plan_mes = planes_mes.get(f) %}
+          {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
 
-        <div class="calendar-day day-{{ tipo_mes }}">
-          <div class="cal-header">
-            <span class="cal-day-num">{{ f.day }}</span>
-            <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
+          <div class="calendar-day day-{{ tipo_mes }}">
+            <div class="cal-header">
+              <span class="cal-day-num">{{ f.day }}</span>
+              <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
+            </div>
+
+            {% if plan_mes %}
+              <div class="event-pill event-{{ tipo_mes }}">
+                <span class="event-icon">
+                  {% if tipo_mes == 'fuerza' %}
+                    <i class="bi bi-barbell"></i>
+                  {% elif tipo_mes == 'pista' %}
+                    <i class="bi bi-speedometer2"></i>
+                  {% elif tipo_mes == 'bike' %}
+                    <i class="bi bi-bicycle"></i>
+                  {% elif tipo_mes == 'natacion' %}
+                    <i class="bi bi-droplet"></i>
+                  {% else %}
+                    <i class="bi bi-moon-stars"></i>
+                  {% endif %}
+                </span>
+                <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
+              </div>
+
+              {% if plan_mes.puede_entrenar %}
+                <div class="event-pill {% if plan_mes.puede_entrenar=='no' %}event-state-no{% else %}event-state-ok{% endif %}">
+                  <span class="event-text">
+                    {% if plan_mes.puede_entrenar == 'no' %}No puede entrenar{% else %}OK para entrenar{% endif %}
+                  </span>
+                </div>
+              {% endif %}
+
+              {% if plan_mes.dificultad %}
+                <div class="event-pill event-diff event-diff-{{ plan_mes.dificultad }}">
+                  <span class="event-text">
+                    {% if plan_mes.dificultad == 'facil' %}Fácil
+                    {% elif plan_mes.dificultad == 'media' %}Media
+                    {% elif plan_mes.dificultad == 'dura' %}Dura
+                    {% endif %}
+                  </span>
+                </div>
+              {% endif %}
+
+              {% if plan_mes.comentario_atleta %}
+                <div class="event-pill event-comment">
+                  <span class="event-icon"><i class="bi bi-chat-dots"></i></span>
+                  <span class="event-text">Comentario del atleta</span>
+                </div>
+              {% endif %}
+            {% else %}
+              <span class="plan-empty mt-2">Sin plan</span>
+            {% endif %}
           </div>
-
-          {% if plan_mes %}
-            <div class="event-pill event-{{ tipo_mes }}">
-              <span class="event-icon">
-                {% if tipo_mes == 'fuerza' %}
-                  <i class="bi bi-barbell"></i>
-                {% elif tipo_mes == 'pista' %}
-                  <i class="bi bi-speedometer2"></i>
-                {% elif tipo_mes == 'bike' %}
-                  <i class="bi bi-bicycle"></i>
-                {% elif tipo_mes == 'natacion' %}
-                  <i class="bi bi-droplet"></i>
-                {% else %}
-                  <i class="bi bi-moon-stars"></i>
-                {% endif %}
-              </span>
-              <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
-            </div>
-
-            {% if plan_mes.puede_entrenar %}
-            <div class="event-pill {% if plan_mes.puede_entrenar=='no' %}event-state-no{% else %}event-state-ok{% endif %}">
-              <span class="event-text">
-                {% if plan_mes.puede_entrenar == 'no' %}No puede entrenar{% else %}OK para entrenar{% endif %}
-              </span>
-            </div>
-            {% endif %}
-
-            {% if plan_mes.dificultad %}
-            <div class="event-pill event-diff event-diff-{{ plan_mes.dificultad }}">
-              <span class="event-text">
-                {% if plan_mes.dificultad == 'facil' %}Fácil
-                {% elif plan_mes.dificultad == 'media' %}Media
-                {% elif plan_mes.dificultad == 'dura' %}Dura
-                {% endif %}
-              </span>
-            </div>
-            {% endif %}
-
-            {% if plan_mes.comentario_atleta %}
-            <div class="event-pill event-comment">
-              <span class="event-icon"><i class="bi bi-chat-dots"></i></span>
-              <span class="event-text">Comentario del atleta</span>
-            </div>
-            {% endif %}
-          {% else %}
-            <span class="plan-empty mt-2">Sin plan</span>
-          {% endif %}
-        </div>
         {% endfor %}
       </div>
     </div>
@@ -190,13 +228,15 @@
   </section>
 
   <!-- ====================== -->
-  <!-- RUTINAS -->
+  <!-- RUTINAS (COMPONENTE OPCIONAL) -->
   <!-- ====================== -->
-  {% include "components/rutinas.html" %}
+  {# Si tienes componente, lo dejamos #}
+  {# {% include "components/rutinas.html" %} #}
 
 </div>
 
-{% include "components/modales.html" %}
+{# Si tienes modales definidos aparte, los puedes seguir incluyendo #}
+{# {% include "components/modales.html" %} #}
 
 {% endblock %}
 

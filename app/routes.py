@@ -77,7 +77,7 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
 
 
 def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
-    # OJO: usamos getattr por si alguna columna no existe aún en la tabla
+    # usamos getattr por si alguna columna todavía no existe en BD
     return {
         "id": p.id,
         "user_id": p.user_id,
@@ -378,8 +378,8 @@ def admin_nuevo_ejercicio():
         flash("Nombre de archivo no válido", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    # ----- IMPORTANTÍSIMO: carpeta static/videos -----
-    upload_folder = os.path.join(current_app.static_folder, "videos")
+    # === Carpeta real donde deben ir los MP4 ===
+    upload_folder = os.path.join(current_app.static_folder, "videos_ejercicios")
     os.makedirs(upload_folder, exist_ok=True)
 
     save_path = os.path.join(upload_folder, filename)
@@ -453,8 +453,8 @@ def rutina_add_item(rutina_id: int):
         reps=reps,
         descanso=descanso,
         nota=nota,
-        # guardamos ruta relativa dentro de static
-        video_url=f"videos/{ejercicio.video_filename}",
+        # ruta relativa dentro de static (coincide con dashboard)
+        video_url=f"videos_ejercicios/{ejercicio.video_filename}",
     )
 
     db.session.add(item)
@@ -462,6 +462,37 @@ def rutina_add_item(rutina_id: int):
 
     flash("Ejercicio añadido a la rutina", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+
+
+# =============================================================
+# ACTUALIZAR UN EJERCICIO DE LA RUTINA (GUARDAR CAMBIOS)
+# =============================================================
+@main_bp.route(
+    "/rutinas/<int:rutina_id>/items/<int:item_id>/update",
+    methods=["POST"]
+)
+@login_required
+def rutina_update_item(rutina_id: int, item_id: int):
+    """
+    Guarda cambios de series, reps, descanso y nota
+    y vuelve al dashboard del entrenador.
+    """
+    if current_user.email != "admin@vir.app":
+        flash("Solo el admin puede editar rutinas", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    item = RutinaItem.query.get_or_404(item_id)
+
+    item.series = request.form.get("series", "").strip()
+    item.reps = request.form.get("reps", "").strip()
+    item.descanso = request.form.get("descanso", "").strip()
+    item.nota = request.form.get("nota", "").strip()
+
+    db.session.commit()
+
+    flash("Ejercicio de la rutina actualizado", "success")
+    # Texto del botón: "Guardar cambios y volver al dashboard"
+    return redirect(url_for("main.dashboard_entrenador"))
 
 
 # =============================================================

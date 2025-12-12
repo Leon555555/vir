@@ -81,7 +81,7 @@
     padding: 1rem 1.25rem 1.25rem 1.25rem;
   }
 
-  /* ===== GRID SEMANAL (tipo MyWellness) ===== */
+  /* ===== GRID SEMANAL ===== */
   .week-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -127,6 +127,11 @@
     font-size: 0.8rem;
   }
 
+  .day-header-icon {
+    font-size: 1rem;
+    margin-right: 0.25rem;
+  }
+
   .badge-plan {
     font-size: 0.7rem;
     border-radius: 999px;
@@ -158,11 +163,23 @@
     color: #d0d0d0;
   }
 
-  .day-body-line {
-    white-space: nowrap;
+  .day-main-type {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 0.25rem;
+    margin-bottom: 0.15rem;
+    color: #e5e5e5;
+  }
+
+  .day-summary {
+    font-size: 0.75rem;
+    color: #b3b3b3;
+    min-height: 1.4em;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #ccc;
+    white-space: nowrap;
   }
 
   .state-pill {
@@ -264,7 +281,7 @@
     color: #777;
   }
 
-  /* ===== BLOQUE RUTINAS DISPONIBLES ===== */
+  /* ===== BLOQUE RUTINAS ===== */
   .rutinas-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -318,7 +335,7 @@
     color: #52525b;
   }
 
-  /* ===== PROGRESO (CHART WRAPPER) ===== */
+  /* ===== PROGRESO ===== */
   .chart-box {
     height: 260px;
   }
@@ -378,6 +395,22 @@
           {% set plan = planes[f] %}
           {% set tipo = (plan.plan_type or 'descanso')|lower %}
           {% set idx = loop.index %}
+          {% set badge_class =
+            'badge-' + (tipo if tipo in ['fuerza','pista','bike','natacion'] else 'descanso')
+          %}
+          {% set icon_class =
+            'bi-barbell' if tipo == 'fuerza'
+            else 'bi-speedometer2' if tipo in ['pista','run']
+            else 'bi-bicycle' if tipo == 'bike'
+            else 'bi-droplet' if tipo == 'natacion'
+            else 'bi-moon-stars'
+          %}
+          {% set main_text = plan.main or '' %}
+          {% set resumen =
+             main_text if main_text
+             else ('Sesión de ' ~ plan.plan_type|lower) if tipo != 'descanso'
+             else 'Recuperación / sin entrenamiento'
+          %}
 
           <div class="day-card day-{{ tipo }}"
                data-bs-toggle="modal"
@@ -387,40 +420,35 @@
               <div class="day-title">
                 {{ f.strftime('%a')|upper }} {{ '%02d'|format(f.day) }}
               </div>
-
-              {% set badge_class =
-                'badge-' +
-                (tipo if tipo in ['fuerza','pista','bike','natacion'] else 'descanso')
-              %}
-              <span class="badge-plan {{ badge_class }}">
-                {{ plan.plan_type|default('Descanso')|capitalize }}
-              </span>
+              <div class="d-flex align-items-center">
+                <i class="day-header-icon bi {{ icon_class }}"></i>
+                <span class="badge-plan {{ badge_class }}">
+                  {{ plan.plan_type|default('Descanso')|capitalize }}
+                </span>
+              </div>
             </div>
 
-            <div class="day-body">
-              <div class="day-body-line">
-                <span class="text-muted">Calent:</span>
-                {{ plan.warmup or '—' }}
-              </div>
-              <div class="day-body-line">
-                <span class="text-muted">Bloque:</span>
-                {{ plan.main or '—' }}
-              </div>
-              <div class="day-body-line">
-                <span class="text-muted">Final:</span>
-                {{ plan.finisher or '—' }}
-              </div>
-
-              {% if plan.puede_entrenar == 'no' %}
-                <div class="state-pill state-no mt-1">
-                  NO puede entrenar
-                </div>
-              {% elif plan.puede_entrenar == 'si' %}
-                <div class="state-pill state-ok mt-1">
-                  OK para entrenar
-                </div>
+            <div class="day-main-type">
+              {% if tipo == 'descanso' %}
+                DESCANSO
+              {% else %}
+                {{ plan.plan_type|upper }}
               {% endif %}
             </div>
+
+            <div class="day-summary">
+              {{ resumen }}
+            </div>
+
+            {% if plan.puede_entrenar == 'no' %}
+              <div class="state-pill state-no mt-1">
+                NO puede entrenar
+              </div>
+            {% elif plan.puede_entrenar == 'si' %}
+              <div class="state-pill state-ok mt-1">
+                OK para entrenar
+              </div>
+            {% endif %}
           </div>
           {% endfor %}
         </div>
@@ -454,7 +482,7 @@
                 <span class="event-icon">
                   {% if tipo_mes == 'fuerza' %}
                     <i class="bi bi-barbell"></i>
-                  {% elif tipo_mes == 'pista' %}
+                  {% elif tipo_mes == 'pista' or 'run' in tipo_mes %}
                     <i class="bi bi-speedometer2"></i>
                   {% elif tipo_mes == 'bike' %}
                     <i class="bi bi-bicycle"></i>
@@ -524,7 +552,7 @@
     </div>
   </section>
 
-  <!-- ========= TAB: RUTINAS DISPONIBLES ========= -->
+  <!-- ========= TAB: RUTINAS ========= -->
   <section id="tab-rutinas" class="vr-tab">
     <div class="card-vr mb-4">
       <div class="card-vr-header d-flex justify-content-between align-items-center">
@@ -571,18 +599,17 @@
     </div>
   </section>
 
-  <!-- MODALES DE LOS DÍAS (ya los tenías en otro include, opcional) -->
+  <!-- MODALES DE LOS DÍAS -->
   {% include "components/modales.html" %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Si en layout ya cargas Chart.js, puedes quitar esta línea -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  // ----- Tabs -----
+  // Tabs
   const tabs = document.querySelectorAll(".nav-vr-tabs .nav-link");
   const sections = {
     semana: document.getElementById("tab-semana"),
@@ -606,7 +633,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   activateTab("semana");
 
-  // ----- Gráfico Progreso -----
+  // Gráfico Progreso
   const ctx = document.getElementById("graficoProgreso");
   if (ctx) {
     const labels = {{ labels|tojson }};
@@ -618,14 +645,8 @@ document.addEventListener("DOMContentLoaded", function () {
       data: {
         labels: labels,
         datasets: [
-          {
-            label: "Propuesto",
-            data: propuesto,
-          },
-          {
-            label: "Realizado",
-            data: realizado,
-          },
+          { label: "Propuesto", data: propuesto },
+          { label: "Realizado", data: realizado },
         ],
       },
       options: {

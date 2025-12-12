@@ -1,159 +1,110 @@
+{# app/templates/components/modales.html #}
+
 {% for f in fechas %}
   {% set plan = planes[f] %}
-  {% set tipo = (plan.plan_type or "descanso")|lower %}
   {% set idx = loop.index %}
 
-  {# =============================== #}
-  {#   MODAL ADMIN - EDITA TODO      #}
-  {# =============================== #}
-  {% if current_user.email == "admin@vir.app" %}
   <div class="modal fade" id="modal{{ idx }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content modal-pro">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content bg-dark text-light border-secondary">
 
-        <div class="modal-header border-info">
-          <h5 class="modal-title text-info fw-bold">
-            <i class="bi bi-pencil-square me-2"></i>
-            {{ f.strftime('%A %d/%m')|capitalize }} — Editar entrenamiento
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title">
+            {{ f.strftime('%A %d/%m')|capitalize }} — {{ plan.plan_type|capitalize }}
           </h5>
-          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
 
         <div class="modal-body">
-          <form action="{{ url_for('main.save_day') }}" method="POST">
 
-            <input type="hidden" name="user_id" value="{{ user.id }}">
-            <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
+          <div class="mb-3">
+            <div class="small text-muted">Warmup</div>
+            <div class="p-2 rounded bg-black">{{ plan.warmup or "—" }}</div>
+          </div>
 
-            <!-- Tipo -->
-            <label class="form-label text-info">Tipo de día</label>
-            <select name="plan_type" class="form-select form-select-sm bg-black text-light border-info mb-3">
-              {% for t in ["descanso","fuerza","pista","bike","natacion"] %}
-              <option value="{{ t }}" {% if plan.plan_type == t %}selected{% endif %}>
-                {{ t|capitalize }}
-              </option>
+          <div class="mb-3">
+            <div class="small text-muted">Main</div>
+            <div class="p-2 rounded bg-black">{{ plan.main or "—" }}</div>
+          </div>
+
+          <div class="mb-3">
+            <div class="small text-muted">Finisher</div>
+            <div class="p-2 rounded bg-black">{{ plan.finisher or "—" }}</div>
+          </div>
+
+          {# =============================
+             RUTINA ASIGNADA (si existe)
+             ============================= #}
+          {% if plan.rutina_id %}
+            {% set rutina = plan.rutina %}
+            <hr class="border-secondary">
+
+            <h6 class="mb-2">🏋️ Rutina: {{ rutina.nombre }}</h6>
+
+            <div class="row g-3">
+              {% for item in rutina.items %}
+                <div class="col-12">
+                  <div class="card bg-black border-secondary">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                          <strong>{{ loop.index }}. {{ item.nombre }}</strong>
+                          <div class="text-muted small">
+                            {{ item.series or "—" }} series · {{ item.reps or "—" }} reps · {{ item.descanso or "—" }} descanso
+                          </div>
+                        </div>
+                      </div>
+
+                      {% if item.video_url %}
+                        <video class="w-100 rounded mt-2" controls preload="metadata" style="max-height:240px;">
+                          <source src="{{ url_for('static', filename=item.video_url) }}" type="video/mp4">
+                        </video>
+                      {% endif %}
+
+                      {% if item.nota %}
+                        <div class="mt-2 small text-info">📝 {{ item.nota }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
               {% endfor %}
-            </select>
+            </div>
+          {% endif %}
 
-            <!-- Calentamiento -->
-            <label class="form-label text-info">Calentamiento</label>
-            <textarea name="warmup" class="form-control bg-black text-light border-info mb-3"
-                      rows="2">{{ plan.warmup or "" }}</textarea>
+          <hr class="border-secondary">
 
-            <!-- Entrenamiento -->
-            <label class="form-label text-info">Bloque principal</label>
-            <textarea name="main" class="form-control bg-black text-light border-info mb-3"
-                      rows="3">{{ plan.main or "" }}</textarea>
-
-            <!-- Final -->
-            <label class="form-label text-info">Bloque final</label>
-            <textarea name="finisher" class="form-control bg-black text-light border-info mb-3"
-                      rows="2">{{ plan.finisher or "" }}</textarea>
-
-            <!-- Score -->
-            <div class="d-flex gap-3">
-              <div>
-                <label class="form-label text-secondary">Score propuesto</label>
-                <input type="number" name="propuesto_score"
-                       class="form-control bg-black text-light border-info"
-                       value="{{ plan.propuesto_score or 0 }}" min="0" max="10">
+          {# =============================
+             ATLETA: marcar realizado
+             ============================= #}
+          <form method="post" action="{{ url_for('main.plan_marcar_realizado', plan_id=plan.id) }}">
+            <div class="row g-2">
+              <div class="col-md-3">
+                <label class="form-label small text-muted">¿Realizado?</label>
+                <select class="form-select form-select-sm" name="realizado">
+                  <option value="0" {% if not plan.realizado %}selected{% endif %}>No</option>
+                  <option value="1" {% if plan.realizado %}selected{% endif %}>Sí ✅</option>
+                </select>
               </div>
-              <div>
-                <label class="form-label text-secondary">Score realizado</label>
-                <input type="number" name="realizado_score"
-                       class="form-control bg-black text-light border-info"
-                       value="{{ plan.realizado_score or 0 }}" min="0" max="10">
+
+              <div class="col-md-3">
+                <label class="form-label small text-muted">RPE (opcional)</label>
+                <input class="form-control form-control-sm" type="number" min="1" max="10" name="rpe" value="{{ plan.rpe or '' }}">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small text-muted">Comentario (opcional)</label>
+                <input class="form-control form-control-sm" name="comentario_atleta" value="{{ plan.comentario_atleta or '' }}">
               </div>
             </div>
 
-            <button class="btn btn-glow w-100 mt-4 btn btn-info">
-              <i class="bi bi-save2 me-2"></i>Guardar cambios
+            <button class="btn btn-info btn-sm w-100 mt-3" type="submit">
+              Guardar (Realizado / Comentario)
             </button>
-
-          </form>
-
-          {% if plan.comentario_atleta %}
-          <hr class="border-info">
-
-          <div class="p-2 bg-black rounded border border-info small">
-            <i class="bi bi-chat-text me-1"></i>
-            <strong>Comentario del atleta:</strong>
-            <p class="mt-2">{{ plan.comentario_atleta }}</p>
-          </div>
-          {% endif %}
-
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% else %}
-
-  {# =============================== #}
-  {#      MODAL ATLETA (FEEDBACK)    #}
-  {# =============================== #}
-  <div class="modal fade" id="modal{{ idx }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content modal-pro">
-
-        <div class="modal-header border-info">
-          <h5 class="modal-title text-info fw-bold">
-            <i class="bi bi-chat-left-quote me-2"></i>
-            Feedback del día — {{ f.strftime('%A %d/%m') }}
-          </h5>
-          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-
-        <div class="modal-body">
-
-          <div class="bg-black p-3 border rounded border-secondary mb-3 small">
-            <strong>Plan del día:</strong><br>
-            Tipo: {{ plan.plan_type|capitalize }}<br>
-            Calentamiento: {{ plan.warmup or '—' }}<br>
-            Entrenamiento: {{ plan.main or '—' }}<br>
-            Final: {{ plan.finisher or '—' }}
-          </div>
-
-          <form action="{{ url_for('main.save_feedback') }}" method="POST">
-
-            <input type="hidden" name="user_id" value="{{ user.id }}">
-            <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
-
-            <!-- Puede entrenar -->
-            <label class="form-label text-info">¿Podés entrenar este día?</label>
-            <select name="puede_entrenar"
-                    class="form-select form-select-sm bg-black text-light border-info mb-3">
-              <option value="">Sin respuesta</option>
-              <option value="si" {% if plan.puede_entrenar=='si' %}selected{% endif %}>Sí</option>
-              <option value="no" {% if plan.puede_entrenar=='no' %}selected{% endif %}>No</option>
-            </select>
-
-            <!-- Dificultad -->
-            <label class="form-label text-info">¿Cómo te fue?</label>
-            <select name="dificultad"
-                    class="form-select form-select-sm bg-black text-light border-info mb-3">
-              <option value="">No realicé</option>
-              <option value="facil" {% if plan.dificultad=='facil' %}selected{% endif %}>Fácil</option>
-              <option value="media" {% if plan.dificultad=='media' %}selected{% endif %}>Media</option>
-              <option value="dura" {% if plan.dificultad=='dura' %}selected{% endif %}>Dura</option>
-            </select>
-
-            <!-- Comentario -->
-            <label class="form-label text-info">Comentario</label>
-            <textarea name="comentario_atleta"
-                      class="form-control bg-black text-light border-info mb-3"
-                      rows="3">{{ plan.comentario_atleta or '' }}</textarea>
-
-            <button class="btn btn-glow w-100 mt-2 btn btn-info">
-              <i class="bi bi-save2 me-2"></i>Guardar feedback
-            </button>
-
           </form>
 
         </div>
+
       </div>
     </div>
   </div>
-
-  {% endif %}
 {% endfor %}

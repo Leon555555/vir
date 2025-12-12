@@ -10,6 +10,7 @@
   </h2>
 
   <div class="row g-4">
+
     <!-- ===================================================== -->
     <!--        BLOQUE IZQUIERDO: RUTINAS                     -->
     <!-- ===================================================== -->
@@ -58,7 +59,7 @@
                 <div>
                   <strong>{{ r.nombre }}</strong>
                   {% if r.tipo %}
-                    <span class="badge bg-info ms-2">{{ r.tipo }}</span>
+                    <span class="badge bg-info ms-2 text-dark">{{ r.tipo }}</span>
                   {% endif %}
                   {% if r.descripcion %}
                     <small class="text-muted ms-2">{{ r.descripcion }}</small>
@@ -66,7 +67,7 @@
                 </div>
                 <a href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}"
                    class="btn btn-sm btn-outline-light">
-                  Editar
+                  Editar rutina
                 </a>
               </li>
             {% else %}
@@ -75,6 +76,7 @@
               </li>
             {% endfor %}
           </ul>
+
         </div>
       </div>
     </div>
@@ -129,19 +131,19 @@
           </form>
 
           <!-- Tarjetas de ejercicios con vídeo -->
-          <div class="row">
+          <div class="row g-3">
             {% for ej in ejercicios %}
-              <div class="col-md-4 mb-3">
-                <div class="card bg-secondary bg-opacity-25 border-0 h-100">
-                  <div class="card-header py-2">
+              <div class="col-md-4">
+                <div class="card bg-secondary bg-opacity-10 border-secondary h-100">
+                  <div class="card-header py-2 border-secondary">
                     <strong class="small">{{ ej.nombre }}</strong><br>
                     {% if ej.categoria %}
-                      <span class="badge bg-info">{{ ej.categoria }}</span>
+                      <span class="badge bg-info text-dark">{{ ej.categoria }}</span>
                     {% endif %}
                   </div>
                   <div class="card-body p-2">
                     <video class="w-100 rounded" controls preload="metadata" style="max-height: 170px;">
-                      <source src="{{ url_for('static', filename='videos_ejercicios/' ~ ej.video_filename) }}"
+                      <source src="{{ url_for('static', filename='videos/' ~ ej.video_filename) }}"
                               type="video/mp4">
                       Tu navegador no soporta vídeo HTML5.
                     </video>
@@ -152,9 +154,11 @@
               <p class="text-muted">Todavía no has subido ejercicios al banco.</p>
             {% endfor %}
           </div>
+
         </div>
       </div>
     </div>
+
   </div>
 
   <!-- ========================================================= -->
@@ -165,10 +169,8 @@
       <div class="card bg-dark border-secondary shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Atletas</h5>
-          {# Botón "Nuevo atleta" se activará cuando exista la ruta main.nuevo_atleta
-          <a href="{{ url_for('main.nuevo_atleta') }}" class="btn btn-sm btn-primary">➕ Nuevo atleta</a>
-          #}
         </div>
+
         <div class="card-body">
           <div class="table-responsive">
             <table class="table table-dark table-striped align-middle mb-0">
@@ -177,7 +179,7 @@
                   <th>Nombre</th>
                   <th>Email</th>
                   <th>Grupo</th>
-                  <th style="width: 220px;">Acciones</th>
+                  <th style="width: 340px;">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -188,10 +190,20 @@
                     <td>{{ atleta.grupo or "—" }}</td>
                     <td>
                       <div class="btn-group btn-group-sm" role="group">
+
+                        <!-- ✅ NUEVO: PLANIFICAR -->
+                        <a href="{{ url_for('main.coach_planificador', user_id=atleta.id) }}"
+                           class="btn btn-info">
+                          Planificar
+                        </a>
+
+                        <!-- Ver como atleta -->
                         <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}"
                            class="btn btn-outline-light">
                           Ver perfil
                         </a>
+
+                        <!-- Eliminar -->
                         <form method="post"
                               action="{{ url_for('main.admin_delete_user', user_id=atleta.id) }}"
                               onsubmit="return confirm('¿Eliminar a {{ atleta.nombre }}? Esta acción no se puede deshacer.');">
@@ -199,6 +211,7 @@
                             Eliminar
                           </button>
                         </form>
+
                       </div>
                     </td>
                   </tr>
@@ -213,6 +226,7 @@
             </table>
           </div>
         </div>
+
       </div>
     </div>
   </div>

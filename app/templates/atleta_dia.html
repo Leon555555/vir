@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% block title %}Entrenamiento — {{ user.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-0">📅 {{ fecha.strftime('%d/%m/%Y') }}</h3>
+      <div class="text-muted small">{{ user.nombre }} • {{ user.email }}</div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-light" href="{{ url_for('main.perfil_usuario', user_id=user.id) }}">
+        ← Volver
+      </a>
+      {% if current_user.email == "admin@vir.app" %}
+      <a class="btn btn-outline-info" href="{{ url_for('main.dashboard_entrenador') }}">
+        Dashboard
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card bg-dark border-secondary shadow-sm mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="badge bg-info text-dark text-uppercase">{{ plan.plan_type or "descanso" }}</span>
+          {% if realizado %}
+            <span class="badge bg-success ms-2">REALIZADO ✅</span>
+          {% endif %}
+        </div>
+
+        {% if not realizado %}
+        <form method="post"
+              action="{{ url_for('main.atleta_marcar_realizado', user_id=user.id, fecha_ymd=fecha.strftime('%Y-%m-%d')) }}">
+          <button class="btn btn-success">
+            ✅ Marcar como realizado
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <hr class="border-secondary">
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="small text-muted">Calentamiento</div>
+          <div class="text-light">{{ plan.warmup or "—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="small text-muted">Bloque principal</div>
+          <div class="text-light">{{ plan.main or "—" }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="small text-muted">Final</div>
+          <div class="text-light">{{ plan.finisher or "—" }}</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  {% if rutina %}
+  <div class="card bg-dark border-secondary shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>🏋️ Rutina: {{ rutina.nombre }}</strong>
+      {% if rutina.tipo %}
+        <span class="badge bg-info text-dark">{{ rutina.tipo }}</span>
+      {% endif %}
+    </div>
+
+    <div class="card-body">
+      {% if items %}
+        <div class="row">
+          {% for item in items %}
+          <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card bg-secondary bg-opacity-25 border-0 h-100">
+              <div class="card-body">
+                <div class="fw-bold text-light">{{ item.nombre }}</div>
+
+                <div class="text-muted small mb-2">
+                  {% if item.series %}Series: {{ item.series }}{% endif %}
+                  {% if item.reps %} • Reps: {{ item.reps }}{% endif %}
+                  {% if item.descanso %}<br>Descanso: {{ item.descanso }}{% endif %}
+                </div>
+
+                {% if item.video_url %}
+                <video class="w-100 rounded" controls preload="metadata" style="max-height: 240px;">
+                  <source src="{{ url_for('static', filename=item.video_url) }}" type="video/mp4">
+                  Tu navegador no soporta vídeo HTML5.
+                </video>
+                {% else %}
+                  <div class="text-muted small">Sin video</div>
+                {% endif %}
+
+                {% if item.nota %}
+                  <div class="mt-2 text-light small">📝 {{ item.nota }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-muted">Esta rutina todavía no tiene ejercicios.</div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+    <div class="alert alert-dark border-secondary mt-3">
+      No hay rutina asignada a este día (todavía).
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

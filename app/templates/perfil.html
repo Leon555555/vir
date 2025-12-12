@@ -1,615 +1,157 @@
 {% extends "layout.html" %}
 {% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
 
-{% block extra_css %}
-<style>
-  /* ===== CONTENEDOR GENERAL PERFIL ===== */
-  .perfil-wrapper {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1.5rem 0 3rem 0;
-    color: #f5f5f5;
-  }
-
-  .perfil-header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-
-  .perfil-logo {
-    height: 70px;
-    margin-bottom: 0.5rem;
-  }
-
-  .perfil-nombre {
-    font-size: 1.8rem;
-    letter-spacing: 0.05em;
-    font-weight: 700;
-  }
-
-  .perfil-sub {
-    font-size: 0.9rem;
-    color: #bbb;
-  }
-
-  /* ===== TABS SUPERIORES ===== */
-  .nav-vr-tabs {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .nav-vr-tabs .nav-link {
-    border: none;
-    color: #999;
-    padding: 0.5rem 1.5rem;
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  .nav-vr-tabs .nav-link.active {
-    color: #00e6ff;
-    border-bottom: 2px solid #00e6ff;
-    background: transparent;
-  }
-
-  .nav-vr-tabs .nav-link:hover {
-    color: #fff;
-  }
-
-  /* ===== CONTENIDOS TABS ===== */
-  .vr-tab {
-    display: none;
-  }
-
-  .vr-tab.active {
-    display: block;
-  }
-
-  .card-vr {
-    background: radial-gradient(circle at top left, #20242b 0%, #080a0f 65%);
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
-  }
-
-  .card-vr-header {
-    padding: 1rem 1.25rem 0.5rem 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  }
-
-  .card-vr-body {
-    padding: 1rem 1.25rem 1.25rem 1.25rem;
-  }
-
-  /* ===== GRID SEMANAL ===== */
-  .week-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.75rem;
-  }
-
-  @media (max-width: 992px) {
-    .week-grid {
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(180px, 1fr);
-      display: grid;
-      overflow-x: auto;
-      padding-bottom: 0.5rem;
-    }
-  }
-
-  .day-card {
-    border-radius: 12px;
-    padding: 0.7rem 0.75rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, border 0.12s;
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    background: linear-gradient(160deg, #14161d 0%, #090a0f 100%);
-  }
-
-  .day-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
-    border-color: rgba(0, 230, 255, 0.4);
-  }
-
-  .day-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.35rem;
-  }
-
-  .day-title {
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    font-size: 0.8rem;
-  }
-
-  .day-header-icon {
-    font-size: 1rem;
-    margin-right: 0.25rem;
-  }
-
-  .badge-plan {
-    font-size: 0.7rem;
-    border-radius: 999px;
-    padding: 0.15rem 0.5rem;
-  }
-
-  .badge-fuerza {
-    background: rgba(255, 79, 118, 0.2);
-    color: #ff4f76;
-  }
-
-  .badge-pista {
-    background: rgba(0, 224, 255, 0.2);
-    color: #00e0ff;
-  }
-
-  .badge-bike {
-    background: rgba(75, 255, 139, 0.17);
-    color: #4bff8b;
-  }
-
-  .badge-natacion {
-    background: rgba(0, 154, 255, 0.2);
-    color: #29aaff;
-  }
-
-  .badge-descanso {
-    background: rgba(142, 142, 142, 0.18);
-    color: #d0d0d0;
-  }
-
-  .day-main-type {
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-top: 0.25rem;
-    margin-bottom: 0.15rem;
-    color: #e5e5e5;
-  }
-
-  .day-summary {
-    font-size: 0.75rem;
-    color: #b3b3b3;
-    min-height: 1.4em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .state-pill {
-    margin-top: 0.4rem;
-    border-radius: 999px;
-    padding: 0.15rem 0.5rem;
-    font-size: 0.7rem;
-    text-align: center;
-  }
-
-  .state-ok {
-    background: rgba(34, 197, 94, 0.18);
-    color: #34d399;
-  }
-
-  .state-no {
-    background: rgba(248, 113, 113, 0.18);
-    color: #fca5a5;
-  }
-
-  /* ===== CALENDARIO MENSUAL ===== */
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.4rem;
-    font-size: 0.75rem;
-  }
-
-  @media (max-width: 992px) {
-    .calendar-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-  }
-
-  .calendar-day {
-    border-radius: 10px;
-    padding: 0.4rem 0.4rem 0.55rem 0.4rem;
-    background: #101018;
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    min-height: 60px;
-  }
-
-  .cal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 0.1rem;
-  }
-
-  .cal-day-num {
-    font-weight: 700;
-    font-size: 0.8rem;
-  }
-
-  .cal-weekday {
-    font-size: 0.65rem;
-    color: #999;
-  }
-
-  .event-pill {
-    border-radius: 999px;
-    padding: 0.12rem 0.45rem;
-    margin-top: 0.18rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .event-main {
-    background: rgba(0, 230, 255, 0.06);
-    color: #e5faff;
-  }
-
-  .event-state-ok {
-    background: rgba(34, 197, 94, 0.15);
-    color: #bbf7d0;
-  }
-
-  .event-state-no {
-    background: rgba(248, 113, 113, 0.19);
-    color: #fee2e2;
-  }
-
-  .event-comment {
-    background: rgba(244, 244, 245, 0.07);
-    color: #e4e4e7;
-  }
-
-  .event-icon {
-    font-size: 0.75rem;
-  }
-
-  .event-text {
-    font-size: 0.7rem;
-  }
-
-  .plan-empty {
-    font-size: 0.7rem;
-    color: #777;
-  }
-
-  /* ===== BLOQUE RUTINAS ===== */
-  .rutinas-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.75rem;
-  }
-
-  .rutina-card {
-    border-radius: 12px;
-    padding: 0.75rem 0.8rem;
-    background: linear-gradient(135deg, #141821 0%, #090b10 100%);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    font-size: 0.85rem;
-  }
-
-  .rutina-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.35rem;
-  }
-
-  .rutina-type-pill {
-    border-radius: 999px;
-    padding: 0.12rem 0.55rem;
-    font-size: 0.7rem;
-  }
-
-  .rutina-type-fuerza {
-    background: rgba(255, 79, 118, 0.16);
-    color: #ff4f76;
-  }
-
-  .rutina-type-run {
-    background: rgba(0, 224, 255, 0.18);
-    color: #00e0ff;
-  }
-
-  .rutina-type-otros {
-    background: rgba(148, 163, 184, 0.16);
-    color: #e5e7eb;
-  }
-
-  .rutina-desc {
-    color: #a1a1aa;
-    font-size: 0.78rem;
-  }
-
-  .rutina-footer {
-    margin-top: 0.4rem;
-    font-size: 0.7rem;
-    color: #52525b;
-  }
-
-  /* ===== PROGRESO ===== */
-  .chart-box {
-    height: 260px;
-  }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="perfil-wrapper">
+<div class="perfil-container">
 
   <!-- HEADER -->
-  <div class="perfil-header">
-    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-         class="perfil-logo"
-         alt="VR Training logo">
-    <h2 class="perfil-nombre">{{ user.nombre }}</h2>
+  <div class="text-center mb-4">
+    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" class="perfil-logo" alt="VR Training">
+    <h2 class="perfil-nombre mt-2">{{ user.nombre }}</h2>
     <div class="perfil-sub">
-      {{ user.email }} · Grupo: {{ user.grupo or '—' }}
+      {{ user.email }} • Grupo: {{ user.grupo or '—' }}
     </div>
   </div>
 
   <!-- TABS -->
   <ul class="nav nav-tabs nav-vr-tabs justify-content-center mb-4" id="perfilTabs">
-    <li class="nav-item">
-      <button class="nav-link active" data-tab="semana">
-        <i class="bi bi-calendar-week me-1"></i> Semana
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" data-tab="calendario">
-        <i class="bi bi-calendar3-range me-1"></i> Calendario
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" data-tab="progreso">
-        <i class="bi bi-graph-up-arrow me-1"></i> Progreso
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" data-tab="rutinas">
-        <i class="bi bi-collection-play me-1"></i> Rutinas
-      </button>
-    </li>
+    <li class="nav-item"><button class="nav-link active" data-tab="semana">📅 Semana</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="calendario">🗓️ Calendario</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="progreso">📈 Progreso</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="rutinas">🏋️ Rutinas</button></li>
   </ul>
 
-  <!-- ========= TAB: SEMANA ========= -->
+  <!-- TAB SEMANA -->
   <section id="tab-semana" class="vr-tab active">
-    <div class="card-vr mb-4">
-      <div class="card-vr-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 text-light">
-          <i class="bi bi-calendar-week text-info me-2"></i>{{ semana_str }}
-        </h5>
-        <small class="text-secondary">Toca un día para ver el detalle</small>
-      </div>
-      <div class="card-vr-body">
-        <div class="week-grid">
-          {% for f in fechas %}
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+      <h5 class="text-light mb-3">{{ semana_str }}</h5>
+
+      <div class="week-grid">
+        {% for f in fechas %}
           {% set plan = planes[f] %}
           {% set tipo = (plan.plan_type or 'descanso')|lower %}
-          {% set idx = loop.index %}
-          {% set badge_class =
-            'badge-' + (tipo if tipo in ['fuerza','pista','bike','natacion'] else 'descanso')
-          %}
-          {% set icon_class =
-            'bi-barbell' if tipo == 'fuerza'
-            else 'bi-speedometer2' if tipo in ['pista','run']
-            else 'bi-bicycle' if tipo == 'bike'
-            else 'bi-droplet' if tipo == 'natacion'
-            else 'bi-moon-stars'
-          %}
-          {% set main_text = plan.main or '' %}
-          {% set resumen =
-             main_text if main_text
-             else ('Sesión de ' ~ plan.plan_type|lower) if tipo != 'descanso'
-             else 'Recuperación / sin entrenamiento'
-          %}
+          {% set rutina = rutina_by_day.get(f) %}
+          {% set items = items_by_day.get(f, []) %}
 
-          <div class="day-card day-{{ tipo }}"
-               data-bs-toggle="modal"
-               data-bs-target="#modal{{ idx }}">
-
-            <div class="day-header">
-              <div class="day-title">
-                {{ f.strftime('%a')|upper }} {{ '%02d'|format(f.day) }}
-              </div>
-              <div class="d-flex align-items-center">
-                <i class="day-header-icon bi {{ icon_class }}"></i>
-                <span class="badge-plan {{ badge_class }}">
-                  {{ plan.plan_type|default('Descanso')|capitalize }}
-                </span>
-              </div>
+          <div class="day-card day-{{ tipo }}">
+            <div class="d-flex justify-content-between mb-1">
+              <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
+              <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
             </div>
 
-            <div class="day-main-type">
-              {% if tipo == 'descanso' %}
-                DESCANSO
-              {% else %}
-                {{ plan.plan_type|upper }}
-              {% endif %}
-            </div>
-
-            <div class="day-summary">
-              {{ resumen }}
-            </div>
-
-            {% if plan.puede_entrenar == 'no' %}
-              <div class="state-pill state-no mt-1">
-                NO puede entrenar
+            {% if rutina %}
+              <div class="mt-2">
+                <div class="text-info small"><strong>Rutina:</strong> {{ rutina.nombre }}</div>
+                <div class="text-muted small">{{ items|length }} ejercicios</div>
               </div>
-            {% elif plan.puede_entrenar == 'si' %}
-              <div class="state-pill state-ok mt-1">
-                OK para entrenar
+
+              <div class="mt-2">
+                {% for it in items %}
+                  <div class="p-2 rounded mb-2" style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="small"><strong>{{ it.nombre }}</strong></div>
+
+                      {% set is_done = (f, it.id) in done_set %}
+                      <button class="btn btn-sm {% if is_done %}btn-success{% else %}btn-outline-info{% endif %}"
+                              onclick="toggleDone({{ user.id }}, '{{ f.isoformat() }}', {{ it.id }}, {{ 0 if is_done else 1 }}, this)">
+                        {% if is_done %}✅ Realizado{% else %}Marcar realizado{% endif %}
+                      </button>
+                    </div>
+
+                    {% if it.series or it.reps or it.descanso %}
+                      <div class="text-muted small mt-1">
+                        {% if it.series %}Series: {{ it.series }}{% endif %}
+                        {% if it.reps %} • Reps: {{ it.reps }}{% endif %}
+                        {% if it.descanso %} • Descanso: {{ it.descanso }}{% endif %}
+                      </div>
+                    {% endif %}
+
+                    {% if it.video_url %}
+                      <video class="w-100 rounded mt-2" controls preload="metadata" style="max-height:220px;">
+                        <source src="{{ url_for('static', filename=it.video_url) }}" type="video/mp4">
+                      </video>
+                    {% endif %}
+
+                    {% if it.notas %}
+                      <div class="small text-secondary mt-1">{{ it.notas }}</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
               </div>
+
+            {% else %}
+              <div class="small text-muted mt-2">Sin rutina asignada.</div>
             {% endif %}
           </div>
-          {% endfor %}
-        </div>
+        {% endfor %}
       </div>
     </div>
   </section>
 
-  <!-- ========= TAB: CALENDARIO ========= -->
+  <!-- TAB CALENDARIO -->
   <section id="tab-calendario" class="vr-tab">
-    <div class="card-vr mb-4">
-      <div class="card-vr-header">
-        <h5 class="mb-0 text-info">
-          <i class="bi bi-calendar3-range me-2"></i>
-          Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
-        </h5>
-      </div>
-      <div class="card-vr-body">
-        <div class="calendar-grid">
-          {% for f in dias_mes %}
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+      <h5 class="text-info mb-3">Calendario — {{ hoy.strftime('%B %Y')|capitalize }}</h5>
+      <div class="calendar-grid">
+        {% for f in dias_mes %}
           {% set plan_mes = planes_mes.get(f) %}
           {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
-
           <div class="calendar-day day-{{ tipo_mes }}">
             <div class="cal-header">
               <span class="cal-day-num">{{ f.day }}</span>
               <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
             </div>
-
             {% if plan_mes %}
-              <div class="event-pill event-main">
-                <span class="event-icon">
-                  {% if tipo_mes == 'fuerza' %}
-                    <i class="bi bi-barbell"></i>
-                  {% elif tipo_mes == 'pista' or 'run' in tipo_mes %}
-                    <i class="bi bi-speedometer2"></i>
-                  {% elif tipo_mes == 'bike' %}
-                    <i class="bi bi-bicycle"></i>
-                  {% elif tipo_mes == 'natacion' %}
-                    <i class="bi bi-droplet"></i>
-                  {% else %}
-                    <i class="bi bi-moon-stars"></i>
-                  {% endif %}
-                </span>
+              <div class="event-pill event-{{ tipo_mes }}">
                 <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
               </div>
-
-              {% if plan_mes.puede_entrenar %}
-              <div class="event-pill {% if plan_mes.puede_entrenar=='no' %}event-state-no{% else %}event-state-ok{% endif %}">
-                <span class="event-text">
-                  {% if plan_mes.puede_entrenar == 'no' %}
-                    No puede entrenar
-                  {% else %}
-                    OK para entrenar
-                  {% endif %}
-                </span>
-              </div>
-              {% endif %}
-
-              {% if plan_mes.dificultad %}
-              <div class="event-pill"
-                   style="background: rgba(250, 204, 21, 0.16); color:#facc15;">
-                <span class="event-text">
-                  {% if plan_mes.dificultad == 'facil' %}Sesión fácil
-                  {% elif plan_mes.dificultad == 'media' %}Sesión media
-                  {% elif plan_mes.dificultad == 'dura' %}Sesión dura
-                  {% endif %}
-                </span>
-              </div>
-              {% endif %}
-
-              {% if plan_mes.comentario_atleta %}
-              <div class="event-pill event-comment">
-                <span class="event-icon"><i class="bi bi-chat-dots"></i></span>
-                <span class="event-text">Comentario del atleta</span>
-              </div>
-              {% endif %}
             {% else %}
-              <span class="plan-empty">Sin plan</span>
+              <span class="plan-empty mt-2">Sin plan</span>
             {% endif %}
           </div>
-          {% endfor %}
-        </div>
+        {% endfor %}
       </div>
     </div>
   </section>
 
-  <!-- ========= TAB: PROGRESO ========= -->
+  <!-- TAB PROGRESO -->
   <section id="tab-progreso" class="vr-tab">
-    <div class="card-vr mb-4">
-      <div class="card-vr-header">
-        <h5 class="mb-0 text-light">
-          <i class="bi bi-graph-up-arrow text-info me-2"></i>
-          Propuesto vs Realizado (semana)
-        </h5>
-      </div>
-      <div class="card-vr-body">
-        <div class="chart-box">
-          <canvas id="graficoProgreso"></canvas>
-        </div>
-      </div>
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+      <h5 class="text-light mb-3">Progreso</h5>
+      <div class="text-muted">Aquí luego metemos el gráfico (cuando quieras lo enchufamos).</div>
     </div>
   </section>
 
-  <!-- ========= TAB: RUTINAS ========= -->
+  <!-- TAB RUTINAS -->
   <section id="tab-rutinas" class="vr-tab">
-    <div class="card-vr mb-4">
-      <div class="card-vr-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 text-info">
-          <i class="bi bi-collection-play me-2"></i>Rutinas disponibles
-        </h5>
-        <small class="text-secondary">
-          Estas son las rutinas que tu entrenador puede asignarte.
-        </small>
-      </div>
-      <div class="card-vr-body">
-        {% if rutinas %}
-          <div class="rutinas-grid">
-            {% for r in rutinas %}
-              <div class="rutina-card">
-                <div class="rutina-header">
+    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
+      <h5 class="text-light mb-3">Rutinas disponibles</h5>
+      <div class="row g-3">
+        {% for r in rutinas %}
+          <div class="col-md-6 col-lg-4">
+            <div class="p-3 rounded" style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);">
+              <div class="d-flex justify-content-between">
+                <div>
                   <strong>{{ r.nombre }}</strong>
-                  {% set t = (r.tipo or '')|lower %}
-                  {% if t == 'fuerza' %}
-                    <span class="rutina-type-pill rutina-type-fuerza">Fuerza</span>
-                  {% elif 'run' in t or 'pista' in t %}
-                    <span class="rutina-type-pill rutina-type-run">Running</span>
-                  {% else %}
-                    <span class="rutina-type-pill rutina-type-otros">
-                      {{ r.tipo or 'General' }}
-                    </span>
-                  {% endif %}
-                </div>
-                {% if r.descripcion %}
-                  <div class="rutina-desc">
-                    {{ r.descripcion }}
-                  </div>
-                {% endif %}
-                <div class="rutina-footer">
-                  ID #{{ r.id }}
+                  {% if r.tipo %}<span class="badge bg-info text-dark ms-2">{{ r.tipo }}</span>{% endif %}
+                  {% if r.descripcion %}<div class="small text-muted mt-1">{{ r.descripcion }}</div>{% endif %}
                 </div>
               </div>
-            {% endfor %}
+            </div>
           </div>
         {% else %}
-          <p class="text-secondary mb-0">Todavía no hay rutinas creadas.</p>
-        {% endif %}
+          <div class="text-muted">No hay rutinas todavía.</div>
+        {% endfor %}
       </div>
     </div>
   </section>
 
-  <!-- MODALES DE LOS DÍAS -->
-  {% include "components/modales.html" %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  // Tabs
   const tabs = document.querySelectorAll(".nav-vr-tabs .nav-link");
   const sections = {
     semana: document.getElementById("tab-semana"),
@@ -619,59 +161,40 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   function activateTab(name) {
-    tabs.forEach(btn =>
-      btn.classList.toggle("active", btn.dataset.tab === name)
-    );
-    Object.entries(sections).forEach(([key, sec]) =>
-      sec.classList.toggle("active", key === name)
-    );
+    tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === name));
+    Object.entries(sections).forEach(([key, sec]) => sec.classList.toggle("active", key === name));
   }
 
-  tabs.forEach(btn =>
-    btn.addEventListener("click", () => activateTab(btn.dataset.tab))
-  );
-
+  tabs.forEach(btn => btn.addEventListener("click", () => activateTab(btn.dataset.tab)));
   activateTab("semana");
-
-  // Gráfico Progreso
-  const ctx = document.getElementById("graficoProgreso");
-  if (ctx) {
-    const labels = {{ labels|tojson }};
-    const propuesto = {{ propuesto|tojson }};
-    const realizado = {{ realizado|tojson }};
-
-    new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: labels,
-        datasets: [
-          { label: "Propuesto", data: propuesto },
-          { label: "Realizado", data: realizado },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: { color: "#e5e5e5", usePointStyle: true }
-          },
-        },
-        scales: {
-          x: {
-            ticks: { color: "#a1a1aa" },
-            grid: { color: "rgba(148,163,184,0.2)" }
-          },
-          y: {
-            ticks: { color: "#a1a1aa" },
-            grid: { color: "rgba(148,163,184,0.2)" },
-            beginAtZero: true,
-            suggestedMax: 10
-          }
-        }
-      }
-    });
-  }
 });
+
+async function toggleDone(userId, fechaISO, itemId, doneValue, btn) {
+  try {
+    const form = new FormData();
+    form.append("user_id", userId);
+    form.append("fecha", fechaISO);
+    form.append("item_id", itemId);
+    form.append("done", doneValue ? "1" : "0");
+
+    const res = await fetch("{{ url_for('main.athlete_check_item') }}", { method: "POST", body: form });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Error");
+
+    if (doneValue) {
+      btn.classList.remove("btn-outline-info");
+      btn.classList.add("btn-success");
+      btn.textContent = "✅ Realizado";
+      btn.setAttribute("onclick", `toggleDone(${userId}, '${fechaISO}', ${itemId}, 0, this)`);
+    } else {
+      btn.classList.remove("btn-success");
+      btn.classList.add("btn-outline-info");
+      btn.textContent = "Marcar realizado";
+      btn.setAttribute("onclick", `toggleDone(${userId}, '${fechaISO}', ${itemId}, 1, this)`);
+    }
+  } catch (e) {
+    alert("No se pudo guardar: " + e.message);
+  }
+}
 </script>
 {% endblock %}

@@ -10,7 +10,6 @@ from flask import (
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import text
-
 from werkzeug.utils import secure_filename
 import os
 
@@ -48,7 +47,10 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
             return fallback or date.today()
 
 def is_admin() -> bool:
-    return bool(current_user.is_authenticated and (getattr(current_user, "is_admin", False) or current_user.email == "admin@vir.app"))
+    return bool(
+        current_user.is_authenticated
+        and (getattr(current_user, "is_admin", False) or current_user.email == "admin@vir.app")
+    )
 
 
 # =============================================================
@@ -110,7 +112,6 @@ def logout():
     logout_user()
     flash("Sesión cerrada", "info")
     return redirect(url_for("main.login"))
-
 
 @main_bp.route("/perfil")
 @login_required
@@ -198,20 +199,27 @@ def perfil_usuario(user_id: int):
 
         # ===== done_set checks
         done_set: set[Tuple[date, int]] = set()
-        checks = AthleteCheck.query.filter(
-            AthleteCheck.user_id == user.id,
-            AthleteCheck.fecha.in_(fechas)
-        ).all()
-        for c in checks:
-            if c.done:
-                done_set.add((c.fecha, c.rutina_item_id))
+        try:
+            checks = AthleteCheck.query.filter(
+                AthleteCheck.user_id == user.id,
+                AthleteCheck.fecha.in_(fechas)
+            ).all()
+            for c in checks:
+                if c.done:
+                    done_set.add((c.fecha, c.rutina_item_id))
+        except Exception:
+            done_set = set()
 
         # ===== logs (lo realizado)
-        logs = AthleteLog.query.filter(
-            AthleteLog.user_id == user.id,
-            AthleteLog.fecha.in_(fechas)
-        ).all()
-        log_by_day: Dict[date, AthleteLog] = {l.fecha: l for l in logs}
+        log_by_day: Dict[date, AthleteLog] = {}
+        try:
+            logs = AthleteLog.query.filter(
+                AthleteLog.user_id == user.id,
+                AthleteLog.fecha.in_(fechas)
+            ).all()
+            log_by_day = {l.fecha: l for l in logs}
+        except Exception:
+            log_by_day = {}
 
         return render_template(
             "perfil.html",
@@ -245,15 +253,6 @@ def perfil_usuario(user_id: int):
 @main_bp.route("/api/day_detail")
 @login_required
 def api_day_detail():
-    """
-    GET /api/day_detail?user_id=5&fecha=YYYY-MM-DD
-    Devuelve:
-      - plan propuesto (warmup/main/finisher + tipo)
-      - si main es RUTINA -> rutina + items
-      - log del atleta (lo realizado)
-      - puede_entrenar (bloqueo calendario)
-      - checks (por item)
-    """
     user_id = request.args.get("user_id", type=int)
     fecha = safe_parse_ymd(request.args.get("fecha", ""), fallback=date.today())
 
@@ -316,19 +315,22 @@ def api_day_detail():
                         "reps": it.reps or "",
                         "descanso": it.descanso or "",
                         "video_url": it.video_url or "",
-                        "nota": it.nota or "",
+                        "nota": (getattr(it, "nota", None) or getattr(it, "notas", None) or "") or "",
                     }
                     for it in items
                 ]
 
                 # checks
-                checks = AthleteCheck.query.filter(
-                    AthleteCheck.user_id == user_id,
-                    AthleteCheck.fecha == fecha,
-                    AthleteCheck.rutina_item_id.in_([it.id for it in items])
-                ).all()
-                done_ids = {c.rutina_item_id for c in checks if c.done}
-                payload["checks"] = list(done_ids)
+                try:
+                    checks = AthleteCheck.query.filter(
+                        AthleteCheck.user_id == user_id,
+                        AthleteCheck.fecha == fecha,
+                        AthleteCheck.rutina_item_id.in_([it.id for it in items])
+                    ).all()
+                    done_ids = {c.rutina_item_id for c in checks if c.done}
+                    payload["checks"] = list(done_ids)
+                except Exception:
+                    payload["checks"] = []
 
     return jsonify(payload)
 
@@ -339,10 +341,6 @@ def api_day_detail():
 @main_bp.route("/athlete/check_item", methods=["POST"])
 @login_required
 def athlete_check_item():
-    """
-    POST form-data:
-      user_id, fecha, item_id, done (1/0)
-    """
     try:
         user_id = request.form.get("user_id", type=int)
         fecha = safe_parse_ymd(request.form.get("fecha", ""), fallback=date.today())
@@ -387,17 +385,6 @@ def athlete_check_item():
 @main_bp.route("/athlete/save_log", methods=["POST"])
 @login_required
 def athlete_save_log():
-    """
-    POST JSON:
-    {
-      "user_id": 5,
-      "fecha": "YYYY-MM-DD",
-      "did_train": true/false,
-      "warmup_done": "...",
-      "main_done": "...",
-      "finisher_done": "..."
-    }
-    """
     try:
         data = request.get_json(silent=True) or {}
         user_id = int(data.get("user_id"))
@@ -431,10 +418,6 @@ def athlete_save_log():
 @main_bp.route("/athlete/block_day", methods=["POST"])
 @login_required
 def athlete_block_day():
-    """
-    POST JSON:
-    { "user_id": 5, "fecha": "YYYY-MM-DD", "blocked": true/false }
-    """
     try:
         data = request.get_json(silent=True) or {}
         user_id = int(data.get("user_id"))
@@ -516,6 +499,129 @@ def dashboard_entrenador():
 
 
 # =============================================================
+# COACH: PLANIFICADOR (semana)
+# =============================================================
+@main_bp.route("/coach/planificador/<int:user_id>")
+@login_required
+def coach_planificador(user_id: int):
+    if not is_admin():
+        return "Acceso denegado", 403
+
+    atleta = User.query.get_or_404(user_id)
+    center_date = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
+    fechas = week_dates(center_date)
+
+    planes_db = DiaPlan.query.filter(
+        DiaPlan.user_id == atleta.id,
+        DiaPlan.fecha.in_(fechas)
+    ).all()
+    planes = {p.fecha: p for p in planes_db}
+
+    for f in fechas:
+        if f not in planes:
+            nuevo = DiaPlan(user_id=atleta.id, fecha=f, plan_type="descanso")
+            planes[f] = nuevo
+            db.session.add(nuevo)
+    db.session.commit()
+
+    semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+    rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
+
+    return render_template(
+        "coach/planificador.html",
+        atleta=atleta,
+        fechas=fechas,
+        planes=planes,
+        rutinas=rutinas,
+        semana_str=semana_str,
+        center=center_date
+    )
+
+
+# =============================================================
+# COACH: GUARDAR DÍA DESDE PLANIFICADOR
+# =============================================================
+@main_bp.route("/coach/planificador/<int:user_id>/guardar_dia", methods=["POST"])
+@login_required
+def coach_guardar_dia(user_id: int):
+    if not is_admin():
+        return "Acceso denegado", 403
+
+    atleta = User.query.get_or_404(user_id)
+    fecha = safe_parse_ymd(request.form.get("fecha", ""), fallback=date.today())
+    center = safe_parse_ymd(request.form.get("center", ""), fallback=fecha)
+
+    plan = DiaPlan.query.filter_by(user_id=atleta.id, fecha=fecha).first()
+    if not plan:
+        plan = DiaPlan(user_id=atleta.id, fecha=fecha)
+        db.session.add(plan)
+
+    plan.plan_type = request.form.get("plan_type", "descanso")
+    plan.warmup = request.form.get("warmup", "")
+    plan.finisher = request.form.get("finisher", "")
+    plan.propuesto_score = int(request.form.get("propuesto_score", 0))
+
+    rutina_id = request.form.get("rutina_id", type=int)
+    if rutina_id:
+        plan.main = f"RUTINA:{rutina_id}"
+    else:
+        plan.main = request.form.get("main", "")
+
+    db.session.commit()
+    flash("Día guardado ✔", "success")
+    return redirect(url_for("main.coach_planificador", user_id=atleta.id, center=center.isoformat()))
+
+
+# =============================================================
+# COACH: COPIAR SEMANA COMPLETA (+7 días)
+# =============================================================
+@main_bp.route("/coach/planificador/<int:user_id>/copiar_semana", methods=["POST"])
+@login_required
+def coach_copiar_semana(user_id: int):
+    if not is_admin():
+        return "Acceso denegado", 403
+
+    atleta = User.query.get_or_404(user_id)
+    center = safe_parse_ymd(request.form.get("center", ""), fallback=date.today())
+
+    semana_origen = week_dates(center)
+    semana_destino = [d + timedelta(days=7) for d in semana_origen]
+
+    planes_origen = {
+        p.fecha: p
+        for p in DiaPlan.query.filter(
+            DiaPlan.user_id == atleta.id,
+            DiaPlan.fecha.in_(semana_origen)
+        ).all()
+    }
+
+    for f_o, f_d in zip(semana_origen, semana_destino):
+        plan_o = planes_origen.get(f_o)
+        if not plan_o:
+            continue
+
+        plan_d = DiaPlan.query.filter_by(user_id=atleta.id, fecha=f_d).first()
+        if not plan_d:
+            plan_d = DiaPlan(user_id=atleta.id, fecha=f_d)
+            db.session.add(plan_d)
+
+        plan_d.plan_type = plan_o.plan_type
+        plan_d.warmup = plan_o.warmup
+        plan_d.main = plan_o.main
+        plan_d.finisher = plan_o.finisher
+        plan_d.propuesto_score = plan_o.propuesto_score
+
+        # reset atleta feedback
+        plan_d.realizado_score = 0
+        plan_d.comentario_atleta = None
+        plan_d.puede_entrenar = None
+
+    db.session.commit()
+    flash("Semana copiada correctamente ✔", "success")
+    return redirect(url_for("main.coach_planificador", user_id=atleta.id, center=(center + timedelta(days=7)).isoformat()))
+
+
+# =============================================================
 # CRUD usuarios
 # =============================================================
 @main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
@@ -591,7 +697,7 @@ def admin_nuevo_ejercicio():
         flash("Nombre de archivo no válido", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    # ✅ Dejalo consistente: /static/videos/
+    # ✅ dejamos consistente con lo que ya venías usando: /static/videos/
     upload_folder = os.path.join(current_app.static_folder, "videos")
     os.makedirs(upload_folder, exist_ok=True)
     file.save(os.path.join(upload_folder, filename))
@@ -645,8 +751,8 @@ def rutina_add_item(rutina_id: int):
     reps = request.form.get("reps", "").strip()
     descanso = request.form.get("descanso", "").strip()
 
-    # ✅ se llama nota (no notas)
-    nota = request.form.get("nota", "").strip()
+    # ✅ compat: nota o notas
+    nota = (request.form.get("nota") or request.form.get("notas") or "").strip()
 
     item = RutinaItem(
         rutina_id=rutina.id,
@@ -680,7 +786,7 @@ def rutina_update_item(rutina_id: int, item_id: int):
     item.series = request.form.get("series", "").strip()
     item.reps = request.form.get("reps", "").strip()
     item.descanso = request.form.get("descanso", "").strip()
-    item.nota = request.form.get("nota", "").strip()
+    item.nota = (request.form.get("nota") or request.form.get("notas") or "").strip()
 
     db.session.commit()
     flash("Cambios guardados", "success")
@@ -700,6 +806,71 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
     flash("Ejercicio eliminado de la rutina", "info")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
+
+
+# =============================================================
+# FIXES (opcionales, por si querés correrlos manualmente)
+# =============================================================
+@main_bp.route("/fix-is-admin")
+@login_required
+def fix_is_admin():
+    if not is_admin():
+        return "Acceso denegado", 403
+    try:
+        db.session.execute(text("""ALTER TABLE "user" ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;"""))
+        db.session.commit()
+        return "OK is_admin", 200
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR: {e}", 500
+
+@main_bp.route("/fix-athlete-check")
+@login_required
+def fix_athlete_check():
+    if not is_admin():
+        return "Acceso denegado", 403
+    try:
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS athlete_check (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL,
+                rutina_item_id INTEGER NOT NULL REFERENCES rutina_item(id) ON DELETE CASCADE,
+                done BOOLEAN NOT NULL DEFAULT TRUE,
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                UNIQUE(user_id, fecha, rutina_item_id)
+            );
+        """))
+        db.session.commit()
+        return "OK athlete_check", 200
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR: {e}", 500
+
+@main_bp.route("/fix-athlete-log")
+@login_required
+def fix_athlete_log():
+    if not is_admin():
+        return "Acceso denegado", 403
+    try:
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS athlete_log (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL,
+                did_train BOOLEAN NOT NULL DEFAULT FALSE,
+                warmup_done TEXT,
+                main_done TEXT,
+                finisher_done TEXT,
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                UNIQUE(user_id, fecha)
+            );
+        """))
+        db.session.commit()
+        return "OK athlete_log", 200
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR: {e}", 500
 
 
 # =============================================================

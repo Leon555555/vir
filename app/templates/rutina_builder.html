@@ -10,9 +10,7 @@
   </h2>
 
   <div class="row g-4">
-    <!-- =============================================== -->
-    <!--  IZQUIERDA: EJERCICIOS DE LA RUTINA             -->
-    <!-- =============================================== -->
+    <!-- IZQ: EJERCICIOS DE LA RUTINA -->
     <div class="col-lg-6">
       <div class="card bg-dark border-secondary shadow-sm">
         <div class="card-header">
@@ -28,61 +26,43 @@
                   <form method="post"
                         action="{{ url_for('main.rutina_delete_item', rutina_id=rutina.id, item_id=item.id) }}"
                         onsubmit="return confirm('¿Eliminar {{ item.nombre }} de la rutina?');">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                      Eliminar
-                    </button>
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
                   </form>
                 </div>
 
-                <!-- ✅ Vídeo del ejercicio (usa item.video_url guardado como "videos/<archivo>.mp4") -->
-                {% set video_path = None %}
                 {% if item.video_url %}
-                  {% set video_path = item.video_url %}
-                {% endif %}
-
-                {% if video_path %}
-                  <video class="w-100 rounded mb-3" controls preload="metadata" style="max-height: 200px;">
-                    <source src="{{ url_for('static', filename=video_path) }}" type="video/mp4">
+                  <video class="w-100 rounded mb-3" controls preload="metadata" style="max-height: 320px;">
+                    <source src="{{ url_for('static', filename=item.video_url) }}" type="video/mp4">
                     Tu navegador no soporta vídeo HTML5.
                   </video>
                 {% endif %}
 
-                <!-- Form de edición del item -->
+                <!-- edición abajo, chica -->
                 <form method="post"
                       action="{{ url_for('main.rutina_update_item', rutina_id=rutina.id, item_id=item.id) }}"
-                      class="row g-2">
+                      class="row g-2 mt-2">
+
                   <div class="col-md-4">
                     <label class="form-label form-label-sm">Series</label>
-                    <input type="text"
-                           name="series"
-                           value="{{ item.series or '' }}"
-                           class="form-control form-control-sm">
+                    <input type="text" name="series" value="{{ item.series or '' }}" class="form-control form-control-sm">
                   </div>
                   <div class="col-md-4">
                     <label class="form-label form-label-sm">Reps</label>
-                    <input type="text"
-                           name="reps"
-                           value="{{ item.reps or '' }}"
-                           class="form-control form-control-sm">
+                    <input type="text" name="reps" value="{{ item.reps or '' }}" class="form-control form-control-sm">
                   </div>
                   <div class="col-md-4">
                     <label class="form-label form-label-sm">Descanso</label>
-                    <input type="text"
-                           name="descanso"
-                           value="{{ item.descanso or '' }}"
-                           class="form-control form-control-sm">
+                    <input type="text" name="descanso" value="{{ item.descanso or '' }}" class="form-control form-control-sm">
                   </div>
 
                   <div class="col-12">
-                    <label class="form-label form-label-sm">Notas (tempo, técnica, RPE, indicaciones…)</label>
-                    <textarea name="nota"
-                              rows="2"
-                              class="form-control form-control-sm">{{ item.nota or '' }}</textarea>
+                    <label class="form-label form-label-sm">Nota</label>
+                    <textarea name="nota" rows="2" class="form-control form-control-sm">{{ item.nota or '' }}</textarea>
                   </div>
 
                   <div class="col-12 mt-2 d-grid">
                     <button type="submit" class="btn btn-sm btn-primary">
-                      Guardar cambios y volver al dashboard
+                      Guardar cambios
                     </button>
                   </div>
                 </form>
@@ -96,9 +76,7 @@
       </div>
     </div>
 
-    <!-- =============================================== -->
-    <!--  DERECHA: BANCO DE EJERCICIOS PARA AÑADIR       -->
-    <!-- =============================================== -->
+    <!-- DER: BANCO -->
     <div class="col-lg-6">
       <div class="card bg-dark border-secondary shadow-sm">
         <div class="card-header">
@@ -111,52 +89,34 @@
               <div class="mb-4 p-3 border border-secondary rounded">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <strong>{{ ej.nombre }}</strong>
-                  {% if ej.categoria %}
-                    <span class="badge bg-info">{{ ej.categoria }}</span>
-                  {% endif %}
+                  {% if ej.categoria %}<span class="badge bg-info">{{ ej.categoria }}</span>{% endif %}
                 </div>
 
-                <!-- ✅ VIDEO DEL BANCO: está en /static/videos/<video_filename> -->
-                {% set video_path = None %}
                 {% if ej.video_filename %}
-                  {% set video_path = 'videos/' ~ ej.video_filename %}
-                {% endif %}
-
-                {% if video_path %}
-                  <video class="w-100 rounded mb-2" controls preload="metadata" style="max-height: 200px;">
-                    <source src="{{ url_for('static', filename=video_path) }}" type="video/mp4">
-                    Tu navegador no soporta vídeo HTML5.
+                  <video class="w-100 rounded mb-2" controls preload="metadata" style="max-height: 240px;">
+                    <source src="{{ url_for('static', filename='videos/' ~ ej.video_filename) }}" type="video/mp4">
                   </video>
                 {% endif %}
 
-                <form method="post"
-                      action="{{ url_for('main.rutina_add_item', rutina_id=rutina.id) }}"
-                      class="row g-2">
+                <form method="post" action="{{ url_for('main.rutina_add_item', rutina_id=rutina.id) }}" class="row g-2">
                   <input type="hidden" name="ejercicio_id" value="{{ ej.id }}">
 
                   <div class="col-md-4">
-                    <input type="text"
-                           name="series"
-                           placeholder="Series"
-                           class="form-control form-control-sm">
+                    <input type="text" name="series" placeholder="Series" class="form-control form-control-sm">
                   </div>
                   <div class="col-md-4">
-                    <input type="text"
-                           name="reps"
-                           placeholder="Reps"
-                           class="form-control form-control-sm">
+                    <input type="text" name="reps" placeholder="Reps" class="form-control form-control-sm">
                   </div>
                   <div class="col-md-4">
-                    <input type="text"
-                           name="descanso"
-                           placeholder="Descanso"
-                           class="form-control form-control-sm">
+                    <input type="text" name="descanso" placeholder="Descanso" class="form-control form-control-sm">
+                  </div>
+
+                  <div class="col-12">
+                    <textarea name="nota" rows="2" placeholder="Nota (opcional)" class="form-control form-control-sm"></textarea>
                   </div>
 
                   <div class="col-12 mt-2 d-grid">
-                    <button type="submit" class="btn btn-sm btn-outline-primary">
-                      + Añadir a rutina
-                    </button>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">+ Añadir a rutina</button>
                   </div>
                 </form>
               </div>
@@ -168,7 +128,7 @@
         </div>
       </div>
     </div>
-  </div>
 
+  </div>
 </div>
 {% endblock %}

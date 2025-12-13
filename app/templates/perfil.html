@@ -32,121 +32,62 @@
           {% set tipo = (plan.plan_type or 'descanso')|lower %}
           {% set rutina = rutina_by_day.get(f) %}
           {% set items = items_by_day.get(f, []) %}
-          {% set plan_label = (plan.plan_type or 'Descanso') %}
-          {% set collapse_id = "dayDetails_" ~ f.strftime("%Y%m%d") %}
+          {% set collapse_id = "day_" ~ f.strftime("%Y%m%d") %}
 
-          <div class="day-card day-{{ tipo }} js-day-card" data-target="{{ collapse_id }}">
+          {# ✅ fuerza si hay rutina o plan_type = fuerza #}
+          {% set is_strength = (tipo in ['fuerza','strength','gym']) or (rutina is not none) %}
 
-            <!-- HEADER (pro + chevron) -->
+          {# ✅ resultado del atleta (lo realizado) #}
+          {% set res = result_by_day.get(f) %}
+          {% set did = res.did_workout if res else False %}
+          {% set warm_done = res.warmup_done if res else '' %}
+          {% set main_done = res.main_done if res else '' %}
+          {% set fin_done = res.finisher_done if res else '' %}
+          {% set res_notes = res.notes if res else '' %}
+
+          <div class="day-card day-{{ tipo }} js-open-day"
+               data-fecha="{{ f.isoformat() }}"
+               data-tipo="{{ tipo }}"
+               data-is-strength="{{ 1 if is_strength else 0 }}"
+               data-plan-type="{{ plan.plan_type or 'descanso' }}"
+               data-warmup="{{ (plan.warmup or '')|e }}"
+               data-main="{{ (plan.main or '')|e }}"
+               data-finisher="{{ (plan.finisher or '')|e }}"
+               data-rutina-nombre="{{ (rutina.nombre if rutina else '')|e }}"
+               data-did="{{ 1 if did else 0 }}"
+               data-warm-done="{{ (warm_done or '')|e }}"
+               data-main-done="{{ (main_done or '')|e }}"
+               data-fin-done="{{ (fin_done or '')|e }}"
+               data-notes="{{ (res_notes or '')|e }}">
+
             <div class="day-header">
               <div class="d-flex justify-content-between align-items-center">
                 <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
-                <span class="badge badge-{{ tipo }}">{{ plan_label|capitalize }}</span>
+                <span class="badge badge-{{ tipo }}">{{ (plan.plan_type or 'Descanso')|capitalize }}</span>
               </div>
-              <div class="day-subrow">
-                <div class="day-subtext">
-                  {% if rutina %}
-                    <div class="text-info small">
-                      <strong>Rutina:</strong> {{ rutina.nombre }}
-                    </div>
-                    <div class="text-muted small">
-                      {% if items and items|length > 0 %}
-                        {{ items|length }} ejercicios
-                      {% else %}
-                        Sin ejercicios
-                      {% endif %}
-                    </div>
-                  {% else %}
-                    <div class="small text-muted">Sin rutina asignada.</div>
-                  {% endif %}
-                </div>
 
-                <div class="day-chevron" aria-hidden="true">▼</div>
-              </div>
-            </div>
-
-            <!-- DETALLE (animado) -->
-            <div id="{{ collapse_id }}" class="day-details" style="max-height:0; overflow:hidden;">
-              <div class="day-details-inner">
-
+              <div class="mt-2">
                 {% if rutina %}
-                  {% if items and items|length > 0 %}
-                    {% for it in items %}
-                      <div class="exercise-card">
-                        <div class="d-flex justify-content-between align-items-center">
-                          <div class="small"><strong>{{ it.nombre }}</strong></div>
-
-                          {% set is_done = (f, it.id) in done_set %}
-                          <button type="button"
-                                  class="btn btn-sm {% if is_done %}btn-success{% else %}btn-outline-info{% endif %} js-no-toggle"
-                                  onclick="toggleDone('{{ f.strftime('%Y-%m-%d') }}', {{ it.id }}, {{ 0 if is_done else 1 }}, this)">
-                            {% if is_done %}✅ Realizado{% else %}Marcar realizado{% endif %}
-                          </button>
-                        </div>
-
-                        {% if it.series or it.reps or it.descanso %}
-                          <div class="text-muted small mt-1">
-                            {% if it.series %}Series: {{ it.series }}{% endif %}
-                            {% if it.reps %} • Reps: {{ it.reps }}{% endif %}
-                            {% if it.descanso %} • Descanso: {{ it.descanso }}{% endif %}
-                          </div>
-                        {% endif %}
-
-                        {% if it.video_url %}
-                          <video class="w-100 rounded mt-2 js-no-toggle" controls preload="metadata" style="max-height:220px;">
-                            <source src="{{ url_for('static', filename=it.video_url) }}" type="video/mp4">
-                          </video>
-                        {% endif %}
-
-                        {% if it.nota %}
-                          <div class="small text-secondary mt-1">{{ it.nota }}</div>
-                        {% endif %}
-                      </div>
-                    {% endfor %}
-                  {% else %}
-                    <div class="pro-panel">
-                      <div class="panel-title">Rutina</div>
-                      <div class="panel-body">Esta rutina todavía no tiene ejercicios cargados.</div>
-                    </div>
-                  {% endif %}
-
+                  <div class="text-info small"><strong>Rutina:</strong> {{ rutina.nombre }}</div>
+                  <div class="text-muted small">{{ items|length }} ejercicios</div>
                 {% else %}
-                  <!-- Día sin rutina: warmup/main/finisher con look PRO -->
-                  <div class="pro-panel">
-                    {% if plan.warmup %}
-                      <div class="panel-block">
-                        <div class="panel-title">Warmup</div>
-                        <div class="panel-body">{{ plan.warmup }}</div>
-                      </div>
-                    {% endif %}
-
-                    {% if plan.main %}
-                      <div class="panel-block">
-                        <div class="panel-title">Entrenamiento</div>
-                        <div class="panel-body">{{ plan.main }}</div>
-                      </div>
-                    {% endif %}
-
-                    {% if plan.finisher %}
-                      <div class="panel-block">
-                        <div class="panel-title">Finisher</div>
-                        <div class="panel-body">{{ plan.finisher }}</div>
-                      </div>
-                    {% endif %}
-
-                    {% if not plan.warmup and not plan.main and not plan.finisher %}
-                      <div class="panel-block">
-                        <div class="panel-title">Detalle</div>
-                        <div class="panel-body">No hay descripción cargada para este día.</div>
-                      </div>
-                    {% endif %}
-                  </div>
+                  {% if plan.warmup or plan.main or plan.finisher %}
+                    <div class="small text-muted">Ver detalle</div>
+                  {% else %}
+                    <div class="small text-muted">Sin detalle.</div>
+                  {% endif %}
                 {% endif %}
-
               </div>
             </div>
 
+            {# ✅ si es fuerza: mini preview (1er ejercicio) para que se vea más pro #}
+            {% if rutina and items and items|length > 0 %}
+              <div class="mini-preview mt-2">
+                <div class="mini-pill">1º: {{ items[0].nombre }}</div>
+              </div>
+            {% endif %}
           </div>
+
         {% endfor %}
       </div>
     </div>
@@ -156,16 +97,27 @@
   <section id="tab-calendario" class="vr-tab">
     <div class="card bg-black border-0 shadow-lg mb-4 p-3">
       <h5 class="text-info mb-3">Calendario — {{ hoy.strftime('%B %Y')|capitalize }}</h5>
+
       <div class="calendar-grid">
         {% for f in dias_mes %}
           {% set plan_mes = planes_mes.get(f) %}
           {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes and plan_mes.plan_type else 'descanso' %}
-          <div class="calendar-day day-{{ tipo_mes }}">
+          {% set puede = (plan_mes.puede_entrenar if plan_mes else '') %}
+          {% set bloqueado = (puede|lower == 'no') %}
+
+          <div class="calendar-day day-{{ tipo_mes }} js-cal-day"
+               data-fecha="{{ f.isoformat() }}"
+               data-bloqueado="{{ 1 if bloqueado else 0 }}">
             <div class="cal-header">
               <span class="cal-day-num">{{ f.day }}</span>
               <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
             </div>
-            {% if plan_mes %}
+
+            {% if bloqueado %}
+              <div class="block-pill">🚫 No puedo</div>
+            {% endif %}
+
+            {% if plan_mes and plan_mes.plan_type %}
               <div class="event-pill event-{{ tipo_mes }}">
                 <span class="event-text">{{ (plan_mes.plan_type or 'Descanso')|capitalize }}</span>
               </div>
@@ -175,6 +127,10 @@
           </div>
         {% endfor %}
       </div>
+
+      <div class="text-muted small mt-3">
+        Tip: clic en un día para alternar “No puedo entrenar”.
+      </div>
     </div>
   </section>
 
@@ -182,7 +138,7 @@
   <section id="tab-progreso" class="vr-tab">
     <div class="card bg-black border-0 shadow-lg mb-4 p-3">
       <h5 class="text-light mb-3">Progreso</h5>
-      <div class="text-muted">Aquí luego metemos el gráfico (cuando quieras lo enchufamos).</div>
+      <div class="text-muted">Ahora ya se está guardando “lo realizado”. El próximo paso es graficarlo.</div>
     </div>
   </section>
 
@@ -194,13 +150,9 @@
         {% for r in rutinas %}
           <div class="col-md-6 col-lg-4">
             <div class="p-3 rounded" style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <strong>{{ r.nombre }}</strong>
-                  {% if r.tipo %}<span class="badge bg-info text-dark ms-2">{{ r.tipo }}</span>{% endif %}
-                  {% if r.descripcion %}<div class="small text-muted mt-1">{{ r.descripcion }}</div>{% endif %}
-                </div>
-              </div>
+              <strong>{{ r.nombre }}</strong>
+              {% if r.tipo %}<span class="badge bg-info text-dark ms-2">{{ r.tipo }}</span>{% endif %}
+              {% if r.descripcion %}<div class="small text-muted mt-1">{{ r.descripcion }}</div>{% endif %}
             </div>
           </div>
         {% else %}
@@ -211,75 +163,256 @@
   </section>
 
 </div>
+
+<!-- =======================================================
+     ✅ MODAL FULLSCREEN DETALLE DEL DÍA
+======================================================= -->
+<div id="dayModal" class="day-modal" aria-hidden="true">
+  <div class="day-modal-overlay"></div>
+
+  <div class="day-modal-content">
+    <div class="day-modal-topbar">
+      <div>
+        <div class="modal-title" id="modalTitle">Detalle</div>
+        <div class="modal-sub" id="modalSub">—</div>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+
+    <!-- Botones por secciones (no fuerza) -->
+    <div id="sectionTabs" class="section-tabs" style="display:none;">
+      <button class="sec-btn active" data-sec="warm">Calentamiento</button>
+      <button class="sec-btn" data-sec="main">Bloque principal</button>
+      <button class="sec-btn" data-sec="fin">Enfriamiento</button>
+    </div>
+
+    <div class="day-modal-body">
+
+      <!-- Panel propuesto -->
+      <div class="modal-col">
+        <div class="panel">
+          <div class="panel-h">Propuesto por el entrenador</div>
+
+          <div id="proposedWarm" class="panel-block">
+            <div class="pill">Calentamiento</div>
+            <div class="panel-text" id="proposedWarmText">—</div>
+          </div>
+
+          <div id="proposedMain" class="panel-block">
+            <div class="pill">Bloque principal</div>
+            <div class="panel-text" id="proposedMainText">—</div>
+          </div>
+
+          <div id="proposedFin" class="panel-block">
+            <div class="pill" id="finPill">Finisher</div>
+            <div class="panel-text" id="proposedFinText">—</div>
+          </div>
+
+          <!-- Fuerza: lista ejercicios -->
+          <div id="strengthBlock" style="display:none;">
+            <div class="pill mt-2">Ejercicios</div>
+            <div id="exerciseList" class="exercise-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel realizado -->
+      <div class="modal-col">
+        <div class="panel">
+          <div class="panel-h">Tu registro (lo realizado)</div>
+
+          <div class="did-row">
+            <div class="did-label">¿Has realizado el entreno?</div>
+            <label class="switch">
+              <input type="checkbox" id="didWorkout">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="panel-block">
+            <div class="pill">Calentamiento realizado</div>
+            <textarea id="warmDone" class="txt" rows="4" placeholder="Escribe lo que hiciste..."></textarea>
+          </div>
+
+          <div class="panel-block">
+            <div class="pill">Bloque principal realizado</div>
+            <textarea id="mainDone" class="txt" rows="6" placeholder="Escribe lo que hiciste..."></textarea>
+          </div>
+
+          <div class="panel-block">
+            <div class="pill">Enfriamiento / finisher realizado</div>
+            <textarea id="finDone" class="txt" rows="4" placeholder="Escribe lo que hiciste..."></textarea>
+          </div>
+
+          <div class="panel-block">
+            <div class="pill">Notas</div>
+            <textarea id="notesDone" class="txt" rows="3" placeholder="Sensaciones, RPE, dolor, etc."></textarea>
+          </div>
+
+          <button class="btn btn-info w-100 mt-2" id="saveDayResult">Guardar</button>
+          <div class="save-msg" id="saveMsg"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <style>
-/* ====== Semana: look PRO sin romper tu CSS actual ====== */
-.day-header { cursor: pointer; }
-.day-subrow{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-top:8px;
-}
-.day-chevron{
-  font-size: 12px;
-  opacity: .75;
-  transform: rotate(0deg);
-  transition: transform .18s ease, opacity .18s ease;
-  user-select:none;
-}
-.js-day-card.is-open .day-chevron{
-  transform: rotate(180deg);
-  opacity: 1;
-}
-
-.day-details-inner{
-  padding-top: 12px;
-}
-
-.exercise-card{
-  padding: 10px;
-  border-radius: 12px;
-  margin-bottom: 10px;
+/* ===== visual pro + modal ===== */
+.mini-preview .mini-pill{
+  display:inline-block; padding:6px 10px; border-radius:999px;
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.08);
+  font-size: 12px; color: rgba(255,255,255,.85);
 }
 
-.pro-panel{
-  border-radius: 14px;
-  background: rgba(255,255,255,.035);
-  border: 1px solid rgba(255,255,255,.09);
-  padding: 12px;
+.day-modal{ position:fixed; inset:0; display:none; z-index:9999; }
+.day-modal[aria-hidden="false"]{ display:block; }
+.day-modal-overlay{ position:absolute; inset:0; background: rgba(0,0,0,.7); backdrop-filter: blur(6px); }
+.day-modal-content{
+  position:absolute; inset: 2.5vh 2.5vw;
+  background: #050607;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  box-shadow: 0 20px 80px rgba(0,0,0,.6);
+  overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.day-modal-topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.modal-title{ font-weight:800; font-size: 18px; color: #fff; }
+.modal-sub{ font-size: 12px; color: rgba(255,255,255,.65); }
+.modal-close{
+  border:none; background: rgba(255,255,255,.06); color:#fff;
+  width: 42px; height: 42px; border-radius: 12px;
+}
+.section-tabs{
+  padding: 10px 16px;
+  display:flex; gap:10px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.sec-btn{
+  border: 1px solid rgba(0,255,255,.18);
+  background: rgba(0,255,255,.06);
+  color: rgba(230,255,255,.9);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+}
+.sec-btn.active{
+  background: rgba(0,255,255,.16);
+  border-color: rgba(0,255,255,.35);
+}
+
+.day-modal-body{
+  padding: 16px;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  height: 100%;
+  overflow:auto;
+}
+
+.panel{
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 14px;
+}
+.panel-h{
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .4px;
+  color: rgba(255,255,255,.9);
+  margin-bottom: 10px;
 }
 .panel-block{ margin-bottom: 10px; }
-.panel-block:last-child{ margin-bottom: 0; }
-
-.panel-title{
+.pill{
   display:inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .4px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing:.5px;
   text-transform: uppercase;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(0,255,255,.10);
-  border: 1px solid rgba(0,255,255,.18);
-  color: rgba(200,255,255,.95);
+  background: rgba(0,255,255,.08);
+  border: 1px solid rgba(0,255,255,.16);
+  color: rgba(220,255,255,.95);
   margin-bottom: 6px;
 }
-.panel-body{
+.panel-text{
+  white-space: pre-line;
+  color: rgba(255,255,255,.9);
   font-size: 14px;
   line-height: 1.35;
-  color: rgba(255,255,255,.92);
-  white-space: pre-line;
+}
+.txt{
+  width:100%;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 12px;
+  color:#fff;
+  padding: 10px;
+  font-size: 14px;
 }
 
-/* Transición suave al abrir/cerrar */
-.day-details{
-  transition: max-height .22s ease;
+.exercise-list{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+.ex-card{
+  padding: 10px; border-radius: 14px;
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.ex-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.ex-meta{ font-size: 12px; color: rgba(255,255,255,.65); margin-top: 6px; }
+.did-row{ display:flex; justify-content:space-between; align-items:center; margin: 8px 0 14px; }
+.did-label{ color: rgba(255,255,255,.85); font-weight: 700; }
+
+/* Switch */
+.switch{ position:relative; display:inline-block; width: 54px; height: 30px; }
+.switch input{ opacity:0; width:0; height:0; }
+.slider{
+  position:absolute; cursor:pointer; inset:0;
+  background: rgba(255,255,255,.15);
+  border-radius: 999px;
+  transition: .2s;
+  border: 1px solid rgba(255,255,255,.18);
+}
+.slider:before{
+  position:absolute; content:"";
+  height: 24px; width: 24px;
+  left: 3px; top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: .2s;
+}
+.switch input:checked + .slider{
+  background: rgba(0,255,255,.20);
+  border-color: rgba(0,255,255,.35);
+}
+.switch input:checked + .slider:before{
+  transform: translateX(24px);
+}
+
+.save-msg{ margin-top:10px; font-size: 12px; color: rgba(255,255,255,.75); }
+
+/* Calendario bloqueado */
+.block-pill{
+  display:inline-block;
+  margin-top:6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(255,0,0,.10);
+  border: 1px solid rgba(255,0,0,.18);
+  color: rgba(255,210,210,.95);
 }
 </style>
 
@@ -293,76 +426,285 @@ document.addEventListener("DOMContentLoaded", function () {
     progreso: document.getElementById("tab-progreso"),
     rutinas: document.getElementById("tab-rutinas"),
   };
-
   function activateTab(name) {
     tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === name));
     Object.entries(sections).forEach(([key, sec]) => sec.classList.toggle("active", key === name));
   }
-
   tabs.forEach(btn => btn.addEventListener("click", () => activateTab(btn.dataset.tab)));
   activateTab("semana");
 
-  // ✅ Toggle PRO con animación + chevron
-  document.querySelectorAll(".js-day-card").forEach(card => {
-    card.addEventListener("click", (e) => {
-      if (e.target.closest(".js-no-toggle")) return;
+  // Modal
+  const modal = document.getElementById("dayModal");
+  const modalClose = document.getElementById("modalClose");
+  const overlay = document.querySelector(".day-modal-overlay");
 
-      const targetId = card.getAttribute("data-target");
-      if (!targetId) return;
-      const panel = document.getElementById(targetId);
-      if (!panel) return;
+  const modalTitle = document.getElementById("modalTitle");
+  const modalSub = document.getElementById("modalSub");
 
-      const isOpen = card.classList.contains("is-open");
+  const proposedWarmText = document.getElementById("proposedWarmText");
+  const proposedMainText = document.getElementById("proposedMainText");
+  const proposedFinText = document.getElementById("proposedFinText");
+  const finPill = document.getElementById("finPill");
 
-      // cerrar
-      if (isOpen) {
-        card.classList.remove("is-open");
-        panel.style.maxHeight = "0px";
-        return;
+  const strengthBlock = document.getElementById("strengthBlock");
+  const exerciseList = document.getElementById("exerciseList");
+
+  const sectionTabs = document.getElementById("sectionTabs");
+  const secBtns = sectionTabs.querySelectorAll(".sec-btn");
+
+  const didWorkout = document.getElementById("didWorkout");
+  const warmDone = document.getElementById("warmDone");
+  const mainDone = document.getElementById("mainDone");
+  const finDone = document.getElementById("finDone");
+  const notesDone = document.getElementById("notesDone");
+  const saveBtn = document.getElementById("saveDayResult");
+  const saveMsg = document.getElementById("saveMsg");
+
+  let currentFecha = null;
+  let currentIsStrength = false;
+  let currentTipo = "";
+
+  function openModal() {
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+  function closeModal() {
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    saveMsg.textContent = "";
+  }
+
+  overlay.addEventListener("click", closeModal);
+  modalClose.addEventListener("click", closeModal);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+  // Mostrar sección (no fuerza)
+  function setSection(sec){
+    secBtns.forEach(b => b.classList.toggle("active", b.dataset.sec === sec));
+    // mostramos solo el bloque correspondiente
+    document.getElementById("proposedWarm").style.display = (sec === "warm") ? "block" : "none";
+    document.getElementById("proposedMain").style.display = (sec === "main") ? "block" : "none";
+    document.getElementById("proposedFin").style.display = (sec === "fin") ? "block" : "none";
+  }
+  secBtns.forEach(b => b.addEventListener("click", () => setSection(b.dataset.sec)));
+
+  // Click en día de semana => fullscreen detalle
+  document.querySelectorAll(".js-open-day").forEach(card => {
+    card.addEventListener("click", async () => {
+      const fecha = card.dataset.fecha;
+      const tipo = (card.dataset.tipo || "").toLowerCase();
+      const planType = card.dataset.planType || "Descanso";
+      const isStrength = card.dataset.isStrength === "1";
+
+      const warm = card.dataset.warmup || "";
+      const main = card.dataset.main || "";
+      const fin = card.dataset.finisher || "";
+      const rutinaNombre = card.dataset.rutinaNombre || "";
+
+      currentFecha = fecha;
+      currentIsStrength = isStrength;
+      currentTipo = tipo;
+
+      modalTitle.textContent = `${planType}`;
+      modalSub.textContent = `${fecha}${rutinaNombre ? " • Rutina: " + rutinaNombre : ""}`;
+
+      // Etiqueta finisher según tipo
+      const isRun = ["run","pista","cardio"].includes(tipo);
+      finPill.textContent = isRun ? "Enfriar / Soltar" : "Finisher";
+
+      proposedWarmText.textContent = warm || "—";
+      proposedMainText.textContent = main || "—";
+      proposedFinText.textContent = fin || "—";
+
+      // ✅ cargar estado "realizado"
+      didWorkout.checked = (card.dataset.did === "1");
+      warmDone.value = card.dataset.warmDone || "";
+      mainDone.value = card.dataset.mainDone || "";
+      finDone.value = card.dataset.finDone || "";
+      notesDone.value = card.dataset.notes || "";
+
+      // fuerza vs no-fuerza
+      if (isStrength) {
+        sectionTabs.style.display = "none";
+        document.getElementById("proposedWarm").style.display = warm ? "block" : "none";
+        document.getElementById("proposedMain").style.display = "block";
+        document.getElementById("proposedFin").style.display = fin ? "block" : "none";
+
+        strengthBlock.style.display = "block";
+
+        // inyectamos ejercicios desde DOM (ya están en page vía Jinja)
+        // ✅ para no inventar, los levantamos de data-* no alcanza, así que los rendereamos desde Jinja en un <template> oculto por día
+        const tpl = document.getElementById("tpl_" + fecha.replaceAll("-", ""));
+        exerciseList.innerHTML = tpl ? tpl.innerHTML : "<div class='text-muted small'>No hay ejercicios.</div>";
+
+        // re-bindeo botones check dentro del modal (si hay)
+        exerciseList.querySelectorAll(".js-check-btn").forEach(btn => {
+          btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const itemId = parseInt(btn.dataset.itemId, 10);
+            const doneValue = btn.dataset.done === "1" ? 0 : 1;
+            await toggleDone(fecha, itemId, doneValue, btn);
+          });
+        });
+
+      } else {
+        strengthBlock.style.display = "none";
+        sectionTabs.style.display = "flex";
+        setSection("warm");
       }
 
-      // abrir
-      card.classList.add("is-open");
-      // primero reset para medir bien
-      panel.style.maxHeight = "0px";
-      // siguiente tick: altura real
-      requestAnimationFrame(() => {
-        panel.style.maxHeight = (panel.scrollHeight + 10) + "px";
+      openModal();
+    });
+  });
+
+  // Guardar lo realizado
+  saveBtn.addEventListener("click", async () => {
+    if (!currentFecha) return;
+    saveMsg.textContent = "Guardando...";
+
+    try {
+      const res = await fetch("{{ url_for('main.athlete_day_result') }}", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({
+          fecha: currentFecha,
+          did_workout: didWorkout.checked,
+          warmup_done: warmDone.value,
+          main_done: mainDone.value,
+          finisher_done: finDone.value,
+          notes: notesDone.value
+        })
       });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Error");
+
+      saveMsg.textContent = "✅ Guardado";
+
+      // también actualizamos dataset del card para no recargar
+      const card = document.querySelector(`.js-open-day[data-fecha="${currentFecha}"]`);
+      if (card) {
+        card.dataset.did = didWorkout.checked ? "1" : "0";
+        card.dataset.warmDone = warmDone.value;
+        card.dataset.mainDone = mainDone.value;
+        card.dataset.finDone = finDone.value;
+        card.dataset.notes = notesDone.value;
+      }
+
+    } catch (e) {
+      saveMsg.textContent = "❌ No se pudo guardar: " + e.message;
+    }
+  });
+
+  // Calendario: click para bloquear
+  document.querySelectorAll(".js-cal-day").forEach(day => {
+    day.addEventListener("click", async () => {
+      const fecha = day.dataset.fecha;
+      const bloqueado = day.dataset.bloqueado === "1";
+      const canTrain = bloqueado; // si estaba bloqueado, ahora puede entrenar
+
+      try {
+        const res = await fetch("{{ url_for('main.athlete_toggle_can_train') }}", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ fecha, can_train: canTrain })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "Error");
+
+        // actualizar UI
+        day.dataset.bloqueado = canTrain ? "0" : "1";
+        const existing = day.querySelector(".block-pill");
+        if (!canTrain) {
+          if (!existing) {
+            const pill = document.createElement("div");
+            pill.className = "block-pill";
+            pill.textContent = "🚫 No puedo";
+            day.appendChild(pill);
+          }
+        } else {
+          if (existing) existing.remove();
+        }
+
+      } catch(e) {
+        alert("No se pudo guardar: " + e.message);
+      }
     });
   });
 });
 
-// Endpoint espera JSON
+// ✅ check item (modal o lista)
 async function toggleDone(fechaISO, itemId, doneValue, btn) {
   try {
     const res = await fetch("{{ url_for('main.athlete_check_item') }}", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fecha: fechaISO,
-        item_id: itemId,
-        done: doneValue ? true : false
-      })
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ fecha: fechaISO, item_id: itemId, done: doneValue ? true : false })
     });
-
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "Error");
 
+    // UI
     if (doneValue) {
       btn.classList.remove("btn-outline-info");
       btn.classList.add("btn-success");
-      btn.textContent = "✅ Realizado";
-      btn.setAttribute("onclick", `toggleDone('${fechaISO}', ${itemId}, 0, this)`);
+      btn.textContent = "✅ Hecho";
+      btn.dataset.done = "1";
     } else {
       btn.classList.remove("btn-success");
       btn.classList.add("btn-outline-info");
-      btn.textContent = "Marcar realizado";
-      btn.setAttribute("onclick", `toggleDone('${fechaISO}', ${itemId}, 1, this)`);
+      btn.textContent = "Marcar";
+      btn.dataset.done = "0";
     }
-  } catch (e) {
+  } catch(e) {
     alert("No se pudo guardar: " + e.message);
   }
 }
 </script>
+
+{# =======================================================
+   ✅ Templates ocultos por día para renderizar ejercicios dentro del modal
+   (Así NO dependemos de inventar JSON en JS)
+======================================================= #}
+{% for f in fechas %}
+  {% set items = items_by_day.get(f, []) %}
+  <template id="tpl_{{ f.strftime('%Y%m%d') }}">
+    {% if items and items|length > 0 %}
+      {% for it in items %}
+        {% set is_done = (f, it.id) in done_set %}
+        <div class="ex-card">
+          <div class="ex-top">
+            <div class="small"><strong>{{ it.nombre }}</strong></div>
+            <button type="button"
+                    class="btn btn-sm {% if is_done %}btn-success{% else %}btn-outline-info{% endif %} js-check-btn"
+                    data-item-id="{{ it.id }}"
+                    data-done="{{ 1 if is_done else 0 }}">
+              {% if is_done %}✅ Hecho{% else %}Marcar{% endif %}
+            </button>
+          </div>
+
+          {% if it.series or it.reps or it.descanso %}
+            <div class="ex-meta">
+              {% if it.series %}Series: {{ it.series }}{% endif %}
+              {% if it.reps %} • Reps: {{ it.reps }}{% endif %}
+              {% if it.descanso %} • Descanso: {{ it.descanso }}{% endif %}
+            </div>
+          {% endif %}
+
+          {% if it.video_url %}
+            <video class="w-100 rounded mt-2" controls preload="metadata" style="max-height:220px;">
+              <source src="{{ url_for('static', filename=it.video_url) }}" type="video/mp4">
+            </video>
+          {% endif %}
+
+          {% if it.nota %}
+            <div class="small text-secondary mt-2">{{ it.nota }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-muted small">No hay ejercicios cargados para este día.</div>
+    {% endif %}
+  </template>
+{% endfor %}
+
 {% endblock %}

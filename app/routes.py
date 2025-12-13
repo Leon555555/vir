@@ -11,7 +11,6 @@ from flask import (
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import text
-
 from werkzeug.utils import secure_filename
 import os
 
@@ -101,8 +100,8 @@ def index():
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form["email"].strip().lower()
-        password = request.form["password"]
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
 
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
@@ -113,6 +112,7 @@ def login():
             return redirect(url_for("main.perfil_usuario", user_id=user.id))
 
         flash("Datos incorrectos", "danger")
+
     return render_template("login.html")
 
 @main_bp.route("/logout")
@@ -141,10 +141,12 @@ def perfil_usuario(user_id: int):
     try:
         user = User.query.get_or_404(user_id)
 
+        # Seguridad: atleta no puede ver otro perfil
         if current_user.email != "admin@vir.app" and current_user.id != user.id:
             flash("Acceso denegado", "danger")
             return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
+        # Semana + planes
         center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
         fechas = week_dates(center)
 
@@ -155,6 +157,7 @@ def perfil_usuario(user_id: int):
 
         planes = {p.fecha: p for p in planes_db}
 
+        # Crear entries vacías que falten
         for f in fechas:
             if f not in planes:
                 nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -166,6 +169,7 @@ def perfil_usuario(user_id: int):
         propuesto = [planes[f].propuesto_score or 0 for f in fechas]
         realizado = [planes[f].realizado_score or 0 for f in fechas]
 
+        # MES COMPLETO
         hoy = date.today()
         dias_mes = month_dates(hoy.year, hoy.month)
         planes_mes = {
@@ -178,11 +182,16 @@ def perfil_usuario(user_id: int):
 
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
+        # Rutinas (para tab rutinas en el perfil)
         rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
+        # =============================================================
+        # Variables que pide perfil.html
+        # =============================================================
         rutina_by_day: Dict[date, Rutina | None] = {}
         items_by_day: Dict[date, List[RutinaItem]] = {}
 
+        # Persistencia real de checks: done_set = {(fecha, rutina_item_id)}
         done_set: set[Tuple[date, int]] = set()
 
         try:
@@ -196,6 +205,7 @@ def perfil_usuario(user_id: int):
         except Exception:
             done_set = set()
 
+        # Cache de items por rutina para no hacer mil queries
         rutina_items_cache: Dict[int, List[RutinaItem]] = {}
 
         for f in fechas:
@@ -248,11 +258,16 @@ def perfil_usuario(user_id: int):
         return redirect(url_for("main.index"))
 
 # =============================================================
-# ✅ Persistencia REAL: endpoint que llama "Marcar realizado"
+# Persistencia REAL: endpoint que llama "Marcar realizado"
 # =============================================================
 @main_bp.route("/athlete/check_item", methods=["POST"])
 @login_required
 def athlete_check_item():
+    """
+    Guarda check por atleta y por día.
+    Espera JSON:
+      { "fecha": "YYYY-MM-DD", "item_id": 123, "done": true/false }
+    """
     try:
         payload = request.get_json(silent=True) or {}
         fecha = safe_parse_ymd(payload.get("fecha", ""), fallback=date.today())
@@ -292,7 +307,7 @@ def athlete_check_item():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 # =============================================================
-# ✅ Crear tabla athlete_check en Render (una vez)
+# Crear tabla athlete_check en Render (una vez)
 # =============================================================
 @main_bp.route("/fix-athlete-check-table")
 @login_required
@@ -345,7 +360,6 @@ def save_day():
 
     db.session.commit()
     flash("Entrenamiento actualizado", "success")
-
     return redirect(url_for("main.perfil_usuario", user_id=user_id))
 
 # =============================================================
@@ -458,7 +472,7 @@ def crear_rutina():
 
 # =============================================================
 # CREAR EJERCICIO DEL BANCO (CON VIDEO)
-#   - Guarda videos en: static/videos/
+#   Guarda videos en: static/videos/
 # =============================================================
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
@@ -544,8 +558,11 @@ def rutina_add_item(rutina_id: int):
     reps = request.form.get("reps", "").strip()
     descanso = request.form.get("descanso", "").strip()
 
-    # ✅ Tu template manda "nota" (y tu modelo es "nota")
-    nota = request.form.get("nota", "").strip() or request.form.get("notas", "").strip()
+    # ✅ FIX: tu modelo tiene "nota"
+    nota = request.form.get("nota", "").strip()
+    if not nota:
+        # compatibilidad por si algún form viejo manda "notas"
+        nota = request.form.get("notas", "").strip()
 
     item = RutinaItem(
         rutina_id=rutina.id,
@@ -554,8 +571,8 @@ def rutina_add_item(rutina_id: int):
         series=series,
         reps=reps,
         descanso=descanso,
-        nota=nota,  # ✅ FIX
-        video_url=f"videos/{ejercicio.video_filename}",
+        nota=nota,  # ✅
+        video_url=f"videos/{ejercicio.video_filename}",  # ✅ /static/videos/...
     )
 
     db.session.add(item)
@@ -582,7 +599,11 @@ def rutina_update_item(rutina_id: int, item_id: int):
     item.series = request.form.get("series", "").strip()
     item.reps = request.form.get("reps", "").strip()
     item.descanso = request.form.get("descanso", "").strip()
-    item.nota = request.form.get("nota", "").strip()  # ✅ FIX
+
+    # ✅ FIX: tu modelo tiene "nota"
+    item.nota = request.form.get("nota", "").strip()
+    if not item.nota:
+        item.nota = request.form.get("notas", "").strip()
 
     db.session.commit()
     flash("Cambios guardados", "success")

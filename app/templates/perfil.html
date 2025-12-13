@@ -32,11 +32,12 @@
           {% set tipo = (plan.plan_type or 'descanso')|lower %}
           {% set rutina = rutina_by_day.get(f) %}
           {% set items = items_by_day.get(f, []) %}
+          {% set plan_label = (plan.plan_type or 'Descanso') %}
 
           <div class="day-card day-{{ tipo }}">
             <div class="d-flex justify-content-between mb-1">
               <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
-              <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
+              <span class="badge badge-{{ tipo }}">{{ plan_label|capitalize }}</span>
             </div>
 
             {% if rutina %}
@@ -46,37 +47,42 @@
               </div>
 
               <div class="mt-2">
-                {% for it in items %}
-                  <div class="p-2 rounded mb-2" style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div class="small"><strong>{{ it.nombre }}</strong></div>
+                {% if items %}
+                  {% for it in items %}
+                    <div class="p-2 rounded mb-2" style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div class="small"><strong>{{ it.nombre }}</strong></div>
 
-                      {% set is_done = (f, it.id) in done_set %}
-                      <button class="btn btn-sm {% if is_done %}btn-success{% else %}btn-outline-info{% endif %}"
-                              onclick="toggleDone({{ user.id }}, '{{ f.isoformat() }}', {{ it.id }}, {{ 0 if is_done else 1 }}, this)">
-                        {% if is_done %}✅ Realizado{% else %}Marcar realizado{% endif %}
-                      </button>
-                    </div>
-
-                    {% if it.series or it.reps or it.descanso %}
-                      <div class="text-muted small mt-1">
-                        {% if it.series %}Series: {{ it.series }}{% endif %}
-                        {% if it.reps %} • Reps: {{ it.reps }}{% endif %}
-                        {% if it.descanso %} • Descanso: {{ it.descanso }}{% endif %}
+                        {% set is_done = (f, it.id) in done_set %}
+                        <button class="btn btn-sm {% if is_done %}btn-success{% else %}btn-outline-info{% endif %}"
+                                onclick="toggleDone('{{ f.strftime('%Y-%m-%d') }}', {{ it.id }}, {{ 0 if is_done else 1 }}, this)">
+                          {% if is_done %}✅ Realizado{% else %}Marcar realizado{% endif %}
+                        </button>
                       </div>
-                    {% endif %}
 
-                    {% if it.video_url %}
-                      <video class="w-100 rounded mt-2" controls preload="metadata" style="max-height:220px;">
-                        <source src="{{ url_for('static', filename=it.video_url) }}" type="video/mp4">
-                      </video>
-                    {% endif %}
+                      {% if it.series or it.reps or it.descanso %}
+                        <div class="text-muted small mt-1">
+                          {% if it.series %}Series: {{ it.series }}{% endif %}
+                          {% if it.reps %} • Reps: {{ it.reps }}{% endif %}
+                          {% if it.descanso %} • Descanso: {{ it.descanso }}{% endif %}
+                        </div>
+                      {% endif %}
 
-                    {% if it.notas %}
-                      <div class="small text-secondary mt-1">{{ it.notas }}</div>
-                    {% endif %}
-                  </div>
-                {% endfor %}
+                      {% if it.video_url %}
+                        <video class="w-100 rounded mt-2" controls preload="metadata" style="max-height:220px;">
+                          <source src="{{ url_for('static', filename=it.video_url) }}" type="video/mp4">
+                        </video>
+                      {% endif %}
+
+                      {# ✅ FIX: en tu modelo es "nota", NO "notas" #}
+                      {% if it.nota %}
+                        <div class="small text-secondary mt-1">{{ it.nota }}</div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="small text-muted mt-2">Esta rutina no tiene ejercicios cargados.</div>
+                {% endif %}
               </div>
 
             {% else %}
@@ -95,7 +101,7 @@
       <div class="calendar-grid">
         {% for f in dias_mes %}
           {% set plan_mes = planes_mes.get(f) %}
-          {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
+          {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes and plan_mes.plan_type else 'descanso' %}
           <div class="calendar-day day-{{ tipo_mes }}">
             <div class="cal-header">
               <span class="cal-day-num">{{ f.day }}</span>
@@ -103,7 +109,7 @@
             </div>
             {% if plan_mes %}
               <div class="event-pill event-{{ tipo_mes }}">
-                <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
+                <span class="event-text">{{ (plan_mes.plan_type or 'Descanso')|capitalize }}</span>
               </div>
             {% else %}
               <span class="plan-empty mt-2">Sin plan</span>
@@ -169,15 +175,19 @@ document.addEventListener("DOMContentLoaded", function () {
   activateTab("semana");
 });
 
-async function toggleDone(userId, fechaISO, itemId, doneValue, btn) {
+// ✅ Este endpoint en routes.py espera JSON (request.get_json)
+async function toggleDone(fechaISO, itemId, doneValue, btn) {
   try {
-    const form = new FormData();
-    form.append("user_id", userId);
-    form.append("fecha", fechaISO);
-    form.append("item_id", itemId);
-    form.append("done", doneValue ? "1" : "0");
+    const res = await fetch("{{ url_for('main.athlete_check_item') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fecha: fechaISO,
+        item_id: itemId,
+        done: doneValue ? true : false
+      })
+    });
 
-    const res = await fetch("{{ url_for('main.athlete_check_item') }}", { method: "POST", body: form });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "Error");
 
@@ -185,12 +195,12 @@ async function toggleDone(userId, fechaISO, itemId, doneValue, btn) {
       btn.classList.remove("btn-outline-info");
       btn.classList.add("btn-success");
       btn.textContent = "✅ Realizado";
-      btn.setAttribute("onclick", `toggleDone(${userId}, '${fechaISO}', ${itemId}, 0, this)`);
+      btn.setAttribute("onclick", `toggleDone('${fechaISO}', ${itemId}, 0, this)`);
     } else {
       btn.classList.remove("btn-success");
       btn.classList.add("btn-outline-info");
       btn.textContent = "Marcar realizado";
-      btn.setAttribute("onclick", `toggleDone(${userId}, '${fechaISO}', ${itemId}, 1, this)`);
+      btn.setAttribute("onclick", `toggleDone('${fechaISO}', ${itemId}, 1, this)`);
     }
   } catch (e) {
     alert("No se pudo guardar: " + e.message);

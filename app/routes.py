@@ -15,7 +15,7 @@ from sqlalchemy import text
 from werkzeug.utils import secure_filename
 import os
 
-from app.models import User, DiaPlan, Rutina, Ejercicio, RutinaItem
+from app.models import User, DiaPlan, Rutina, Ejercicio, RutinaItem, AthleteCheck
 from app.extensions import db
 
 # =============================================================
@@ -187,11 +187,28 @@ def perfil_usuario(user_id: int):
         rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
         # =============================================================
-        # ✅ FIX Opción A: variables que pide perfil.html
+        # ✅ Variables que pide perfil.html
         # =============================================================
         rutina_by_day: Dict[date, Rutina | None] = {}
         items_by_day: Dict[date, List[RutinaItem]] = {}
-        done_set: set[Tuple[date, int]] = set()  # por ahora vacío (no tenés tabla de checks)
+
+        # ✅ Persistencia real de checks: done_set = {(fecha, rutina_item_id)}
+        done_set: set[Tuple[date, int]] = set()
+
+        # Traer checks de la semana (solo si la tabla existe)
+        # Si todavía no ejecutaste /fix-athlete-check-table, esto puede fallar:
+        # lo capturamos y seguimos (no rompe perfil)
+        try:
+            checks = AthleteCheck.query.filter(
+                AthleteCheck.user_id == user.id,
+                AthleteCheck.fecha.in_(fechas)
+            ).all()
+            for c in checks:
+                if c.done:
+                    done_set.add((c.fecha, c.rutina_item_id))
+        except Exception:
+            # si la tabla no existe aún, no rompemos el perfil
+            done_set = set()
 
         # Cache de items por rutina para no hacer mil queries
         rutina_items_cache: Dict[int, List[RutinaItem]] = {}
@@ -235,12 +252,10 @@ def perfil_usuario(user_id: int):
             planes_mes=planes_mes,
             rutinas=rutinas,
 
-            # ✅ NUEVO (lo que tu template exige)
             rutina_by_day=rutina_by_day,
             items_by_day=items_by_day,
             done_set=done_set,
 
-            # por si querés usar center en links
             center=center,
         )
 
@@ -250,18 +265,81 @@ def perfil_usuario(user_id: int):
         return redirect(url_for("main.index"))
 
 # =============================================================
-# ✅ NUEVO: endpoint que llama el botón "Marcar realizado"
-# (Opción A: responde OK sin romper aunque aún no guardemos nada)
+# ✅ Persistencia REAL: endpoint que llama "Marcar realizado"
 # =============================================================
 @main_bp.route("/athlete/check_item", methods=["POST"])
 @login_required
 def athlete_check_item():
+    """
+    Guarda check por atleta y por día.
+    Espera JSON:
+      { "fecha": "YYYY-MM-DD", "item_id": 123, "done": true/false }
+    """
     try:
-        # En Opción A no persistimos (porque no pasaste el modelo de checks).
-        # Devolvemos ok para que el front no crashee.
+        payload = request.get_json(silent=True) or {}
+        fecha = safe_parse_ymd(payload.get("fecha", ""), fallback=date.today())
+
+        item_id_raw = payload.get("item_id", None)
+        if item_id_raw is None:
+            return jsonify({"ok": False, "error": "Falta item_id"}), 400
+
+        item_id = int(item_id_raw)
+        done = bool(payload.get("done", True))
+
+        item = RutinaItem.query.get_or_404(item_id)
+
+        existing = AthleteCheck.query.filter_by(
+            user_id=current_user.id,
+            fecha=fecha,
+            rutina_item_id=item.id
+        ).first()
+
+        if existing:
+            existing.done = done
+            existing.updated_at = datetime.utcnow()
+        else:
+            db.session.add(AthleteCheck(
+                user_id=current_user.id,
+                fecha=fecha,
+                rutina_item_id=item.id,
+                done=done,
+                updated_at=datetime.utcnow()
+            ))
+
+        db.session.commit()
         return jsonify({"ok": True})
+
     except Exception as e:
+        db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
+
+# =============================================================
+# ✅ Crear tabla athlete_check en Render (una vez)
+# =============================================================
+@main_bp.route("/fix-athlete-check-table")
+@login_required
+def fix_athlete_check_table():
+    if current_user.email != "admin@vir.app":
+        return "Acceso denegado", 403
+
+    try:
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS athlete_check (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL,
+                rutina_item_id INTEGER NOT NULL REFERENCES rutina_item(id) ON DELETE CASCADE,
+                done BOOLEAN NOT NULL DEFAULT TRUE,
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                UNIQUE(user_id, fecha, rutina_item_id)
+            );
+        """))
+        db.session.commit()
+        return "TABLA athlete_check OK ✔", 200
+
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR creando athlete_check: {e}", 500
 
 # =============================================================
 # ADMIN GUARDA ENTRENAMIENTO DEL DÍA

@@ -58,12 +58,11 @@ class Ejercicio(db.Model):
     # Nombre del archivo de vídeo guardado en /static/videos_ejercicios
     video_filename = db.Column(db.String(255), nullable=False)
 
-    # Opccional: miniatura
+    # Opcional: miniatura
     imagen_filename = db.Column(db.String(255))
 
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Items de rutina que usan este ejercicio
     rutina_items = db.relationship(
         "RutinaItem",
         back_populates="ejercicio"
@@ -71,7 +70,7 @@ class Ejercicio(db.Model):
 
 
 # ===================================
-# 🏋️‍♀️ Ejercicio dentro de una Rutina (RutinaItem)
+# 🏋️‍♀️ Ejercicio dentro de una Rutina
 # ===================================
 class RutinaItem(db.Model):
     __tablename__ = "rutina_item"
@@ -82,7 +81,6 @@ class RutinaItem(db.Model):
     # Opcional: link al banco de ejercicios
     ejercicio_id = db.Column(db.Integer, db.ForeignKey("ejercicio.id"))
 
-    # Campos que ya usabas
     nombre = db.Column(db.String(200), nullable=False)
     series = db.Column(db.String(50))
     reps = db.Column(db.String(50))
@@ -91,14 +89,29 @@ class RutinaItem(db.Model):
     video_url = db.Column(db.String(255))
     nota = db.Column(db.Text)
 
-    # ✅ NUEVO: persistencia Hecho / Redo
-    done = db.Column(db.Boolean, nullable=False, default=False)
-    done_at = db.Column(db.DateTime, nullable=True)
-
     ejercicio = db.relationship(
         "Ejercicio",
         back_populates="rutina_items"
     )
+
+
+# ===================================
+# ✅ Checks por atleta y por día (persistente)
+# ===================================
+class AthleteCheck(db.Model):
+    __tablename__ = "athlete_check"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    fecha = db.Column(db.Date, nullable=False)
+
+    rutina_item_id = db.Column(db.Integer, db.ForeignKey("rutina_item.id"), nullable=False)
+
+    done = db.Column(db.Boolean, nullable=False, default=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship("User", lazy=True)
+    rutina_item = db.relationship("RutinaItem", lazy=True)
 
 
 # ===================================
@@ -110,11 +123,6 @@ class DiaPlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     fecha = db.Column(db.Date, nullable=False)
-
-    # ✅ NUEVO: asignar una rutina a un día (para moverla entre días)
-    rutina_id = db.Column(db.Integer, db.ForeignKey("rutina.id"), nullable=True)
-    rutina = db.relationship("Rutina", lazy=True)
-
     plan_type = db.Column(db.String(50), default="descanso")
     warmup = db.Column(db.Text)
     main = db.Column(db.Text)

@@ -36,104 +36,116 @@
           {% set collapse_id = "dayDetails_" ~ f.strftime("%Y%m%d") %}
 
           <div class="day-card day-{{ tipo }} js-day-card" data-target="{{ collapse_id }}">
-            <!-- HEADER día (click para desplegar) -->
-            <div class="d-flex justify-content-between mb-1">
-              <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
-              <span class="badge badge-{{ tipo }}">{{ plan_label|capitalize }}</span>
-            </div>
 
-            <!-- Resumen -->
-            {% if rutina %}
-              <div class="mt-2">
-                <div class="text-info small"><strong>Rutina:</strong> {{ rutina.nombre }}</div>
-                <div class="text-muted small">{{ items|length }} ejercicios</div>
-                <div class="small text-secondary mt-1">Click para ver detalle</div>
+            <!-- HEADER (pro + chevron) -->
+            <div class="day-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <strong>{{ f.strftime('%a')|upper }} {{ f.day }}</strong>
+                <span class="badge badge-{{ tipo }}">{{ plan_label|capitalize }}</span>
               </div>
-            {% else %}
-              <div class="mt-2">
-                <div class="small text-muted">Sin rutina asignada.</div>
-                {% if plan.warmup or plan.main or plan.finisher %}
-                  <div class="small text-secondary mt-1">Click para ver detalle</div>
-                {% endif %}
-              </div>
-            {% endif %}
-
-            <!-- DETALLE (colapsable) -->
-            <div id="{{ collapse_id }}" class="day-details mt-3" style="display:none;">
-
-              {% if rutina %}
-                <!-- Detalle rutina -->
-                {% if items %}
-                  {% for it in items %}
-                    <div class="p-2 rounded mb-2"
-                         style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);">
-                      <div class="d-flex justify-content-between align-items-center">
-                        <div class="small"><strong>{{ it.nombre }}</strong></div>
-
-                        {% set is_done = (f, it.id) in done_set %}
-                        <button type="button"
-                                class="btn btn-sm {% if is_done %}btn-success{% else %}btn-outline-info{% endif %} js-no-toggle"
-                                onclick="toggleDone('{{ f.strftime('%Y-%m-%d') }}', {{ it.id }}, {{ 0 if is_done else 1 }}, this)">
-                          {% if is_done %}✅ Realizado{% else %}Marcar realizado{% endif %}
-                        </button>
-                      </div>
-
-                      {% if it.series or it.reps or it.descanso %}
-                        <div class="text-muted small mt-1">
-                          {% if it.series %}Series: {{ it.series }}{% endif %}
-                          {% if it.reps %} • Reps: {{ it.reps }}{% endif %}
-                          {% if it.descanso %} • Descanso: {{ it.descanso }}{% endif %}
-                        </div>
-                      {% endif %}
-
-                      {% if it.video_url %}
-                        <video class="w-100 rounded mt-2 js-no-toggle" controls preload="metadata" style="max-height:220px;">
-                          <source src="{{ url_for('static', filename=it.video_url) }}" type="video/mp4">
-                        </video>
-                      {% endif %}
-
-                      {% if it.nota %}
-                        <div class="small text-secondary mt-1">{{ it.nota }}</div>
+              <div class="day-subrow">
+                <div class="day-subtext">
+                  {% if rutina %}
+                    <div class="text-info small">
+                      <strong>Rutina:</strong> {{ rutina.nombre }}
+                    </div>
+                    <div class="text-muted small">
+                      {% if items and items|length > 0 %}
+                        {{ items|length }} ejercicios
+                      {% else %}
+                        Sin ejercicios
                       {% endif %}
                     </div>
-                  {% endfor %}
-                {% else %}
-                  <div class="small text-muted">Esta rutina no tiene ejercicios cargados.</div>
-                {% endif %}
-
-              {% else %}
-                <!-- Detalle día sin rutina: warmup/main/finisher -->
-                <div class="p-2 rounded"
-                     style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);">
-
-                  {% if plan.warmup %}
-                    <div class="mb-2">
-                      <div class="text-info small"><strong>Warmup</strong></div>
-                      <div class="small text-light">{{ plan.warmup }}</div>
-                    </div>
-                  {% endif %}
-
-                  {% if plan.main %}
-                    <div class="mb-2">
-                      <div class="text-info small"><strong>Entrenamiento</strong></div>
-                      <div class="small text-light">{{ plan.main }}</div>
-                    </div>
-                  {% endif %}
-
-                  {% if plan.finisher %}
-                    <div class="mb-1">
-                      <div class="text-info small"><strong>Finisher</strong></div>
-                      <div class="small text-light">{{ plan.finisher }}</div>
-                    </div>
-                  {% endif %}
-
-                  {% if not plan.warmup and not plan.main and not plan.finisher %}
-                    <div class="small text-muted">No hay detalle cargado para este día.</div>
+                  {% else %}
+                    <div class="small text-muted">Sin rutina asignada.</div>
                   {% endif %}
                 </div>
-              {% endif %}
 
+                <div class="day-chevron" aria-hidden="true">▼</div>
+              </div>
             </div>
+
+            <!-- DETALLE (animado) -->
+            <div id="{{ collapse_id }}" class="day-details" style="max-height:0; overflow:hidden;">
+              <div class="day-details-inner">
+
+                {% if rutina %}
+                  {% if items and items|length > 0 %}
+                    {% for it in items %}
+                      <div class="exercise-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <div class="small"><strong>{{ it.nombre }}</strong></div>
+
+                          {% set is_done = (f, it.id) in done_set %}
+                          <button type="button"
+                                  class="btn btn-sm {% if is_done %}btn-success{% else %}btn-outline-info{% endif %} js-no-toggle"
+                                  onclick="toggleDone('{{ f.strftime('%Y-%m-%d') }}', {{ it.id }}, {{ 0 if is_done else 1 }}, this)">
+                            {% if is_done %}✅ Realizado{% else %}Marcar realizado{% endif %}
+                          </button>
+                        </div>
+
+                        {% if it.series or it.reps or it.descanso %}
+                          <div class="text-muted small mt-1">
+                            {% if it.series %}Series: {{ it.series }}{% endif %}
+                            {% if it.reps %} • Reps: {{ it.reps }}{% endif %}
+                            {% if it.descanso %} • Descanso: {{ it.descanso }}{% endif %}
+                          </div>
+                        {% endif %}
+
+                        {% if it.video_url %}
+                          <video class="w-100 rounded mt-2 js-no-toggle" controls preload="metadata" style="max-height:220px;">
+                            <source src="{{ url_for('static', filename=it.video_url) }}" type="video/mp4">
+                          </video>
+                        {% endif %}
+
+                        {% if it.nota %}
+                          <div class="small text-secondary mt-1">{{ it.nota }}</div>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <div class="pro-panel">
+                      <div class="panel-title">Rutina</div>
+                      <div class="panel-body">Esta rutina todavía no tiene ejercicios cargados.</div>
+                    </div>
+                  {% endif %}
+
+                {% else %}
+                  <!-- Día sin rutina: warmup/main/finisher con look PRO -->
+                  <div class="pro-panel">
+                    {% if plan.warmup %}
+                      <div class="panel-block">
+                        <div class="panel-title">Warmup</div>
+                        <div class="panel-body">{{ plan.warmup }}</div>
+                      </div>
+                    {% endif %}
+
+                    {% if plan.main %}
+                      <div class="panel-block">
+                        <div class="panel-title">Entrenamiento</div>
+                        <div class="panel-body">{{ plan.main }}</div>
+                      </div>
+                    {% endif %}
+
+                    {% if plan.finisher %}
+                      <div class="panel-block">
+                        <div class="panel-title">Finisher</div>
+                        <div class="panel-body">{{ plan.finisher }}</div>
+                      </div>
+                    {% endif %}
+
+                    {% if not plan.warmup and not plan.main and not plan.finisher %}
+                      <div class="panel-block">
+                        <div class="panel-title">Detalle</div>
+                        <div class="panel-body">No hay descripción cargada para este día.</div>
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+
+              </div>
+            </div>
+
           </div>
         {% endfor %}
       </div>
@@ -202,6 +214,75 @@
 {% endblock %}
 
 {% block extra_js %}
+<style>
+/* ====== Semana: look PRO sin romper tu CSS actual ====== */
+.day-header { cursor: pointer; }
+.day-subrow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:8px;
+}
+.day-chevron{
+  font-size: 12px;
+  opacity: .75;
+  transform: rotate(0deg);
+  transition: transform .18s ease, opacity .18s ease;
+  user-select:none;
+}
+.js-day-card.is-open .day-chevron{
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.day-details-inner{
+  padding-top: 12px;
+}
+
+.exercise-card{
+  padding: 10px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.pro-panel{
+  border-radius: 14px;
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.09);
+  padding: 12px;
+}
+.panel-block{ margin-bottom: 10px; }
+.panel-block:last-child{ margin-bottom: 0; }
+
+.panel-title{
+  display:inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0,255,255,.10);
+  border: 1px solid rgba(0,255,255,.18);
+  color: rgba(200,255,255,.95);
+  margin-bottom: 6px;
+}
+.panel-body{
+  font-size: 14px;
+  line-height: 1.35;
+  color: rgba(255,255,255,.92);
+  white-space: pre-line;
+}
+
+/* Transición suave al abrir/cerrar */
+.day-details{
+  transition: max-height .22s ease;
+}
+</style>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   // Tabs
@@ -221,10 +302,9 @@ document.addEventListener("DOMContentLoaded", function () {
   tabs.forEach(btn => btn.addEventListener("click", () => activateTab(btn.dataset.tab)));
   activateTab("semana");
 
-  // ✅ Click en tarjeta día => toggle detalles
+  // ✅ Toggle PRO con animación + chevron
   document.querySelectorAll(".js-day-card").forEach(card => {
     card.addEventListener("click", (e) => {
-      // Si clickean un botón o video o algo marcado como "no toggle", no colapsar.
       if (e.target.closest(".js-no-toggle")) return;
 
       const targetId = card.getAttribute("data-target");
@@ -232,8 +312,23 @@ document.addEventListener("DOMContentLoaded", function () {
       const panel = document.getElementById(targetId);
       if (!panel) return;
 
-      const isOpen = panel.style.display !== "none";
-      panel.style.display = isOpen ? "none" : "block";
+      const isOpen = card.classList.contains("is-open");
+
+      // cerrar
+      if (isOpen) {
+        card.classList.remove("is-open");
+        panel.style.maxHeight = "0px";
+        return;
+      }
+
+      // abrir
+      card.classList.add("is-open");
+      // primero reset para medir bien
+      panel.style.maxHeight = "0px";
+      // siguiente tick: altura real
+      requestAnimationFrame(() => {
+        panel.style.maxHeight = (panel.scrollHeight + 10) + "px";
+      });
     });
   });
 });

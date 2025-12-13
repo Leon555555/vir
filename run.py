@@ -1,12 +1,12 @@
 from app import create_app, db
 from app.models import User
 from datetime import datetime
-import psycopg2, os
+import psycopg2
+import os
 
 app = create_app()
 
-def ensure_columns():
-    """Verifica columnas/tablas críticas y las crea si faltan (idempotente)."""
+def ensure_db_structure():
     DATABASE_URL = os.getenv("DATABASE_URL")
     if not DATABASE_URL:
         print("⚠️ DATABASE_URL no configurada.")
@@ -16,151 +16,112 @@ def ensure_columns():
         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
         cur = conn.cursor()
 
-        # ----------------------------
-        # 1) user.fecha_creacion
-        # ----------------------------
+        # --- user.fecha_creacion ---
         cur.execute("""
             SELECT column_name FROM information_schema.columns
             WHERE table_name='user' AND column_name='fecha_creacion';
         """)
         if not cur.fetchone():
-            print("🛠️ Agregando columna 'fecha_creacion' a user...")
+            print("🛠️ Agregando columna user.fecha_creacion ...")
             cur.execute("""ALTER TABLE "user" ADD COLUMN fecha_creacion TIMESTAMP DEFAULT NOW();""")
             conn.commit()
 
-        # ----------------------------
-        # 2) user.is_admin  ✅ (LO QUE TE ROMPIÓ EN RENDER)
-        # ----------------------------
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name='user' AND column_name='is_admin';
-        """)
-        if not cur.fetchone():
-            print("🛠️ Agregando columna 'is_admin' a user...")
-            cur.execute("""ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE;""")
-            conn.commit()
-
-        # ----------------------------
-        # 3) rutina.tipo
-        # ----------------------------
+        # --- rutina.tipo ---
         cur.execute("""
             SELECT column_name FROM information_schema.columns
             WHERE table_name='rutina' AND column_name='tipo';
         """)
         if not cur.fetchone():
-            print("🛠️ Agregando columna 'tipo' a rutina...")
+            print("🛠️ Agregando columna rutina.tipo ...")
             cur.execute("""ALTER TABLE rutina ADD COLUMN tipo VARCHAR(100) DEFAULT 'General';""")
             conn.commit()
 
-        # ----------------------------
-        # 4) rutina_item.ejercicio_id (por si falta)
-        # ----------------------------
+        # --- rutina_item.ejercicio_id (si no existe) ---
         cur.execute("""
             SELECT column_name FROM information_schema.columns
             WHERE table_name='rutina_item' AND column_name='ejercicio_id';
         """)
         if not cur.fetchone():
-            print("🛠️ Agregando columna 'ejercicio_id' a rutina_item...")
+            print("🛠️ Agregando columna rutina_item.ejercicio_id ...")
             cur.execute("""ALTER TABLE rutina_item ADD COLUMN ejercicio_id INTEGER;""")
             conn.commit()
 
-        # FK ejercicio_id (si no existe)
+        # --- rutina_item.nota (si no existe) ---
         cur.execute("""
-            SELECT 1
-            FROM information_schema.table_constraints
-            WHERE constraint_type='FOREIGN KEY'
-              AND table_name='rutina_item'
-              AND constraint_name='rutina_item_ejercicio_id_fkey';
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name='rutina_item' AND column_name='nota';
         """)
         if not cur.fetchone():
-            print("🛠️ Agregando FK rutina_item.ejercicio_id -> ejercicio.id ...")
-            cur.execute("""
-                ALTER TABLE rutina_item
-                ADD CONSTRAINT rutina_item_ejercicio_id_fkey
-                FOREIGN KEY (ejercicio_id) REFERENCES ejercicio(id);
-            """)
+            print("🛠️ Agregando columna rutina_item.nota ...")
+            cur.execute("""ALTER TABLE rutina_item ADD COLUMN nota TEXT;""")
             conn.commit()
 
-        # ----------------------------
-        # 5) Tabla athlete_check (si no existe)
-        # ----------------------------
+        # --- dia_plan.puede_entrenar (si no existe) ---
         cur.execute("""
-            SELECT 1 FROM information_schema.tables
-            WHERE table_name='athlete_check';
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name='dia_plan' AND column_name='puede_entrenar';
         """)
         if not cur.fetchone():
-            print("🛠️ Creando tabla athlete_check...")
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS athlete_check (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-                    fecha DATE NOT NULL,
-                    rutina_item_id INTEGER NOT NULL REFERENCES rutina_item(id) ON DELETE CASCADE,
-                    done BOOLEAN NOT NULL DEFAULT TRUE,
-                    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                    UNIQUE(user_id, fecha, rutina_item_id)
-                );
-            """)
+            print("🛠️ Agregando columna dia_plan.puede_entrenar ...")
+            cur.execute("""ALTER TABLE dia_plan ADD COLUMN puede_entrenar VARCHAR(50);""")
             conn.commit()
 
-        # ----------------------------
-        # 6) Tabla athlete_log (si no existe)
-        #    (para warmup_done/main_done/finisher_done + did_train)
-        # ----------------------------
+        # --- athlete_check table ---
         cur.execute("""
-            SELECT 1 FROM information_schema.tables
-            WHERE table_name='athlete_log';
+            CREATE TABLE IF NOT EXISTS athlete_check (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL,
+                rutina_item_id INTEGER NOT NULL REFERENCES rutina_item(id) ON DELETE CASCADE,
+                done BOOLEAN NOT NULL DEFAULT TRUE,
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                UNIQUE(user_id, fecha, rutina_item_id)
+            );
         """)
-        if not cur.fetchone():
-            print("🛠️ Creando tabla athlete_log...")
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS athlete_log (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-                    fecha DATE NOT NULL,
-                    did_train BOOLEAN NOT NULL DEFAULT FALSE,
-                    warmup_done TEXT,
-                    main_done TEXT,
-                    finisher_done TEXT,
-                    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                    UNIQUE(user_id, fecha)
-                );
-            """)
-            conn.commit()
+        conn.commit()
 
-        print("✅ Estructura de base sincronizada.")
+        # --- athlete_log table ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS athlete_log (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL,
+                did_train BOOLEAN NOT NULL DEFAULT FALSE,
+                warmup_done TEXT,
+                main_done TEXT,
+                finisher_done TEXT,
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                UNIQUE(user_id, fecha)
+            );
+        """)
+        conn.commit()
+
         cur.close()
         conn.close()
+        print("✅ Estructura de base sincronizada.")
 
     except Exception as e:
         print("⚠️ Error verificando estructura:", e)
 
-ensure_columns()
+ensure_db_structure()
 
 # --- Crear admin si no existe ---
 with app.app_context():
     db.create_all()
 
-    admin = User.query.filter_by(email="admin@vir.app").first()
-    if not admin:
+    admin_email = "admin@vir.app"
+    if not User.query.filter_by(email=admin_email).first():
         admin = User(
             nombre="Admin",
-            email="admin@vir.app",
+            email=admin_email,
             grupo="Entrenador",
-            is_admin=True
+            fecha_creacion=datetime.utcnow(),
         )
         admin.set_password("V!ru_Admin-2025$X9")
         db.session.add(admin)
         db.session.commit()
         print("✅ Admin creado correctamente.")
     else:
-        # asegurar flag en True
-        try:
-            if getattr(admin, "is_admin", False) is False:
-                admin.is_admin = True
-                db.session.commit()
-        except Exception:
-            db.session.rollback()
         print("✅ Admin ya existe.")
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@
                   </form>
                 </div>
 
-                <!-- Vídeo del ejercicio -->
+                <!-- ✅ Vídeo del ejercicio (usa item.video_url guardado como "videos/<archivo>.mp4") -->
                 {% set video_path = None %}
                 {% if item.video_url %}
                   {% set video_path = item.video_url %}
@@ -116,11 +116,10 @@
                   {% endif %}
                 </div>
 
+                <!-- ✅ VIDEO DEL BANCO: está en /static/videos/<video_filename> -->
                 {% set video_path = None %}
                 {% if ej.video_filename %}
-                  {% set video_path = 'videos_ejercicios/' ~ ej.video_filename %}
-                {% elif ej.video_url %}
-                  {% set video_path = ej.video_url %}
+                  {% set video_path = 'videos/' ~ ej.video_filename %}
                 {% endif %}
 
                 {% if video_path %}

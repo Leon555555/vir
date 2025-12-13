@@ -128,7 +128,6 @@ def logout():
 @main_bp.route("/perfil")
 @login_required
 def perfil_redirect():
-    # Si sos admin, te dejo el dashboard como home principal
     if is_admin():
         return redirect(url_for("main.dashboard_entrenador"))
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
@@ -142,12 +141,10 @@ def perfil_usuario(user_id: int):
     try:
         user = User.query.get_or_404(user_id)
 
-        # Seguridad: atleta no puede ver otro perfil
         if current_user.email != "admin@vir.app" and current_user.id != user.id:
             flash("Acceso denegado", "danger")
             return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-        # Semana + planes
         center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
         fechas = week_dates(center)
 
@@ -158,7 +155,6 @@ def perfil_usuario(user_id: int):
 
         planes = {p.fecha: p for p in planes_db}
 
-        # Crear entries vacías que falten
         for f in fechas:
             if f not in planes:
                 nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="descanso")
@@ -170,7 +166,6 @@ def perfil_usuario(user_id: int):
         propuesto = [planes[f].propuesto_score or 0 for f in fechas]
         realizado = [planes[f].realizado_score or 0 for f in fechas]
 
-        # MES COMPLETO
         hoy = date.today()
         dias_mes = month_dates(hoy.year, hoy.month)
         planes_mes = {
@@ -183,21 +178,13 @@ def perfil_usuario(user_id: int):
 
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
-        # Rutinas (para tab rutinas en el perfil)
         rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
-        # =============================================================
-        # ✅ Variables que pide perfil.html
-        # =============================================================
         rutina_by_day: Dict[date, Rutina | None] = {}
         items_by_day: Dict[date, List[RutinaItem]] = {}
 
-        # ✅ Persistencia real de checks: done_set = {(fecha, rutina_item_id)}
         done_set: set[Tuple[date, int]] = set()
 
-        # Traer checks de la semana (solo si la tabla existe)
-        # Si todavía no ejecutaste /fix-athlete-check-table, esto puede fallar:
-        # lo capturamos y seguimos (no rompe perfil)
         try:
             checks = AthleteCheck.query.filter(
                 AthleteCheck.user_id == user.id,
@@ -207,10 +194,8 @@ def perfil_usuario(user_id: int):
                 if c.done:
                     done_set.add((c.fecha, c.rutina_item_id))
         except Exception:
-            # si la tabla no existe aún, no rompemos el perfil
             done_set = set()
 
-        # Cache de items por rutina para no hacer mil queries
         rutina_items_cache: Dict[int, List[RutinaItem]] = {}
 
         for f in fechas:
@@ -251,11 +236,9 @@ def perfil_usuario(user_id: int):
             dias_mes=dias_mes,
             planes_mes=planes_mes,
             rutinas=rutinas,
-
             rutina_by_day=rutina_by_day,
             items_by_day=items_by_day,
             done_set=done_set,
-
             center=center,
         )
 
@@ -270,11 +253,6 @@ def perfil_usuario(user_id: int):
 @main_bp.route("/athlete/check_item", methods=["POST"])
 @login_required
 def athlete_check_item():
-    """
-    Guarda check por atleta y por día.
-    Espera JSON:
-      { "fecha": "YYYY-MM-DD", "item_id": 123, "done": true/false }
-    """
     try:
         payload = request.get_json(silent=True) or {}
         fecha = safe_parse_ymd(payload.get("fecha", ""), fallback=date.today())
@@ -565,7 +543,9 @@ def rutina_add_item(rutina_id: int):
     series = request.form.get("series", "").strip()
     reps = request.form.get("reps", "").strip()
     descanso = request.form.get("descanso", "").strip()
-    notas = request.form.get("notas", "").strip()
+
+    # ✅ Tu template manda "nota" (y tu modelo es "nota")
+    nota = request.form.get("nota", "").strip() or request.form.get("notas", "").strip()
 
     item = RutinaItem(
         rutina_id=rutina.id,
@@ -574,7 +554,7 @@ def rutina_add_item(rutina_id: int):
         series=series,
         reps=reps,
         descanso=descanso,
-        notas=notas,
+        nota=nota,  # ✅ FIX
         video_url=f"videos/{ejercicio.video_filename}",
     )
 
@@ -602,7 +582,7 @@ def rutina_update_item(rutina_id: int, item_id: int):
     item.series = request.form.get("series", "").strip()
     item.reps = request.form.get("reps", "").strip()
     item.descanso = request.form.get("descanso", "").strip()
-    item.notas = request.form.get("notas", "").strip()
+    item.nota = request.form.get("nota", "").strip()  # ✅ FIX
 
     db.session.commit()
     flash("Cambios guardados", "success")

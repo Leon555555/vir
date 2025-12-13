@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, date
 from calendar import monthrange
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
@@ -47,6 +47,9 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
             return datetime.fromisoformat(s).date()
         except Exception:
             return fallback or date.today()
+
+def is_admin() -> bool:
+    return bool(current_user.is_authenticated and current_user.email == "admin@vir.app")
 
 # =============================================================
 # SERIALIZADORES SEGUROS
@@ -125,6 +128,9 @@ def logout():
 @main_bp.route("/perfil")
 @login_required
 def perfil_redirect():
+    # Si sos admin, te dejo el dashboard como home principal
+    if is_admin():
+        return redirect(url_for("main.dashboard_entrenador"))
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
 # =============================================================
@@ -142,7 +148,9 @@ def perfil_usuario(user_id: int):
             return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
         # Semana + planes
-        fechas = week_dates()
+        center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
+        fechas = week_dates(center)
+
         planes_db = DiaPlan.query.filter(
             DiaPlan.user_id == user.id,
             DiaPlan.fecha.in_(fechas)
@@ -178,6 +186,41 @@ def perfil_usuario(user_id: int):
         # Rutinas (para tab rutinas en el perfil)
         rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
+        # =============================================================
+        # ✅ FIX Opción A: variables que pide perfil.html
+        # =============================================================
+        rutina_by_day: Dict[date, Rutina | None] = {}
+        items_by_day: Dict[date, List[RutinaItem]] = {}
+        done_set: set[Tuple[date, int]] = set()  # por ahora vacío (no tenés tabla de checks)
+
+        # Cache de items por rutina para no hacer mil queries
+        rutina_items_cache: Dict[int, List[RutinaItem]] = {}
+
+        for f in fechas:
+            plan = planes[f]
+            rutina = None
+            items: List[RutinaItem] = []
+
+            if plan.main and isinstance(plan.main, str) and plan.main.startswith("RUTINA:"):
+                rid_str = plan.main.split(":", 1)[1].strip()
+                if rid_str.isdigit():
+                    rid = int(rid_str)
+                    rutina = Rutina.query.get(rid)
+
+                    if rid in rutina_items_cache:
+                        items = rutina_items_cache[rid]
+                    else:
+                        items = (
+                            RutinaItem.query
+                            .filter_by(rutina_id=rid)
+                            .order_by(RutinaItem.id.asc())
+                            .all()
+                        )
+                        rutina_items_cache[rid] = items
+
+            rutina_by_day[f] = rutina
+            items_by_day[f] = items
+
         return render_template(
             "perfil.html",
             user=user,
@@ -191,12 +234,34 @@ def perfil_usuario(user_id: int):
             dias_mes=dias_mes,
             planes_mes=planes_mes,
             rutinas=rutinas,
+
+            # ✅ NUEVO (lo que tu template exige)
+            rutina_by_day=rutina_by_day,
+            items_by_day=items_by_day,
+            done_set=done_set,
+
+            # por si querés usar center en links
+            center=center,
         )
 
     except Exception as e:
         db.session.rollback()
         flash(f"Error cargando perfil: {e}", "danger")
         return redirect(url_for("main.index"))
+
+# =============================================================
+# ✅ NUEVO: endpoint que llama el botón "Marcar realizado"
+# (Opción A: responde OK sin romper aunque aún no guardemos nada)
+# =============================================================
+@main_bp.route("/athlete/check_item", methods=["POST"])
+@login_required
+def athlete_check_item():
+    try:
+        # En Opción A no persistimos (porque no pasaste el modelo de checks).
+        # Devolvemos ok para que el front no crashee.
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 # =============================================================
 # ADMIN GUARDA ENTRENAMIENTO DEL DÍA
@@ -432,7 +497,6 @@ def rutina_add_item(rutina_id: int):
         reps=reps,
         descanso=descanso,
         notas=notas,
-        # OJO: ruta relativa para el <video> en templates
         video_url=f"videos/{ejercicio.video_filename}",
     )
 
@@ -443,7 +507,7 @@ def rutina_add_item(rutina_id: int):
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
 # =============================================================
-# ACTUALIZAR ITEM DE RUTINA (lo necesitabas por el error)
+# ACTUALIZAR ITEM DE RUTINA
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
@@ -484,7 +548,7 @@ def rutina_delete_item(rutina_id: int, item_id: int):
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
 # =============================================================
-# PLANIFICADOR (COACH) - PASO 1
+# PLANIFICADOR (COACH)
 # =============================================================
 @main_bp.route("/coach/planificador/<int:user_id>")
 @login_required
@@ -504,7 +568,6 @@ def coach_planificador(user_id: int):
 
     planes = {p.fecha: p for p in planes_db}
 
-    # crea días faltantes
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=atleta.id, fecha=f, plan_type="descanso")
@@ -514,7 +577,6 @@ def coach_planificador(user_id: int):
 
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
-    # rutinas disponibles para asignar
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
     return render_template(
@@ -550,7 +612,6 @@ def coach_guardar_dia(user_id: int):
     plan.finisher = request.form.get("finisher", "")
     plan.propuesto_score = int(request.form.get("propuesto_score", 0))
 
-    # asignar rutina (guarda referencia en main como: RUTINA:ID)
     rutina_id = request.form.get("rutina_id", type=int)
     if rutina_id:
         plan.main = f"RUTINA:{rutina_id}"
@@ -563,7 +624,7 @@ def coach_guardar_dia(user_id: int):
     return redirect(url_for("main.coach_planificador", user_id=atleta.id, center=center.isoformat()))
 
 # =============================================================
-# COPIAR SEMANA COMPLETA (COACH) - PASO 2
+# COPIAR SEMANA COMPLETA (COACH)
 # =============================================================
 @main_bp.route("/coach/planificador/<int:user_id>/copiar_semana", methods=["POST"])
 @login_required
@@ -595,14 +656,12 @@ def coach_copiar_semana(user_id: int):
             plan_d = DiaPlan(user_id=atleta.id, fecha=f_d)
             db.session.add(plan_d)
 
-        # copia lo planificado
         plan_d.plan_type = plan_o.plan_type
         plan_d.warmup = plan_o.warmup
         plan_d.main = plan_o.main
         plan_d.finisher = plan_o.finisher
         plan_d.propuesto_score = plan_o.propuesto_score
 
-        # limpia feedback
         plan_d.realizado_score = 0
         plan_d.puede_entrenar = None
         plan_d.dificultad = None

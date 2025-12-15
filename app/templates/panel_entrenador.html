@@ -10,9 +10,7 @@
       <div class="text-muted">Rutinas · Banco de ejercicios · Atletas</div>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">
-        📅 Ir al Planificador
-      </a>
+      <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">📅 Ir al Planificador</a>
     </div>
   </div>
 
@@ -46,9 +44,7 @@
                 <div class="fw-bold">{{ r.nombre }}</div>
                 <div class="small text-muted">{{ r.tipo or "—" }}</div>
               </div>
-              <a class="btn btn-sm btn-outline-light" href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
-                Builder
-              </a>
+              <a class="btn btn-sm btn-outline-light" href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">Builder</a>
             </div>
           {% else %}
             <div class="text-muted">No hay rutinas aún.</div>
@@ -88,8 +84,7 @@
               <div class="small text-muted">{{ e.categoria or "—" }}</div>
               {% if e.video_filename %}
                 <div class="small">
-                  <a class="text-info" target="_blank"
-                     href="{{ url_for('static', filename='videos/' ~ e.video_filename) }}">
+                  <a class="text-info" target="_blank" href="{{ url_for('static', filename='videos/' ~ e.video_filename) }}">
                     Ver video
                   </a>
                 </div>
@@ -107,10 +102,6 @@
       <div class="card p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;">
         <h5 class="text-info mb-2">👥 Atletas</h5>
 
-        <div class="text-muted small mb-2">
-          Podés planificar en: <b>Planificador</b> → elegís atleta.
-        </div>
-
         <div style="max-height:520px;overflow:auto;">
           {% for a in atletas %}
             <div class="d-flex justify-content-between align-items-center gap-2 p-2 mb-2"
@@ -121,9 +112,12 @@
               </div>
 
               <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-outline-info"
-                   href="{{ url_for('main.coach_planificador', user_id=a.id) }}">
+                <a class="btn btn-sm btn-outline-info" href="{{ url_for('main.coach_planificador', user_id=a.id) }}">
                   Planificar
+                </a>
+
+                <a class="btn btn-sm btn-outline-light" href="{{ url_for('main.perfil_usuario', user_id=a.id) }}">
+                  Ver perfil
                 </a>
 
                 <form method="POST" action="{{ url_for('main.admin_delete_user', user_id=a.id) }}"

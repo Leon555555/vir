@@ -177,7 +177,6 @@ def perfil_usuario(user_id: int):
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
-    # fuerza: rutina por día + items
     rutina_by_day: Dict[date, Rutina | None] = {}
     items_by_day: Dict[date, List[RutinaItem]] = {}
     rutina_items_cache: Dict[int, List[RutinaItem]] = {}
@@ -206,7 +205,6 @@ def perfil_usuario(user_id: int):
         rutina_by_day[f] = rutina
         items_by_day[f] = items
 
-    # checks
     done_set: set[Tuple[date, int]] = set()
     checks = AthleteCheck.query.filter(
         AthleteCheck.user_id == user.id,
@@ -216,7 +214,6 @@ def perfil_usuario(user_id: int):
         if c.done:
             done_set.add((c.fecha, c.rutina_item_id))
 
-    # logs
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha.in_(fechas)
@@ -242,7 +239,7 @@ def perfil_usuario(user_id: int):
 
 
 # =============================================================
-# API: detalle del día (modal full-screen atleta)
+# API: detalle del día
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -315,7 +312,7 @@ def api_day_detail():
 
 
 # =============================================================
-# ✅ CHECK por ejercicio (fuerza)
+# CHECK por ejercicio
 # =============================================================
 @main_bp.route("/athlete/check_item", methods=["POST"])
 @login_required
@@ -358,7 +355,7 @@ def athlete_check_item():
 
 
 # =============================================================
-# ✅ Guardar "lo realizado"
+# Guardar realizado
 # =============================================================
 @main_bp.route("/athlete/save_log", methods=["POST"])
 @login_required
@@ -391,7 +388,7 @@ def athlete_save_log():
 
 
 # =============================================================
-# ✅ Bloquear día
+# Bloquear día
 # =============================================================
 @main_bp.route("/athlete/block_day", methods=["POST"])
 @login_required
@@ -421,7 +418,7 @@ def athlete_block_day():
 
 
 # =============================================================
-# ✅ DASHBOARD ENTRENADOR (PANEL)  <<--- Panel admin/coach
+# PANEL ENTRENADOR
 # =============================================================
 @main_bp.route("/coach/dashboard")
 @login_required
@@ -434,7 +431,6 @@ def dashboard_entrenador():
     ejercicios = Ejercicio.query.order_by(Ejercicio.id.desc()).all()
     atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.desc()).all()
 
-    # ✅ ESTE TEMPLATE TIENE QUE EXISTIR
     return render_template(
         "panel_entrenador.html",
         rutinas=rutinas,
@@ -444,7 +440,7 @@ def dashboard_entrenador():
 
 
 # =============================================================
-# ✅ PLANIFICADOR (SEMANA)
+# PLANIFICADOR SEMANAL
 # =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
@@ -496,7 +492,7 @@ def coach_planificador():
 
 
 # =============================================================
-# ✅ GUARDAR DÍA (PLANIFICADOR)
+# GUARDAR DÍA (PLANIFICADOR)
 # =============================================================
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
@@ -533,12 +529,11 @@ def save_day():
 
     db.session.commit()
     flash("✅ Día guardado", "success")
-
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
 
 # =============================================================
-# ✅ PANEL: CREAR RUTINA
+# PANEL: CREAR RUTINA
 # =============================================================
 @main_bp.route("/crear_rutina", methods=["POST"])
 @login_required
@@ -564,7 +559,7 @@ def crear_rutina():
 
 
 # =============================================================
-# ✅ PANEL: SUBIR EJERCICIO (BANCO)
+# PANEL: SUBIR EJERCICIO
 # =============================================================
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
@@ -605,7 +600,7 @@ def admin_nuevo_ejercicio():
 
 
 # =============================================================
-# ✅ PANEL: ELIMINAR ATLETA
+# PANEL: ELIMINAR ATLETA
 # =============================================================
 @main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required
@@ -631,7 +626,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# CRUD rutinas (builder)
+# RUTINAS: BUILDER
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/builder")
 @login_required
@@ -645,6 +640,7 @@ def rutina_builder(rutina_id: int):
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
 
     return render_template("rutina_builder.html", rutina=rutina, items=items, ejercicios=ejercicios)
+
 
 @main_bp.route("/rutinas/<int:rutina_id>/add_item", methods=["POST"])
 @login_required
@@ -676,6 +672,35 @@ def rutina_add_item(rutina_id: int):
 
     flash("✅ Ejercicio añadido", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+
+
+@main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
+@login_required
+def rutina_update_item(rutina_id: int, item_id: int):
+    """
+    ✅ Esta ruta ES la que faltaba. Tu template la llama como:
+    url_for('main.rutina_update_item', rutina_id=rutina.id, item_id=item.id)
+    """
+    if not is_admin():
+        flash("Solo el admin puede editar rutinas", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+    item = RutinaItem.query.get_or_404(item_id)
+
+    if item.rutina_id != rutina.id:
+        flash("Item inválido para esta rutina", "danger")
+        return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+
+    item.series = (request.form.get("series") or "").strip()
+    item.reps = (request.form.get("reps") or "").strip()
+    item.descanso = (request.form.get("descanso") or "").strip()
+    item.nota = (request.form.get("nota") or "").strip()
+
+    db.session.commit()
+    flash("✅ Cambios guardados", "success")
+    return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+
 
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
 @login_required

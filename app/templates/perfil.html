@@ -1,240 +1,446 @@
 {% extends "layout.html" %}
-{% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
+{% block title %}Perfil — {{ user.nombre }}{% endblock %}
 
 {% block content %}
-<div class="perfil-container"
-     id="perfilRoot"
-     data-user-id="{{ user.id }}"
-     data-api-day-detail="{{ url_for('main.api_day_detail') }}"
-     data-api-check-item="{{ url_for('main.athlete_check_item') }}"
-     data-api-save-log="{{ url_for('main.athlete_save_log') }}"
-     data-api-block-day="{{ url_for('main.athlete_block_day') }}"
-     data-static-prefix="{{ url_for('static', filename='') }}">
+<div class="container mt-3">
 
-  <!-- HEADER -->
-  <div class="text-center mb-4">
-    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
-         class="perfil-logo" alt="VR Training">
-    <h2 class="perfil-nombre mt-2">{{ user.nombre }}</h2>
-    <div class="perfil-sub">
-      {{ user.email }} • Grupo: {{ user.grupo or '—' }}
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h2 class="mb-0 text-light">👤 {{ user.nombre }}</h2>
+      <div class="text-muted">
+        {{ user.email }}
+        {% if user.grupo %} · <span class="badge bg-secondary">{{ user.grupo }}</span>{% endif %}
+      </div>
+      <div class="text-muted mt-1">Semana: <strong>{{ semana_str }}</strong></div>
+    </div>
+
+    <div class="d-flex gap-2 align-items-center">
+      <form method="GET" class="d-flex gap-2">
+        <input class="form-control" type="date" name="center" value="{{ center.isoformat() if center else '' }}">
+        <button class="btn btn-outline-info" type="submit">Ver semana</button>
+      </form>
+
+      {% if admin_ok %}
+        <a class="btn btn-outline-light" href="{{ url_for('main.coach_planificador', user_id=user.id, center=center.isoformat() if center else '') }}">
+          🧠 Planificar
+        </a>
+      {% endif %}
     </div>
   </div>
 
-  <!-- TABS -->
-  <ul class="nav nav-tabs nav-vr-tabs justify-content-center mb-4" id="perfilTabs">
-    <li class="nav-item"><button class="nav-link active" data-tab="semana" type="button">📅 Semana</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="calendario" type="button">🗓️ Calendario</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="progreso" type="button">📈 Progreso</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="rutinas" type="button">🏋️ Rutinas</button></li>
-  </ul>
+  <!-- Week grid -->
+  <div class="row g-3">
+    {% for f in fechas %}
+      {% set plan = planes[f] %}
+      {% set fecha_id = f.isoformat() %}
 
-  <!-- ========================= TAB SEMANA ========================= -->
-  <section id="tab-semana" class="vr-tab active">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
-      <h5 class="text-light mb-3">{{ semana_str }}</h5>
+      <div class="col-md-6 col-lg-4">
+        <div class="card p-3 day-card">
 
-      <div class="week-grid">
-        {% for f in fechas %}
-          {% set plan = planes[f] %}
-          {% set tipo = (plan.plan_type or 'descanso')|lower %}
-          {% set rutina = rutina_by_day.get(f) %}
-          {% set items = items_by_day.get(f, []) %}
-          {% set blocked = (plan.puede_entrenar or '') == 'no' %}
-
-          <div class="day-card day-{{ tipo }} {% if blocked %}day-blocked{% endif %}"
-               data-fecha="{{ f.isoformat() }}"
-               role="button"
-               tabindex="0">
-
-            <div class="d-flex justify-content-between mb-1">
-              <strong>{{ f.strftime('%a')|upper }} {{ "%02d"|format(f.day) }}</strong>
-              <span class="badge badge-{{ tipo }}">{{ plan.plan_type|capitalize }}</span>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <div class="day-title">{{ f.strftime('%A %d/%m')|upper }}</div>
+              <div class="small text-muted">
+                Tipo: <span class="badge bg-secondary">{{ plan.plan_type }}</span>
+                {% if plan.puede_entrenar == "no" %}
+                  <span class="badge bg-danger ms-1">Bloqueado</span>
+                {% endif %}
+              </div>
             </div>
 
-            {% if blocked %}
-              <div class="mini-muted mt-2">🚫 Marcado como “no puedo entrenar”</div>
-            {% endif %}
+            <button class="btn btn-sm btn-outline-info"
+                    type="button"
+                    onclick="openDayDetail({{ user.id }}, '{{ fecha_id }}')">
+              Ver detalle
+            </button>
+          </div>
 
-            {% if rutina %}
-              <div class="mt-2">
-                <div class="mini-title">Rutina</div>
-                <div class="mini-strong">{{ rutina.nombre }}</div>
-                <div class="mini-muted">{{ items|length }} ejercicios</div>
-              </div>
-            {% else %}
-              {% set has_any = (plan.warmup or plan.main or plan.finisher) %}
-              {% if has_any %}
-                <div class="mt-2">
-                  <div class="mini-title">Entreno</div>
-                  <div class="mini-muted">
-                    {% if plan.warmup %}• Calentamiento{% endif %}
-                    {% if plan.main %} • Principal{% endif %}
-                    {% if plan.finisher %} • Enfriamiento{% endif %}
-                  </div>
+          <!-- Quick preview (para enganchar sin abrir modal) -->
+          <div class="preview-box">
+            {% if plan.plan_type|lower == "fuerza" %}
+              {% set r = rutina_by_day[f] %}
+              {% if r %}
+                <div class="fw-bold text-light">🏋️ Rutina: {{ r.nombre }}</div>
+                <div class="small text-muted">Marcá cada ejercicio dentro del detalle.</div>
+                <div class="mt-2 small">
+                  <span class="badge bg-info">Fuerza</span>
+                  <span class="badge bg-dark border border-secondary ms-1">Items: {{ items_by_day[f]|length }}</span>
                 </div>
               {% else %}
-                <div class="mini-muted mt-2">Sin detalle.</div>
+                <div class="text-muted">No hay rutina asignada.</div>
               {% endif %}
-            {% endif %}
 
-            <div class="mini-open">Click para ver detalle</div>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
+            {% elif plan.plan_type|lower == "descanso" %}
+              <div class="text-muted">🧘 Descanso / recuperación.</div>
 
-  <!-- ========================= TAB CALENDARIO ========================= -->
-  <section id="tab-calendario" class="vr-tab">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
-      <h5 class="text-info mb-3">Calendario — {{ hoy.strftime('%B %Y')|capitalize }}</h5>
-
-      <div class="calendar-grid">
-        {% for f in dias_mes %}
-          {% set plan_mes = planes_mes.get(f) %}
-          {% set tipo_mes = (plan_mes.plan_type|lower) if plan_mes else 'descanso' %}
-          {% set blocked = (plan_mes and (plan_mes.puede_entrenar or '') == 'no') %}
-
-          <div class="calendar-day day-{{ tipo_mes }} {% if blocked %}day-blocked{% endif %}"
-               data-fecha="{{ f.isoformat() }}"
-               data-blocked="{{ '1' if blocked else '0' }}"
-               role="button"
-               tabindex="0">
-            <div class="cal-header">
-              <span class="cal-day-num">{{ f.day }}</span>
-              <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
-            </div>
-
-            {% if plan_mes %}
-              <div class="event-pill event-{{ tipo_mes }}">
-                <span class="event-text">{{ plan_mes.plan_type|capitalize }}</span>
-              </div>
-              {% if blocked %}
-                <div class="mini-muted mt-2">🚫 No puedo</div>
-              {% endif %}
             {% else %}
-              <span class="plan-empty mt-2">Sin plan</span>
+              <div class="small text-muted mb-2">Objetivo del día</div>
+              <div class="text-light preview-text">{{ plan.main or "—" }}</div>
+              {% if plan.warmup %}
+                <div class="small mt-2"><span class="badge bg-dark border border-secondary">Warmup</span>
+                  <span class="text-muted ms-1">{{ plan.warmup }}</span>
+                </div>
+              {% endif %}
+              {% if plan.finisher %}
+                <div class="small mt-2"><span class="badge bg-dark border border-secondary">Finisher</span>
+                  <span class="text-muted ms-1">{{ plan.finisher }}</span>
+                </div>
+              {% endif %}
             {% endif %}
           </div>
-        {% endfor %}
-      </div>
 
-      <div class="text-muted mt-3" style="font-size:.9rem;">
-        Tip: click en un día para marcar/desmarcar “no puedo entrenar”.
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================= TAB PROGRESO ========================= -->
-  <section id="tab-progreso" class="vr-tab">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
-      <h5 class="text-light mb-3">Progreso</h5>
-      <div class="text-muted">
-        Acá conectamos el progreso con lo guardado en “Tu registro (lo realizado)”.
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================= TAB RUTINAS ========================= -->
-  <section id="tab-rutinas" class="vr-tab">
-    <div class="card bg-black border-0 shadow-lg mb-4 p-3">
-      <h5 class="text-light mb-3">Rutinas disponibles</h5>
-      <div class="row g-3">
-        {% for r in rutinas %}
-          <div class="col-md-6 col-lg-4">
-            <div class="p-3 rounded rutina-card">
-              <div class="d-flex align-items-start justify-content-between gap-2">
-                <div>
-                  <strong class="d-block">{{ r.nombre }}</strong>
-                  {% if r.descripcion %}<div class="small text-muted mt-1">{{ r.descripcion }}</div>{% endif %}
-                </div>
-                {% if r.tipo %}<span class="badge bg-info text-dark ms-2">{{ r.tipo }}</span>{% endif %}
-              </div>
-            </div>
+          <!-- Progress hint -->
+          <div class="mt-3 d-flex justify-content-between align-items-center">
+            <div class="small text-muted">Score propuesto</div>
+            <div class="badge bg-dark border border-secondary">{{ plan.propuesto_score or 0 }}</div>
           </div>
-        {% else %}
-          <div class="text-muted">No hay rutinas todavía.</div>
-        {% endfor %}
+
+        </div>
       </div>
-    </div>
-  </section>
+    {% endfor %}
+  </div>
 
 </div>
 
-<!-- ========================= MODAL FULLSCREEN ========================= -->
-<div id="dayModal" class="vr-modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="vr-modal-inner">
-    <div class="vr-modal-top">
-      <div>
-        <div id="modalTitle" class="vr-modal-title">Detalle</div>
-        <div id="modalSubtitle" class="vr-modal-sub">—</div>
-      </div>
-      <button class="vr-modal-close" type="button" aria-label="Cerrar">✕</button>
-    </div>
+<!-- =========================
+     MODAL FULL SCREEN
+========================= -->
+<div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content modal-dark">
 
-    <div class="vr-modal-body">
-      <div class="vr-modal-grid">
-        <!-- IZQ: propuesto -->
-        <div class="vr-panel">
-          <div class="vr-panel-head">
-            <div class="vr-panel-title">Propuesto por el entrenador</div>
-            <div id="modalTypeBadge" class="vr-pill">—</div>
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0" id="dayModalTitle">Detalle del día</h5>
+          <div class="small text-muted" id="dayModalSubtitle">—</div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="dayModalBody">
+
+          <!-- Loading -->
+          <div class="text-center py-5" id="dayLoading">
+            <div class="spinner-border text-info" role="status"></div>
+            <div class="text-muted mt-2">Cargando...</div>
           </div>
 
-          <!-- no fuerza -->
-          <div id="propuestoBlocks" class="hidden">
-            <div class="vr-tabs-mini">
-              <button class="vr-tab-mini active" data-mini="warmup" type="button">Calentamiento</button>
-              <button class="vr-tab-mini" data-mini="main" type="button">Bloque principal</button>
-              <button class="vr-tab-mini" data-mini="finisher" type="button">Enfriamiento</button>
+          <!-- Content -->
+          <div class="row g-3 d-none" id="dayContent">
+
+            <!-- Left: Plan -->
+            <div class="col-lg-6">
+              <div class="card p-3 panel-box">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0 text-info">📌 Plan del día</h6>
+                  <span class="badge bg-secondary" id="planTypeBadge">—</span>
+                </div>
+
+                <div class="small text-muted">Warmup</div>
+                <pre class="pre-box" id="planWarmup">—</pre>
+
+                <div class="small text-muted mt-2">Bloque principal</div>
+                <pre class="pre-box" id="planMain">—</pre>
+
+                <div class="small text-muted mt-2">Finisher</div>
+                <pre class="pre-box" id="planFinisher">—</pre>
+
+                <hr style="border-color:rgba(255,255,255,.08)">
+
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="text-muted small">¿Entrenaste hoy?</div>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="didTrainToggle">
+                    <label class="form-check-label small" for="didTrainToggle">Sí</label>
+                  </div>
+                </div>
+
+              </div>
             </div>
 
-            <div id="propuestoWarmup" class="vr-textbox"></div>
-            <div id="propuestoMain" class="vr-textbox hidden"></div>
-            <div id="propuestoFinisher" class="vr-textbox hidden"></div>
-          </div>
+            <!-- Right: Fuerza / Log -->
+            <div class="col-lg-6">
+              <div class="card p-3 panel-box">
 
-          <!-- fuerza -->
-          <div id="propuestoFuerza" class="hidden">
-            <div class="vr-panel-subtitle" id="rutinaName"></div>
-            <div id="itemsList" class="vr-items"></div>
-          </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0 text-info">✅ Ejecución / Check</h6>
+                  <span class="badge bg-dark border border-secondary" id="rutinaName">—</span>
+                </div>
+
+                <!-- Fuerza list -->
+                <div id="strengthBox" class="d-none">
+                  <div id="itemsList" class="items-list"></div>
+                </div>
+
+                <!-- Endurance log -->
+                <div id="enduranceBox" class="d-none">
+                  <div class="small text-muted mb-1">Warmup realizado</div>
+                  <textarea class="form-control area-dark" id="warmupDone" rows="3" placeholder="¿Qué hiciste realmente?"></textarea>
+
+                  <div class="small text-muted mt-2 mb-1">Bloque principal realizado</div>
+                  <textarea class="form-control area-dark" id="mainDone" rows="4" placeholder="Volumen, ritmo, sensaciones..."></textarea>
+
+                  <div class="small text-muted mt-2 mb-1">Finisher / Enfriamiento</div>
+                  <textarea class="form-control area-dark" id="finisherDone" rows="3" placeholder="Descarga, movilidad, estiramientos..."></textarea>
+                </div>
+
+                <div class="d-grid mt-3">
+                  <button class="btn btn-info" onclick="saveDayLog()">💾 Guardar lo realizado</button>
+                </div>
+
+                <div class="small text-muted mt-2" id="saveHint">Guardá para llevar registro y mejorar progresión.</div>
+              </div>
+            </div>
+
+          </div><!-- /dayContent -->
+
         </div>
-
-        <!-- DER: realizado -->
-        <div class="vr-panel">
-          <div class="vr-panel-head">
-            <div class="vr-panel-title">Tu registro (lo realizado)</div>
-            <label class="vr-switch" title="¿Has realizado el entreno?">
-              <input id="didTrainToggle" type="checkbox" />
-              <span class="vr-slider"></span>
-            </label>
-          </div>
-
-          <div class="vr-panel-subtitle">¿Has realizado el entreno?</div>
-
-          <div class="vr-form">
-            <div class="vr-chip">Calentamiento realizado</div>
-            <textarea id="warmupDone" class="vr-area" placeholder="Escribe lo que hiciste..."></textarea>
-
-            <div class="vr-chip">Bloque principal realizado</div>
-            <textarea id="mainDone" class="vr-area" placeholder="Escribe lo que hiciste..."></textarea>
-
-            <div class="vr-chip">Enfriamiento realizado</div>
-            <textarea id="finisherDone" class="vr-area" placeholder="Escribe lo que hiciste..."></textarea>
-
-            <button id="btnSaveLog" class="btn btn-info w-100 mt-2" type="button">Guardar</button>
-            <div id="saveMsg" class="mini-muted mt-2"></div>
-          </div>
-        </div>
-
       </div>
+
     </div>
   </div>
 </div>
+
+<style>
+.day-card{
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.35);
+}
+.day-title{font-weight:800; letter-spacing:.06em;}
+.preview-box{
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.06);
+}
+.preview-text{white-space:pre-wrap; opacity:.95}
+.modal-dark{
+  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
+  color:#fff;
+}
+.panel-box{
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+}
+.pre-box{
+  white-space: pre-wrap;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 10px;
+  margin: 0;
+  color: #fff;
+  min-height: 52px;
+}
+.area-dark{
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.10);
+  color:#fff;
+  border-radius: 14px;
+}
+.items-list{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+.item-row{
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 12px;
+}
+.item-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.item-name{font-weight:800}
+.item-meta{font-size:.9rem; color:rgba(255,255,255,.75)}
+.video-wrap{
+  margin-top:10px;
+  border-radius: 14px;
+  overflow:hidden;
+  border: 1px solid rgba(255,255,255,.08);
+}
+video{width:100%; max-height:360px; background:#000}
+</style>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script>
+let CURRENT_DAY = { user_id: null, fecha: null, plan_type: null };
+
+function escapeHtml(s){
+  return (s ?? "").toString()
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function setText(id, txt){
+  const el = document.getElementById(id);
+  if (el) el.textContent = txt ?? "—";
+}
+
+function show(elId){ document.getElementById(elId)?.classList.remove("d-none"); }
+function hide(elId){ document.getElementById(elId)?.classList.add("d-none"); }
+
+async function openDayDetail(userId, fecha){
+  CURRENT_DAY.user_id = userId;
+  CURRENT_DAY.fecha = fecha;
+
+  const modal = new bootstrap.Modal(document.getElementById("dayModal"));
+  modal.show();
+
+  hide("dayContent");
+  show("dayLoading");
+  document.getElementById("itemsList").innerHTML = "";
+  document.getElementById("strengthBox").classList.add("d-none");
+  document.getElementById("enduranceBox").classList.add("d-none");
+
+  setText("dayModalTitle", "Detalle del día");
+  setText("dayModalSubtitle", `${fecha}`);
+  setText("rutinaName", "—");
+
+  try{
+    const url = `/api/day_detail?user_id=${encodeURIComponent(userId)}&fecha=${encodeURIComponent(fecha)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if(!data.ok){
+      alert(data.error || "Error cargando el día");
+      return;
+    }
+
+    const plan = data.plan || {};
+    CURRENT_DAY.plan_type = (plan.plan_type || "").toLowerCase().trim();
+
+    setText("planTypeBadge", plan.plan_type || "—");
+    setText("planWarmup", plan.warmup || "—");
+    setText("planMain", plan.main || "—");
+    setText("planFinisher", plan.finisher || "—");
+
+    // log
+    const log = data.log || {};
+    const didTrain = !!log.did_train;
+    const toggle = document.getElementById("didTrainToggle");
+    toggle.checked = didTrain;
+
+    // decidir caja fuerza / endurance
+    const isStrength = CURRENT_DAY.plan_type === "fuerza";
+
+    if(isStrength){
+      document.getElementById("strengthBox").classList.remove("d-none");
+      document.getElementById("enduranceBox").classList.add("d-none");
+
+      const rutina = data.rutina;
+      if(rutina){
+        setText("rutinaName", rutina.nombre || "Rutina");
+      } else {
+        setText("rutinaName", "Sin rutina asignada");
+      }
+
+      const items = data.items || [];
+      const doneIds = new Set((data.checks || []).map(x => Number(x)));
+
+      const list = document.getElementById("itemsList");
+      list.innerHTML = items.map(it => {
+        const id = Number(it.id);
+        const checked = doneIds.has(id) ? "checked" : "";
+        const metaParts = [];
+        if(it.series) metaParts.push(`${escapeHtml(it.series)} series`);
+        if(it.reps) metaParts.push(`${escapeHtml(it.reps)} reps`);
+        if(it.descanso) metaParts.push(`desc ${escapeHtml(it.descanso)}`);
+        const meta = metaParts.length ? metaParts.join(" · ") : "—";
+
+        const video = it.video_url
+          ? `<div class="video-wrap">
+               <video controls preload="metadata">
+                 <source src="/static/${encodeURIComponent(it.video_url)}" type="video/mp4">
+               </video>
+             </div>`
+          : "";
+
+        const nota = it.nota ? `<div class="small text-muted mt-2">Nota: ${escapeHtml(it.nota)}</div>` : "";
+
+        return `
+          <div class="item-row">
+            <div class="item-top">
+              <div>
+                <div class="item-name">${escapeHtml(it.nombre || "")}</div>
+                <div class="item-meta">${meta}</div>
+                ${nota}
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" ${checked}
+                       onchange="toggleItem(${userId}, '${fecha}', ${id}, this.checked)">
+                <label class="form-check-label small">Hecho</label>
+              </div>
+            </div>
+            ${video}
+          </div>
+        `;
+      }).join("");
+
+    } else {
+      document.getElementById("strengthBox").classList.add("d-none");
+      document.getElementById("enduranceBox").classList.remove("d-none");
+
+      document.getElementById("warmupDone").value = log.warmup_done || "";
+      document.getElementById("mainDone").value = log.main_done || "";
+      document.getElementById("finisherDone").value = log.finisher_done || "";
+    }
+
+    hide("dayLoading");
+    show("dayContent");
+  } catch(e){
+    console.error(e);
+    alert("Error cargando detalle");
+  }
+}
+
+async function toggleItem(userId, fecha, itemId, done){
+  const fd = new FormData();
+  fd.append("user_id", userId);
+  fd.append("fecha", fecha);
+  fd.append("item_id", itemId);
+  fd.append("done", done ? "1" : "0");
+
+  const res = await fetch("/athlete/check_item", { method:"POST", body: fd });
+  const data = await res.json();
+  if(!data.ok){
+    alert(data.error || "Error guardando check");
+  }
+}
+
+async function saveDayLog(){
+  const payload = {
+    user_id: CURRENT_DAY.user_id,
+    fecha: CURRENT_DAY.fecha,
+    did_train: document.getElementById("didTrainToggle").checked,
+    warmup_done: document.getElementById("warmupDone")?.value || "",
+    main_done: document.getElementById("mainDone")?.value || "",
+    finisher_done: document.getElementById("finisherDone")?.value || ""
+  };
+
+  const res = await fetch("/athlete/save_log", {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if(data.ok){
+    document.getElementById("saveHint").textContent = "✅ Guardado. Seguí así.";
+  } else {
+    alert(data.error || "Error guardando");
+  }
+}
+</script>
 {% endblock %}

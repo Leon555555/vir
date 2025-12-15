@@ -539,3 +539,12 @@ video{
   .month-grid{ gap: 8px; }
   .month-cell{ min-height: 70px; }
 }
+/* === Fix legibilidad mobile / iOS === */
+@media (max-width: 768px){
+  body{ color: rgba(255,255,255,.94); }
+  .text-muted{ color: rgba(255,255,255,.70) !important; }
+  .card, .glass{ background: rgba(255,255,255,.05) !important; }
+}
+
+/* inputs más claros en iOS */
+.form-control::placeholder{ color: rgba(255,255,255,.45) !important; }

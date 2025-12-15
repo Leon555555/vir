@@ -1,38 +1,57 @@
 {% extends "layout.html" %}
-{% block title %}Nuevo Atleta{% endblock %}
+{% block title %}Crear atleta — VR Training{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-  <h2 class="mb-4">➕ Crear nuevo atleta</h2>
 
-  <form method="POST">
-    <div class="mb-3">
-      <label class="form-label">Nombre</label>
-      <input type="text" name="nombre" class="form-control" required>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="text-light mb-1">➕ Crear nuevo atleta</h2>
+      <div class="text-muted">Esto crea el perfil y credenciales de acceso.</div>
     </div>
+    <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') }}">← Volver</a>
+  </div>
 
-    <div class="mb-3">
-      <label class="form-label">Email</label>
-      <input type="email" name="email" class="form-control" required>
+  {% if created_user and created_password %}
+    <div class="card glass p-3 mb-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <div class="mini-title">CREDENCIALES</div>
+          <div class="fw-bold">✅ {{ created_user.nombre }} — {{ created_user.email }}</div>
+          <div class="text-muted">Guardá esta contraseña (después la cambiamos).</div>
+        </div>
+        <div class="p-2 px-3 rounded" style="background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.25);">
+          <div class="mini-title">PASSWORD INICIAL</div>
+          <div class="fs-4 fw-black" style="letter-spacing:.12em;">{{ created_password }}</div>
+        </div>
+      </div>
     </div>
+  {% endif %}
 
-    <div class="mb-3">
-      <label class="form-label">Contraseña</label>
-      <input type="password" name="password" class="form-control" required>
+  <form method="POST" class="card glass p-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Nombre</label>
+        <input class="form-control" name="nombre" placeholder="Ej: Bichito" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input class="form-control" name="email" placeholder="bichito@vir.app" required>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Grupo (opcional)</label>
+        <input class="form-control" name="grupo" placeholder="Ej: UA Run / Hyrox / Fuerza">
+      </div>
+      <div class="col-12 mt-2">
+        <button class="btn btn-info w-100" type="submit">Crear atleta</button>
+      </div>
+      <div class="col-12">
+        <div class="text-muted" style="font-size:.9rem;">
+          Al crear, se genera un password inicial aleatorio y se muestra arriba + en flash.
+        </div>
+      </div>
     </div>
-
-    <div class="mb-3">
-      <label class="form-label">Grupo</label>
-      <input type="text" name="grupo" class="form-control" placeholder="Ej: Avanzado, Intermedio, etc.">
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">Calendario (URL)</label>
-      <input type="text" name="calendario_url" class="form-control" placeholder="URL del calendario de Google o Airtable">
-    </div>
-
-    <button type="submit" class="btn btn-primary">Guardar atleta</button>
-    <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-secondary">Cancelar</a>
   </form>
+
 </div>
 {% endblock %}

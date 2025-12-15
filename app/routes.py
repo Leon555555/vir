@@ -22,7 +22,6 @@ from app.models import (
 
 main_bp = Blueprint("main", __name__)
 
-
 # =============================================================
 # FECHAS / UTILIDADES
 # =============================================================
@@ -39,8 +38,6 @@ def month_dates(year: int, month: int) -> List[date]:
     return [date(year, month, d) for d in range(1, last + 1)]
 
 def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
-    if not s:
-        return fallback or date.today()
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
     except Exception:
@@ -58,8 +55,10 @@ def is_admin() -> bool:
 
 @main_bp.app_context_processor
 def inject_is_admin():
-    return {"is_admin": is_admin, "admin_ok": is_admin()}
-
+    return {
+        "is_admin": is_admin,
+        "admin_ok": is_admin(),
+    }
 
 # =============================================================
 # SERIALIZADORES
@@ -90,7 +89,6 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
         "puede_entrenar": (getattr(p, "puede_entrenar", None) or "si"),
         "comentario_atleta": (getattr(p, "comentario_atleta", None) or ""),
     }
-
 
 # =============================================================
 # HOME / LOGIN
@@ -135,9 +133,8 @@ def perfil_redirect():
         return redirect(url_for("main.dashboard_entrenador"))
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-
 # =============================================================
-# PERFIL (ATLETA)
+# PERFIL (ATLETA)  + GAMIFICACIÓN LIGHT (A)
 # =============================================================
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
@@ -157,6 +154,7 @@ def perfil_usuario(user_id: int):
     ).all()
     planes = {p.fecha: p for p in planes_db}
 
+    # asegurar semana
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=user.id, fecha=f, plan_type="Descanso")
@@ -164,6 +162,7 @@ def perfil_usuario(user_id: int):
             db.session.add(nuevo)
     db.session.commit()
 
+    # mes
     hoy = date.today()
     dias_mes = month_dates(hoy.year, hoy.month)
     planes_mes = {
@@ -177,6 +176,7 @@ def perfil_usuario(user_id: int):
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
+    # fuerza: rutina por día + items
     rutina_by_day: Dict[date, Rutina | None] = {}
     items_by_day: Dict[date, List[RutinaItem]] = {}
     rutina_items_cache: Dict[int, List[RutinaItem]] = {}
@@ -205,6 +205,7 @@ def perfil_usuario(user_id: int):
         rutina_by_day[f] = rutina
         items_by_day[f] = items
 
+    # checks
     done_set: set[Tuple[date, int]] = set()
     checks = AthleteCheck.query.filter(
         AthleteCheck.user_id == user.id,
@@ -214,11 +215,58 @@ def perfil_usuario(user_id: int):
         if c.done:
             done_set.add((c.fecha, c.rutina_item_id))
 
+    # logs
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha.in_(fechas)
     ).all()
     log_by_day: Dict[date, AthleteLog] = {l.fecha: l for l in logs}
+
+    # ✅ GAMIFICACIÓN LIGHT (A):
+    # Fuerza: completado si done == total items
+    # Endurance: completado si did_train OR hay texto en algún campo
+    day_status: Dict[date, Dict[str, Any]] = {}
+    for f in fechas:
+        plan = planes[f]
+        ptype = (plan.plan_type or "Descanso").strip().lower()
+
+        if ptype == "fuerza":
+            items = items_by_day.get(f, []) or []
+            total = len(items)
+            done = 0
+            if total > 0:
+                for it in items:
+                    if (f, it.id) in done_set:
+                        done += 1
+            completed = (total > 0 and done == total)
+            day_status[f] = {
+                "kind": "strength",
+                "done": done,
+                "total": total,
+                "completed": completed,
+            }
+
+        elif ptype == "descanso":
+            day_status[f] = {
+                "kind": "rest",
+                "done": 0,
+                "total": 0,
+                "completed": False,
+            }
+
+        else:
+            lg = log_by_day.get(f)
+            did_train = bool(lg.did_train) if lg else False
+            any_text = False
+            if lg:
+                any_text = bool((lg.warmup_done or "").strip() or (lg.main_done or "").strip() or (lg.finisher_done or "").strip())
+            completed = bool(did_train or any_text)
+            day_status[f] = {
+                "kind": "endurance",
+                "done": 1 if completed else 0,
+                "total": 1,
+                "completed": completed,
+            }
 
     return render_template(
         "perfil.html",
@@ -235,11 +283,11 @@ def perfil_usuario(user_id: int):
         done_set=done_set,
         log_by_day=log_by_day,
         center=center,
+        day_status=day_status,   # ✅ NUEVO
     )
 
-
 # =============================================================
-# API: detalle del día
+# API: detalle del día (modal full-screen atleta)
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -310,9 +358,8 @@ def api_day_detail():
 
     return jsonify(payload)
 
-
 # =============================================================
-# CHECK por ejercicio
+# ✅ CHECK por ejercicio (fuerza)
 # =============================================================
 @main_bp.route("/athlete/check_item", methods=["POST"])
 @login_required
@@ -353,9 +400,8 @@ def athlete_check_item():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 # =============================================================
-# Guardar realizado
+# ✅ Guardar "lo realizado"  (endurance completado si did_train o texto)
 # =============================================================
 @main_bp.route("/athlete/save_log", methods=["POST"])
 @login_required
@@ -386,9 +432,8 @@ def athlete_save_log():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 # =============================================================
-# Bloquear día
+# ✅ Bloquear día
 # =============================================================
 @main_bp.route("/athlete/block_day", methods=["POST"])
 @login_required
@@ -416,9 +461,8 @@ def athlete_block_day():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 # =============================================================
-# PANEL ENTRENADOR
+# ✅ DASHBOARD ENTRENADOR (PANEL)
 # =============================================================
 @main_bp.route("/coach/dashboard")
 @login_required
@@ -438,9 +482,8 @@ def dashboard_entrenador():
         atletas=atletas,
     )
 
-
 # =============================================================
-# PLANIFICADOR SEMANAL
+# ✅ PLANIFICADOR (SEMANA)
 # =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
@@ -490,9 +533,8 @@ def coach_planificador():
         center=center,
     )
 
-
 # =============================================================
-# GUARDAR DÍA (PLANIFICADOR)
+# ✅ GUARDAR DÍA (PLANIFICADOR)
 # =============================================================
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
@@ -531,9 +573,8 @@ def save_day():
     flash("✅ Día guardado", "success")
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
-
 # =============================================================
-# PANEL: CREAR RUTINA
+# ✅ PANEL: CREAR RUTINA
 # =============================================================
 @main_bp.route("/crear_rutina", methods=["POST"])
 @login_required
@@ -557,9 +598,8 @@ def crear_rutina():
     flash("✅ Rutina creada", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
-
 # =============================================================
-# PANEL: SUBIR EJERCICIO
+# ✅ PANEL: SUBIR EJERCICIO (BANCO)
 # =============================================================
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
@@ -598,9 +638,8 @@ def admin_nuevo_ejercicio():
     flash("✅ Ejercicio subido", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
-
 # =============================================================
-# PANEL: ELIMINAR ATLETA
+# ✅ PANEL: ELIMINAR ATLETA
 # =============================================================
 @main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required
@@ -624,9 +663,8 @@ def admin_delete_user(user_id: int):
     flash("✅ Atleta eliminado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
-
 # =============================================================
-# RUTINAS: BUILDER
+# CRUD rutinas (builder)
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/builder")
 @login_required
@@ -640,7 +678,6 @@ def rutina_builder(rutina_id: int):
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
 
     return render_template("rutina_builder.html", rutina=rutina, items=items, ejercicios=ejercicios)
-
 
 @main_bp.route("/rutinas/<int:rutina_id>/add_item", methods=["POST"])
 @login_required
@@ -673,24 +710,18 @@ def rutina_add_item(rutina_id: int):
     flash("✅ Ejercicio añadido", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
-
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
 def rutina_update_item(rutina_id: int, item_id: int):
-    """
-    ✅ Esta ruta ES la que faltaba. Tu template la llama como:
-    url_for('main.rutina_update_item', rutina_id=rutina.id, item_id=item.id)
-    """
+    """✅ ESTA RUTA ES LA QUE TE FALTABA (y te tiraba el BuildError)"""
     if not is_admin():
         flash("Solo el admin puede editar rutinas", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
-    rutina = Rutina.query.get_or_404(rutina_id)
     item = RutinaItem.query.get_or_404(item_id)
-
-    if item.rutina_id != rutina.id:
+    if item.rutina_id != rutina_id:
         flash("Item inválido para esta rutina", "danger")
-        return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+        return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
     item.series = (request.form.get("series") or "").strip()
     item.reps = (request.form.get("reps") or "").strip()
@@ -699,8 +730,7 @@ def rutina_update_item(rutina_id: int, item_id: int):
 
     db.session.commit()
     flash("✅ Cambios guardados", "success")
-    return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
-
+    return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
 @login_required
@@ -715,7 +745,6 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
     flash("🗑️ Item eliminado", "info")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
-
 
 # =============================================================
 # HEALTHCHECK

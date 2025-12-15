@@ -1,133 +1,123 @@
 {% extends "layout.html" %}
-{% block title %}Panel Entrenador — VR Training{% endblock %}
+{% block title %}Panel del Entrenador — Admin{% endblock %}
 
 {% block content %}
-<div class="container mt-3">
+<div class="container mt-4">
 
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h2 class="mb-0 text-light">🧠 Panel Entrenador</h2>
+      <h2 class="text-light mb-0">🏋️ Panel Entrenador</h2>
       <div class="text-muted">Rutinas · Banco de ejercicios · Atletas</div>
     </div>
-    <div class="d-flex gap-2">
-      <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">📅 Ir al Planificador</a>
-    </div>
+    <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">🗓️ Ir al Planificador</a>
   </div>
 
-  <div class="row g-3">
-
-    <!-- RUTINAS -->
+  <div class="row g-4">
+    <!-- Crear rutina -->
     <div class="col-lg-4">
-      <div class="card p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;">
-        <h5 class="text-info mb-2">➕ Crear Rutina</h5>
+      <div class="card p-3 box">
+        <h5 class="text-info mb-3">➕ Crear Rutina</h5>
         <form method="POST" action="{{ url_for('main.crear_rutina') }}">
-          <div class="mb-2">
-            <input class="form-control" name="nombre" placeholder="Nombre de rutina" required>
-          </div>
-          <div class="mb-2">
-            <input class="form-control" name="tipo" placeholder="Tipo (Fuerza / General / etc)">
-          </div>
-          <div class="mb-2">
-            <textarea class="form-control" name="descripcion" rows="2" placeholder="Descripción (opcional)"></textarea>
-          </div>
+          <input class="form-control mb-2" name="nombre" placeholder="Nombre de rutina" required>
+          <input class="form-control mb-2" name="tipo" placeholder="Tipo (Fuerza / General / etc)">
+          <textarea class="form-control mb-2" name="descripcion" placeholder="Descripción (opcional)"></textarea>
           <button class="btn btn-info w-100" type="submit">Crear</button>
         </form>
 
         <hr style="border-color:rgba(255,255,255,.08)">
 
-        <h5 class="text-light mb-2">📚 Rutinas</h5>
-        <div class="list-group">
+        <h6 class="text-light mb-2">📚 Rutinas</h6>
+        <div class="list-group list-group-flush">
           {% for r in rutinas %}
-            <div class="list-group-item d-flex justify-content-between align-items-center"
-                 style="background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);color:#fff;">
-              <div>
-                <div class="fw-bold">{{ r.nombre }}</div>
-                <div class="small text-muted">{{ r.tipo or "—" }}</div>
+            <div class="list-group-item item-row">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-bold text-light">{{ r.nombre }}</div>
+                  <div class="small text-muted">{{ r.tipo or '' }}</div>
+                </div>
+                <a class="btn btn-sm btn-outline-light" href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
+                  Builder
+                </a>
               </div>
-              <a class="btn btn-sm btn-outline-light" href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">Builder</a>
             </div>
           {% else %}
-            <div class="text-muted">No hay rutinas aún.</div>
+            <div class="text-muted">No hay rutinas todavía.</div>
           {% endfor %}
         </div>
       </div>
     </div>
 
-    <!-- BANCO EJERCICIOS -->
+    <!-- Subir ejercicio -->
     <div class="col-lg-4">
-      <div class="card p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;">
-        <h5 class="text-info mb-2">🎥 Subir Ejercicio</h5>
+      <div class="card p-3 box">
+        <h5 class="text-info mb-3">📤 Subir Ejercicio</h5>
+
         <form method="POST" action="{{ url_for('main.admin_nuevo_ejercicio') }}" enctype="multipart/form-data">
-          <div class="mb-2">
-            <input class="form-control" name="nombre" placeholder="Nombre del ejercicio" required>
-          </div>
-          <div class="mb-2">
-            <input class="form-control" name="categoria" placeholder="Categoría (pierna, tirón, empuje...)">
-          </div>
-          <div class="mb-2">
-            <textarea class="form-control" name="descripcion" rows="2" placeholder="Descripción (opcional)"></textarea>
-          </div>
-          <div class="mb-2">
-            <input class="form-control" type="file" name="video" accept="video/*" required>
-          </div>
+          <input class="form-control mb-2" name="nombre" placeholder="Nombre del ejercicio" required>
+          <input class="form-control mb-2" name="categoria" placeholder="Categoría (pierna, tirón, empuje...)">
+          <textarea class="form-control mb-2" name="descripcion" placeholder="Descripción (opcional)"></textarea>
+          <input class="form-control mb-2" type="file" name="video" accept="video/mp4" required>
           <button class="btn btn-info w-100" type="submit">Subir</button>
         </form>
 
         <hr style="border-color:rgba(255,255,255,.08)">
 
-        <h5 class="text-light mb-2">🏦 Banco</h5>
-        <div style="max-height:420px;overflow:auto;">
-          {% for e in ejercicios %}
-            <div class="p-2 mb-2"
-                 style="border:1px solid rgba(255,255,255,.06);border-radius:12px;background:rgba(0,0,0,.25);">
-              <div class="fw-bold">{{ e.nombre }}</div>
-              <div class="small text-muted">{{ e.categoria or "—" }}</div>
+        <h6 class="text-light mb-2">🧩 Banco</h6>
+        <div class="list-group list-group-flush">
+          {% for e in ejercicios[:8] %}
+            <div class="list-group-item item-row">
+              <div class="fw-bold text-light">{{ e.nombre }}</div>
+              <div class="small text-muted">{{ e.categoria or '' }}</div>
               {% if e.video_filename %}
-                <div class="small">
-                  <a class="text-info" target="_blank" href="{{ url_for('static', filename='videos/' ~ e.video_filename) }}">
-                    Ver video
-                  </a>
-                </div>
+                <a class="small text-info" href="{{ url_for('static', filename='videos/' ~ e.video_filename) }}" target="_blank">
+                  Ver video
+                </a>
               {% endif %}
             </div>
           {% else %}
-            <div class="text-muted">No hay ejercicios aún.</div>
+            <div class="text-muted">No hay ejercicios todavía.</div>
           {% endfor %}
         </div>
+
+        {% if ejercicios|length > 8 %}
+          <div class="small text-muted mt-2">Mostrando 8 de {{ ejercicios|length }} ejercicios.</div>
+        {% endif %}
       </div>
     </div>
 
-    <!-- ATLETAS -->
+    <!-- Atletas -->
     <div class="col-lg-4">
-      <div class="card p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;">
-        <h5 class="text-info mb-2">👥 Atletas</h5>
+      <div class="card p-3 box">
+        <h5 class="text-info mb-3">👥 Atletas</h5>
+        <div class="small text-muted mb-2">Planificá desde Planificador o entrá al perfil.</div>
 
-        <div style="max-height:520px;overflow:auto;">
+        <div class="list-group list-group-flush">
           {% for a in atletas %}
-            <div class="d-flex justify-content-between align-items-center gap-2 p-2 mb-2"
-                 style="border:1px solid rgba(255,255,255,.06);border-radius:12px;background:rgba(0,0,0,.25);">
-              <div>
-                <div class="fw-bold">{{ a.nombre }}</div>
-                <div class="small text-muted">{{ a.email }}</div>
-              </div>
+            <div class="list-group-item item-row">
+              <div class="d-flex justify-content-between align-items-center gap-2">
+                <div>
+                  <div class="fw-bold text-light">{{ a.nombre }}</div>
+                  <div class="small text-muted">{{ a.email }}</div>
+                </div>
 
-              <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-outline-info" href="{{ url_for('main.coach_planificador', user_id=a.id) }}">
-                  Planificar
-                </a>
+                <div class="d-flex gap-2">
+                  <a class="btn btn-sm btn-outline-info"
+                     href="{{ url_for('main.coach_planificador', user_id=a.id) }}">Planificar</a>
 
-                <a class="btn btn-sm btn-outline-light" href="{{ url_for('main.perfil_usuario', user_id=a.id) }}">
-                  Ver perfil
-                </a>
+                  <!-- ✅ ESTE ES EL BOTÓN QUE TE FALTA -->
+                  <a class="btn btn-sm btn-outline-light"
+                     href="{{ url_for('main.perfil_usuario', user_id=a.id) }}">Ver perfil</a>
 
-                <form method="POST" action="{{ url_for('main.admin_delete_user', user_id=a.id) }}"
-                      onsubmit="return confirm('¿Eliminar atleta y sus datos?');">
-                  <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
-                </form>
+                  <form method="POST" action="{{ url_for('main.admin_delete_user', user_id=a.id) }}"
+                        onsubmit="return confirm('¿Eliminar atleta {{ a.nombre }}?');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+                  </form>
+                </div>
+
               </div>
             </div>
           {% else %}
-            <div class="text-muted">No hay atletas.</div>
+            <div class="text-muted">No hay atletas todavía.</div>
           {% endfor %}
         </div>
       </div>
@@ -135,4 +125,18 @@
 
   </div>
 </div>
+
+<style>
+.box{
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+}
+.item-row{
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.06);
+  color:#fff;
+}
+.list-group-item{border-radius: 14px; margin-bottom:10px;}
+</style>
 {% endblock %}

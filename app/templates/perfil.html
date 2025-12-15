@@ -4,7 +4,6 @@
 {% block content %}
 <div class="container mt-3">
 
-  <!-- Header -->
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
       <h2 class="mb-0 text-light">👤 {{ user.nombre }}</h2>
@@ -22,27 +21,36 @@
       </form>
 
       {% if admin_ok %}
-        <a class="btn btn-outline-light" href="{{ url_for('main.coach_planificador', user_id=user.id, center=center.isoformat() if center else '') }}">
+        <a class="btn btn-outline-light"
+           href="{{ url_for('main.coach_planificador', user_id=user.id, center=center.isoformat() if center else '') }}">
           🧠 Planificar
         </a>
       {% endif %}
     </div>
   </div>
 
-  <!-- Week grid -->
   <div class="row g-3">
     {% for f in fechas %}
       {% set plan = planes[f] %}
       {% set fecha_id = f.isoformat() %}
+      {% set st = day_status.get(f, {}) %}
+      {% set completed = st.get("completed", False) %}
+      {% set done = st.get("done", 0) %}
+      {% set total = st.get("total", 0) %}
 
       <div class="col-md-6 col-lg-4">
         <div class="card p-3 day-card">
 
-          <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
               <div class="day-title">{{ f.strftime('%A %d/%m')|upper }}</div>
               <div class="small text-muted">
-                Tipo: <span class="badge bg-secondary">{{ plan.plan_type }}</span>
+                <span class="badge bg-secondary">{{ plan.plan_type }}</span>
+
+                {% if completed %}
+                  <span class="badge bg-success ms-1">Completado</span>
+                {% endif %}
+
                 {% if plan.puede_entrenar == "no" %}
                   <span class="badge bg-danger ms-1">Bloqueado</span>
                 {% endif %}
@@ -56,17 +64,12 @@
             </button>
           </div>
 
-          <!-- Quick preview (para enganchar sin abrir modal) -->
           <div class="preview-box">
             {% if plan.plan_type|lower == "fuerza" %}
               {% set r = rutina_by_day[f] %}
               {% if r %}
                 <div class="fw-bold text-light">🏋️ Rutina: {{ r.nombre }}</div>
                 <div class="small text-muted">Marcá cada ejercicio dentro del detalle.</div>
-                <div class="mt-2 small">
-                  <span class="badge bg-info">Fuerza</span>
-                  <span class="badge bg-dark border border-secondary ms-1">Items: {{ items_by_day[f]|length }}</span>
-                </div>
               {% else %}
                 <div class="text-muted">No hay rutina asignada.</div>
               {% endif %}
@@ -90,7 +93,26 @@
             {% endif %}
           </div>
 
-          <!-- Progress hint -->
+          <!-- ✅ PROGRESO (gamificación light A) -->
+          {% if plan.plan_type|lower == "fuerza" and total > 0 %}
+            <div class="mt-3">
+              <div class="d-flex justify-content-between small text-muted">
+                <span>Progreso</span>
+                <span>{{ done }}/{{ total }}</span>
+              </div>
+              <div class="progress progress-dark mt-1">
+                <div class="progress-bar" role="progressbar"
+                     style="width: {{ (done * 100 // total) if total else 0 }}%;"></div>
+              </div>
+            </div>
+          {% elif plan.plan_type|lower != "descanso" %}
+            <div class="mt-3 small text-muted">
+              Estado: <span class="badge {{ 'bg-success' if completed else 'bg-secondary' }}">
+                {{ 'Completado' if completed else 'Pendiente' }}
+              </span>
+            </div>
+          {% endif %}
+
           <div class="mt-3 d-flex justify-content-between align-items-center">
             <div class="small text-muted">Score propuesto</div>
             <div class="badge bg-dark border border-secondary">{{ plan.propuesto_score or 0 }}</div>
@@ -103,13 +125,10 @@
 
 </div>
 
-<!-- =========================
-     MODAL FULL SCREEN
-========================= -->
+<!-- Modal full screen (usa /api/day_detail) -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen">
     <div class="modal-content modal-dark">
-
       <div class="modal-header">
         <div>
           <h5 class="modal-title mb-0" id="dayModalTitle">Detalle del día</h5>
@@ -120,17 +139,12 @@
 
       <div class="modal-body">
         <div id="dayModalBody">
-
-          <!-- Loading -->
           <div class="text-center py-5" id="dayLoading">
             <div class="spinner-border text-info" role="status"></div>
             <div class="text-muted mt-2">Cargando...</div>
           </div>
 
-          <!-- Content -->
           <div class="row g-3 d-none" id="dayContent">
-
-            <!-- Left: Plan -->
             <div class="col-lg-6">
               <div class="card p-3 panel-box">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -156,45 +170,49 @@
                     <label class="form-check-label small" for="didTrainToggle">Sí</label>
                   </div>
                 </div>
-
               </div>
             </div>
 
-            <!-- Right: Fuerza / Log -->
             <div class="col-lg-6">
               <div class="card p-3 panel-box">
-
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <h6 class="mb-0 text-info">✅ Ejecución / Check</h6>
                   <span class="badge bg-dark border border-secondary" id="rutinaName">—</span>
                 </div>
 
-                <!-- Fuerza list -->
+                <!-- ✅ barra progreso dentro del modal (Fuerza) -->
+                <div id="modalProgressWrap" class="d-none">
+                  <div class="d-flex justify-content-between small text-muted">
+                    <span>Progreso</span>
+                    <span id="modalProgressText">0/0</span>
+                  </div>
+                  <div class="progress progress-dark mt-1 mb-2">
+                    <div class="progress-bar" id="modalProgressBar" role="progressbar" style="width:0%"></div>
+                  </div>
+                </div>
+
                 <div id="strengthBox" class="d-none">
                   <div id="itemsList" class="items-list"></div>
                 </div>
 
-                <!-- Endurance log -->
                 <div id="enduranceBox" class="d-none">
                   <div class="small text-muted mb-1">Warmup realizado</div>
-                  <textarea class="form-control area-dark" id="warmupDone" rows="3" placeholder="¿Qué hiciste realmente?"></textarea>
+                  <textarea class="form-control area-dark" id="warmupDone" rows="3"></textarea>
 
                   <div class="small text-muted mt-2 mb-1">Bloque principal realizado</div>
-                  <textarea class="form-control area-dark" id="mainDone" rows="4" placeholder="Volumen, ritmo, sensaciones..."></textarea>
+                  <textarea class="form-control area-dark" id="mainDone" rows="4"></textarea>
 
                   <div class="small text-muted mt-2 mb-1">Finisher / Enfriamiento</div>
-                  <textarea class="form-control area-dark" id="finisherDone" rows="3" placeholder="Descarga, movilidad, estiramientos..."></textarea>
+                  <textarea class="form-control area-dark" id="finisherDone" rows="3"></textarea>
                 </div>
 
                 <div class="d-grid mt-3">
                   <button class="btn btn-info" onclick="saveDayLog()">💾 Guardar lo realizado</button>
                 </div>
-
                 <div class="small text-muted mt-2" id="saveHint">Guardá para llevar registro y mejorar progresión.</div>
               </div>
             </div>
-
-          </div><!-- /dayContent -->
+          </div>
 
         </div>
       </div>
@@ -243,38 +261,26 @@
   color:#fff;
   border-radius: 14px;
 }
-.items-list{
-  display:flex;
-  flex-direction:column;
-  gap: 10px;
-}
+.items-list{display:flex;flex-direction:column;gap: 10px;}
 .item-row{
   background: rgba(0,0,0,.22);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 14px;
   padding: 12px;
 }
-.item-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
-}
+.item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
 .item-name{font-weight:800}
 .item-meta{font-size:.9rem; color:rgba(255,255,255,.75)}
-.video-wrap{
-  margin-top:10px;
-  border-radius: 14px;
-  overflow:hidden;
-  border: 1px solid rgba(255,255,255,.08);
-}
+.video-wrap{margin-top:10px;border-radius: 14px;overflow:hidden;border: 1px solid rgba(255,255,255,.08);}
 video{width:100%; max-height:360px; background:#000}
+.progress-dark{height:10px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+.progress-bar{background:#22d3ee;}
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let CURRENT_DAY = { user_id: null, fecha: null, plan_type: null };
+let CURRENT_DAY = { user_id: null, fecha: null, plan_type: null, items_total: 0, done_count: 0 };
 
 function escapeHtml(s){
   return (s ?? "").toString()
@@ -282,18 +288,32 @@ function escapeHtml(s){
     .replaceAll(">","&gt;").replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-
 function setText(id, txt){
   const el = document.getElementById(id);
   if (el) el.textContent = txt ?? "—";
 }
-
 function show(elId){ document.getElementById(elId)?.classList.remove("d-none"); }
 function hide(elId){ document.getElementById(elId)?.classList.add("d-none"); }
+
+function updateModalProgress(){
+  const total = CURRENT_DAY.items_total || 0;
+  const done = CURRENT_DAY.done_count || 0;
+  if(total <= 0){
+    hide("modalProgressWrap");
+    return;
+  }
+  show("modalProgressWrap");
+  setText("modalProgressText", `${done}/${total}`);
+  const pct = Math.floor((done * 100) / total);
+  const bar = document.getElementById("modalProgressBar");
+  if(bar) bar.style.width = `${pct}%`;
+}
 
 async function openDayDetail(userId, fecha){
   CURRENT_DAY.user_id = userId;
   CURRENT_DAY.fecha = fecha;
+  CURRENT_DAY.items_total = 0;
+  CURRENT_DAY.done_count = 0;
 
   const modal = new bootstrap.Modal(document.getElementById("dayModal"));
   modal.show();
@@ -303,8 +323,8 @@ async function openDayDetail(userId, fecha){
   document.getElementById("itemsList").innerHTML = "";
   document.getElementById("strengthBox").classList.add("d-none");
   document.getElementById("enduranceBox").classList.add("d-none");
+  hide("modalProgressWrap");
 
-  setText("dayModalTitle", "Detalle del día");
   setText("dayModalSubtitle", `${fecha}`);
   setText("rutinaName", "—");
 
@@ -312,7 +332,6 @@ async function openDayDetail(userId, fecha){
     const url = `/api/day_detail?user_id=${encodeURIComponent(userId)}&fecha=${encodeURIComponent(fecha)}`;
     const res = await fetch(url);
     const data = await res.json();
-
     if(!data.ok){
       alert(data.error || "Error cargando el día");
       return;
@@ -326,28 +345,25 @@ async function openDayDetail(userId, fecha){
     setText("planMain", plan.main || "—");
     setText("planFinisher", plan.finisher || "—");
 
-    // log
     const log = data.log || {};
-    const didTrain = !!log.did_train;
-    const toggle = document.getElementById("didTrainToggle");
-    toggle.checked = didTrain;
+    document.getElementById("didTrainToggle").checked = !!log.did_train;
 
-    // decidir caja fuerza / endurance
-    const isStrength = CURRENT_DAY.plan_type === "fuerza";
+    const isStrength = (CURRENT_DAY.plan_type === "fuerza");
 
     if(isStrength){
       document.getElementById("strengthBox").classList.remove("d-none");
       document.getElementById("enduranceBox").classList.add("d-none");
 
       const rutina = data.rutina;
-      if(rutina){
-        setText("rutinaName", rutina.nombre || "Rutina");
-      } else {
-        setText("rutinaName", "Sin rutina asignada");
-      }
+      setText("rutinaName", rutina?.nombre || "Sin rutina");
 
       const items = data.items || [];
       const doneIds = new Set((data.checks || []).map(x => Number(x)));
+
+      CURRENT_DAY.items_total = items.length;
+      CURRENT_DAY.done_count = 0;
+      items.forEach(it => { if(doneIds.has(Number(it.id))) CURRENT_DAY.done_count += 1; });
+      updateModalProgress();
 
       const list = document.getElementById("itemsList");
       list.innerHTML = items.map(it => {
@@ -358,7 +374,6 @@ async function openDayDetail(userId, fecha){
         if(it.reps) metaParts.push(`${escapeHtml(it.reps)} reps`);
         if(it.descanso) metaParts.push(`desc ${escapeHtml(it.descanso)}`);
         const meta = metaParts.length ? metaParts.join(" · ") : "—";
-
         const video = it.video_url
           ? `<div class="video-wrap">
                <video controls preload="metadata">
@@ -366,7 +381,6 @@ async function openDayDetail(userId, fecha){
                </video>
              </div>`
           : "";
-
         const nota = it.nota ? `<div class="small text-muted mt-2">Nota: ${escapeHtml(it.nota)}</div>` : "";
 
         return `
@@ -416,7 +430,13 @@ async function toggleItem(userId, fecha, itemId, done){
   const data = await res.json();
   if(!data.ok){
     alert(data.error || "Error guardando check");
+    return;
   }
+
+  // actualizar barra modal
+  CURRENT_DAY.done_count += done ? 1 : -1;
+  if(CURRENT_DAY.done_count < 0) CURRENT_DAY.done_count = 0;
+  updateModalProgress();
 }
 
 async function saveDayLog(){
@@ -437,7 +457,7 @@ async function saveDayLog(){
 
   const data = await res.json();
   if(data.ok){
-    document.getElementById("saveHint").textContent = "✅ Guardado. Seguí así.";
+    document.getElementById("saveHint").textContent = "✅ Guardado. Perfecto.";
   } else {
     alert(data.error || "Error guardando");
   }

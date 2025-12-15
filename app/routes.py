@@ -39,6 +39,8 @@ def month_dates(year: int, month: int) -> List[date]:
     return [date(year, month, d) for d in range(1, last + 1)]
 
 def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
+    if not s:
+        return fallback or date.today()
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
     except Exception:
@@ -56,11 +58,7 @@ def is_admin() -> bool:
 
 @main_bp.app_context_processor
 def inject_is_admin():
-    # Para poder usar en Jinja: is_admin() y admin_ok
-    return {
-        "is_admin": is_admin,
-        "admin_ok": is_admin(),
-    }
+    return {"is_admin": is_admin, "admin_ok": is_admin()}
 
 
 # =============================================================
@@ -423,7 +421,7 @@ def athlete_block_day():
 
 
 # =============================================================
-# ✅ DASHBOARD ENTRENADOR (PANEL)  <<--- COMO TU 2ª IMAGEN
+# ✅ DASHBOARD ENTRENADOR (PANEL)  <<--- Panel admin/coach
 # =============================================================
 @main_bp.route("/coach/dashboard")
 @login_required
@@ -432,13 +430,13 @@ def dashboard_entrenador():
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
-    # Panel: rutinas + banco ejercicios + atletas
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
     ejercicios = Ejercicio.query.order_by(Ejercicio.id.desc()).all()
     atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.desc()).all()
 
+    # ✅ ESTE TEMPLATE TIENE QUE EXISTIR
     return render_template(
-        "panel_entrenador.html",   # ✅ ESTE ES EL PANEL (la 2ª imagen)
+        "panel_entrenador.html",
         rutinas=rutinas,
         ejercicios=ejercicios,
         atletas=atletas,
@@ -446,7 +444,7 @@ def dashboard_entrenador():
 
 
 # =============================================================
-# ✅ PLANIFICADOR (SEMANA)  <<--- LA GRILLA SEMANAL
+# ✅ PLANIFICADOR (SEMANA)
 # =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
@@ -486,7 +484,7 @@ def coach_planificador():
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
     return render_template(
-        "dashboard_entrenador.html",  # ✅ TU TEMPLATE DE PLANIFICADOR (el que pegaste)
+        "dashboard_entrenador.html",
         atletas=atletas,
         rutinas=rutinas,
         atleta=atleta,
@@ -518,7 +516,6 @@ def save_day():
     plan_type = (request.form.get("plan_type") or "Descanso").strip()
     plan.plan_type = plan_type
 
-    # Fuerza: main = "RUTINA:id"
     if plan_type.lower() == "fuerza":
         rutina_select = (request.form.get("rutina_select") or "").strip()
         plan.main = rutina_select
@@ -537,7 +534,6 @@ def save_day():
     db.session.commit()
     flash("✅ Día guardado", "success")
 
-    # Volver al planificador, no al panel
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
 

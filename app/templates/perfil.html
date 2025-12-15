@@ -22,32 +22,46 @@
     </div>
   </div>
 
-  <!-- =========================
-       HOY (primero)
-  ========================== -->
-  <div class="card glass p-3 mb-4">
-    <div class="d-flex align-items-center justify-content-between">
-      <div>
-        <div class="text-muted" style="letter-spacing:.12em;">HOY</div>
-        <div class="d-flex align-items-center gap-2">
-          <h4 class="mb-0 text-light">{{ hoy.strftime('%A %d/%m')|upper }}</h4>
-          <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span>
+  <!-- NAV -->
+  <div class="card glass p-2 mb-3">
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-sm {% if view=='today' %}btn-info{% else %}btn-outline-info{% endif %}"
+         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='today', center=hoy.isoformat()) }}">Hoy</a>
+
+      <a class="btn btn-sm {% if view=='week' %}btn-info{% else %}btn-outline-info{% endif %}"
+         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=hoy.isoformat()) }}">Semana</a>
+
+      <a class="btn btn-sm {% if view=='month' %}btn-info{% else %}btn-outline-info{% endif %}"
+         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='month', center=center.isoformat()) }}">Mes</a>
+
+      <a class="btn btn-sm {% if view=='progress' %}btn-info{% else %}btn-outline-info{% endif %}"
+         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">Progreso</a>
+    </div>
+  </div>
+
+  {% if view == 'today' %}
+    <div class="card glass p-3 mb-4">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="text-muted" style="letter-spacing:.12em;">HOY</div>
+          <div class="d-flex align-items-center gap-2">
+            <h4 class="mb-0 text-light">{{ hoy.strftime('%A %d/%m')|upper }}</h4>
+            <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-info"
+                  onclick="openDayDetail('{{ user.id }}','{{ hoy.isoformat() }}')">
+            ▶ Empezar
+          </button>
+          <a class="btn btn-outline-light"
+             href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=hoy.isoformat()) }}">
+            Ver semana
+          </a>
         </div>
       </div>
 
-      <div class="d-flex gap-2">
-        <button class="btn btn-info"
-                onclick="openDayDetail('{{ user.id }}','{{ hoy.isoformat() }}')">
-          ▶ Empezar
-        </button>
-        <a class="btn btn-outline-light"
-           href="{{ url_for('main.perfil_usuario', user_id=user.id, center=hoy.isoformat()) }}">
-          Ver semana
-        </a>
-      </div>
-    </div>
-
-    {% if show_today %}
       <div class="mt-3 text-muted">
         {% if (plan_hoy.plan_type|lower) == 'fuerza' %}
           Hoy toca fuerza. Entrá y marcá tus ejercicios ✅
@@ -57,32 +71,34 @@
           Hoy toca {{ plan_hoy.plan_type }}. Entrá y cargá lo realizado.
         {% endif %}
       </div>
-    {% else %}
-      <div class="mt-3 text-warning">
-        Hoy no hay nada cargado. Abajo tenés la semana para que veas tu plan.
-      </div>
-    {% endif %}
-  </div>
+    </div>
+  {% endif %}
 
-  <!-- =========================
-       SI HOY NO TIENE NADA => SEMANA
-  ========================== -->
-  {% if not show_today %}
-    <h5 class="text-light mb-2">📅 Tu semana ({{ semana_str }})</h5>
+  {% if view == 'week' %}
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <h5 class="text-light mb-0">📅 Semana ({{ semana_str }})</h5>
+    </div>
+
     <div class="row g-3">
       {% for f in fechas %}
         {% set p = planes[f] %}
+        {% set is_done = (f in done_week) %}
         <div class="col-md-6 col-lg-4">
           <div class="card glass p-3">
             <div class="d-flex justify-content-between align-items-center">
               <strong class="text-light">{{ f.strftime('%a %d/%m')|upper }}</strong>
-              <span class="badge bg-secondary">{{ p.plan_type }}</span>
+              <div class="d-flex gap-2 align-items-center">
+                {% if is_done %}
+                  <span class="badge bg-success">HECHO</span>
+                {% endif %}
+                <span class="badge bg-secondary">{{ p.plan_type }}</span>
+              </div>
             </div>
 
             <div class="mt-3 d-flex gap-2">
               <button class="btn btn-outline-info w-100"
                       onclick="openDayDetail('{{ user.id }}','{{ f.isoformat() }}')">
-                Ver detalle
+                Ver / Completar
               </button>
             </div>
           </div>
@@ -91,11 +107,88 @@
     </div>
   {% endif %}
 
+  {% if view == 'month' %}
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <h5 class="text-light mb-0">🗓️ {{ month_label }}</h5>
+    </div>
+
+    <div class="card glass p-3">
+      <div class="month-grid">
+        <div class="month-head">L</div><div class="month-head">M</div><div class="month-head">X</div>
+        <div class="month-head">J</div><div class="month-head">V</div><div class="month-head">S</div><div class="month-head">D</div>
+
+        {% for week in month_grid %}
+          {% for d in week %}
+            {% if d %}
+              {% set p = planes_mes[d] %}
+              {% set done = (d in done_month) %}
+              <button class="month-cell {% if done %}done{% endif %}"
+                      type="button"
+                      onclick="openDayDetail('{{ user.id }}','{{ d.isoformat() }}')">
+                <div class="daynum">{{ d.day }}</div>
+                <div class="ptype">{{ p.plan_type }}</div>
+              </button>
+            {% else %}
+              <div class="month-cell empty"></div>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <div class="text-muted mt-2">Tip: tocá un día para ver el entrenamiento y marcarlo ✅</div>
+    </div>
+  {% endif %}
+
+  {% if view == 'progress' %}
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="card glass p-3">
+          <h5 class="text-light">📈 Progreso semanal</h5>
+          <div class="text-muted mb-2">Objetivo: {{ week_goal }} — Hechos: {{ week_done }}</div>
+
+          {% set pct = (0 if week_goal == 0 else (week_done * 100 / week_goal)) %}
+          <div class="progress" role="progressbar" aria-valuenow="{{ pct|int }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" style="width: {{ pct }}%"></div>
+          </div>
+
+          <div class="text-muted mt-2">
+            {% if week_goal == 0 %}
+              Esta semana no hay entrenos planificados todavía.
+            {% elif week_done >= week_goal %}
+              Brutal. Semana completa ✅🔥
+            {% else %}
+              Te faltan {{ week_goal - week_done }} para completar la semana.
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card glass p-3">
+          <h5 class="text-light">🔥 Racha</h5>
+          <div class="text-muted">Consecutivos completados: <strong>{{ streak }}</strong></div>
+          <div class="mt-3 text-muted">
+            Consejo: aunque sea un entreno corto, marcá “Hoy entrené” para sostener hábito.
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card glass p-3">
+          <h5 class="text-light">🗓️ Días completados del mes</h5>
+          <div class="text-muted">Completados: <strong>{{ done_month|length }}</strong> días</div>
+          <div class="mt-2">
+            <a class="btn btn-outline-info" href="{{ url_for('main.perfil_usuario', user_id=user.id, view='month', center=center.isoformat()) }}">
+              Ver calendario del mes
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
 </div>
 
-<!-- =========================
-     MODAL DETALLE DÍA
-========================== -->
+<!-- MODAL -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen">
     <div class="modal-content" style="background:#070a0c;color:#fff;">
@@ -129,6 +222,7 @@
 }
 .mini-title{font-size:.78rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase}
 .mini-value{font-size:1.1rem;font-weight:700}
+
 .item-row{
   border:1px solid rgba(255,255,255,.08);
   border-radius:14px;
@@ -140,6 +234,34 @@ textarea.form-control{
   border: 1px solid rgba(255,255,255,.10);
   color:#fff;
 }
+
+.month-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap:10px;
+}
+.month-head{
+  color:rgba(255,255,255,.65);
+  text-align:center;
+  font-weight:700;
+  letter-spacing:.12em;
+}
+.month-cell{
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.02);
+  border-radius:14px;
+  padding:10px;
+  min-height:72px;
+  color:#fff;
+  text-align:left;
+  cursor:pointer;
+  transition: .15s ease;
+}
+.month-cell:hover{ transform: translateY(-1px); border-color: rgba(34,211,238,.35); }
+.month-cell.done{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.08); }
+.month-cell.empty{ border:1px dashed rgba(255,255,255,.06); background: transparent; min-height:72px; border-radius:14px; }
+.daynum{ font-weight:800; }
+.ptype{ font-size:.78rem; color: rgba(255,255,255,.65); margin-top:2px; }
 </style>
 {% endblock %}
 
@@ -169,7 +291,6 @@ async function openDayDetail(userId, fecha){
   document.getElementById("dayTitle").textContent = `📌 ${tipo}`;
   document.getElementById("daySubtitle").textContent = data.fecha;
 
-  // Render
   if ((tipo||"").toLowerCase() === "fuerza" && data.rutina){
     renderFuerza(userId, data.fecha, data);
   } else {
@@ -224,7 +345,7 @@ function renderFuerza(userId, fecha, data){
 
   html += `</div>
     <hr style="border-color:rgba(255,255,255,.08)" />
-    <div class="d-flex gap-2 align-items-center">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
       <button class="btn btn-success" onclick="markDidTrain(${userId},'${fecha}', true)">✅ Marcar entreno completado</button>
       <button class="btn btn-outline-light" onclick="markDidTrain(${userId},'${fecha}', false)">↩ Quitar marca</button>
       <span class="text-muted">Esto alimenta racha y progreso.</span>
@@ -288,17 +409,17 @@ async function toggleCheck(userId, fecha, itemId, checked){
 
   const res = await fetch("/athlete/check_item", { method:"POST", body: fd });
   const data = await res.json();
-  if (!data.ok) alert(data.error || "Error");
+  if (!data.ok) alert(data.error || "Error guardando check");
 }
 
 async function saveLog(userId, fecha){
   const payload = {
     user_id: userId,
-    fecha,
-    did_train: document.getElementById("didTrain").checked,
-    warmup_done: document.getElementById("warmup_done").value,
-    main_done: document.getElementById("main_done").value,
-    finisher_done: document.getElementById("finisher_done").value,
+    fecha: fecha,
+    did_train: document.getElementById("didTrain")?.checked || false,
+    warmup_done: document.getElementById("warmup_done")?.value || "",
+    main_done: document.getElementById("main_done")?.value || "",
+    finisher_done: document.getElementById("finisher_done")?.value || "",
   };
 
   const res = await fetch("/athlete/save_log", {
@@ -307,20 +428,28 @@ async function saveLog(userId, fecha){
     body: JSON.stringify(payload)
   });
   const data = await res.json();
-  if (!data.ok) return alert(data.error || "Error");
-  alert("✅ Guardado");
+  if (!data.ok) alert(data.error || "Error guardando");
+  else alert("✅ Guardado");
 }
 
-async function markDidTrain(userId, fecha, v){
-  const payload = { user_id: userId, fecha, did_train: v, warmup_done:"", main_done:"", finisher_done:"" };
+async function markDidTrain(userId, fecha, didTrain){
+  const payload = {
+    user_id: userId,
+    fecha: fecha,
+    did_train: !!didTrain,
+    warmup_done: "",
+    main_done: "",
+    finisher_done: "",
+  };
+
   const res = await fetch("/athlete/save_log", {
     method:"POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify(payload)
   });
   const data = await res.json();
-  if (!data.ok) return alert(data.error || "Error");
-  alert(v ? "🔥 Sumaste a la racha" : "↩ Quitado");
+  if (!data.ok) alert(data.error || "Error guardando");
+  else alert("✅ Marcado");
 }
 </script>
 {% endblock %}

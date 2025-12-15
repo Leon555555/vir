@@ -61,7 +61,8 @@
         </div>
 
         <div class="d-flex gap-2">
-          <button class="btn btn-info" type="button"
+          <!-- ✅ botón visible celeste VR -->
+          <button class="btn btn-info btn-cta-vr" type="button"
                   onclick="openDay('{{ hoy.isoformat() }}')">
             ▶ Empezar
           </button>
@@ -203,7 +204,9 @@
             <span class="badge bg-secondary" id="dayModalType">—</span>
           </div>
         </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+
+        <!-- ✅ cierre SIEMPRE visible -->
+        <button type="button" class="btn-close btn-close-white btn-close-fix" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
       <div class="modal-body">
@@ -277,6 +280,30 @@
 }
 .day-modal .modal-body{ background: transparent; }
 
+/* ✅ botón “Empezar” siempre celeste VR visible */
+.btn-cta-vr{
+  background: linear-gradient(135deg, #5ee7ff, #22d3ee) !important;
+  border: none !important;
+  color: #001014 !important;
+  font-weight: 900;
+  box-shadow: 0 16px 40px rgba(34,211,238,.25);
+}
+
+/* ✅ cierre visible y clicable */
+.btn-close-fix{
+  opacity: 1 !important;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  padding: 10px;
+  background-color: rgba(255,255,255,.06) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+}
+.btn-close-fix:hover{
+  background-color: rgba(34,211,238,.10) !important;
+  border-color: rgba(34,211,238,.35) !important;
+}
+
 /* PLAN mejor legibilidad */
 .plan-row{
   padding: 12px 10px;
@@ -321,19 +348,24 @@
   color: rgba(255,255,255,.95);
 }
 .exercise-meta{
-  font-size:.9rem;
-  color: rgba(255,255,255,.72);  /* ✅ reps/series visibles */
+  font-size:.92rem;
+  color: rgba(255,255,255,.82);  /* ✅ reps/series MÁS visibles */
+  font-weight: 800;
 }
+
+/* ✅ VIDEO visible SIEMPRE (thumbnail + ratio + fondo) */
 .exercise-video{
   padding: 10px 12px 12px;
 }
 .exercise-video video{
   width:100%;
+  aspect-ratio: 16 / 9;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.35);
-  min-height: 220px;
-  object-fit: cover;
+  background: #000;            /* importante */
+  min-height: 180px;
+  object-fit: contain;         /* evita que “se corte” y quede raro */
+  display:block;
 }
 
 /* toggle done */
@@ -357,7 +389,6 @@ let CURRENT_USER = {{ user.id }};
 let CURRENT_ITEMS = [];
 
 function posterDataUrl(title){
-  // Poster inline (iPhone muestra algo aunque no haya frame cargado)
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const svg = `
   <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
@@ -382,6 +413,7 @@ function openDay(isoDate){
   if(!DAY_MODAL){
     DAY_MODAL = new bootstrap.Modal(document.getElementById("dayModal"));
   }
+
   document.getElementById("dayModalDate").textContent = isoDate;
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
@@ -396,21 +428,18 @@ function openDay(isoDate){
       document.getElementById("dayModalTitle").textContent = (data.rutina?.nombre ? data.rutina.nombre : "Detalle del día");
       document.getElementById("dayModalType").textContent = p.plan_type || "—";
 
-      // PLAN
       document.getElementById("planWarmup").textContent = p.warmup || "—";
       document.getElementById("planMain").textContent = p.main || "—";
       document.getElementById("planFinisher").textContent = p.finisher || "—";
 
-      // LOG
       document.getElementById("didTrain").checked = !!data.log?.did_train;
       document.getElementById("doneWarmup").value = data.log?.warmup_done || "";
       document.getElementById("doneMain").value = data.log?.main_done || "";
       document.getElementById("doneFinisher").value = data.log?.finisher_done || "";
 
-      // FUERZA
       CURRENT_ITEMS = Array.isArray(data.items) ? data.items : [];
       const doneIds = new Set(Array.isArray(data.checks) ? data.checks : []);
-      renderStrength(CURRENT_ITEMS, doneIds, isoDate);
+      renderStrength(CURRENT_ITEMS, doneIds);
 
       DAY_MODAL.show();
     })
@@ -420,20 +449,16 @@ function openDay(isoDate){
     });
 }
 
-function renderStrength(items, doneIds, isoDate){
+function renderStrength(items, doneIds){
   const wrap = document.getElementById("strengthItems");
   wrap.innerHTML = "";
-
-  if(!items.length){
-    return; // si no hay fuerza, no mostramos cards
-  }
+  if(!items.length) return;
 
   items.forEach(it => {
     const col = document.createElement("div");
     col.className = "col-12";
 
     const checked = doneIds.has(it.id) ? "checked" : "";
-
     const vidSrc = it.video_url ? (`/static/${it.video_url}`) : "";
     const poster = posterDataUrl(it.nombre);
 

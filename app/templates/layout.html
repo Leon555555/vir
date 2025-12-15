@@ -10,17 +10,31 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
 
   <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap” rel="stylesheet">
 
   <style>
+    /* ✅ FIX iPhone “blanco abajo” */
+    html, body {
+      height: 100%;
+      min-height: 100%;
+      background: #000;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
       color: #fff;
       font-family: "Rajdhani", sans-serif;
-      min-height: 100vh;
+
+      /* ✅ iOS: 100svh se comporta mejor que 100vh */
+      min-height: 100svh;
+
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
     }
+
     header.navbar {
       background-color: rgba(0, 0, 0, 0.7);
       border-bottom: 1px solid #22d3ee;
@@ -30,6 +44,7 @@
       align-items: center;
       backdrop-filter: blur(6px);
     }
+
     .nav-links a {
       color: #fff;
       margin-left: 1rem;
@@ -38,10 +53,15 @@
       transition: 0.2s ease;
     }
     .nav-links a:hover { color: #22d3ee; }
+
+    /* ✅ para que el main empuje y no quede “hueco” blanco */
+    main {
+      flex: 1 0 auto;
+    }
   </style>
 
-  <!-- CSS global -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}?v=6">
+  <!-- CSS global (subí versión para que Render no cachee) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}?v=7">
 
   {% block extra_css %}{% endblock %}
 </head>

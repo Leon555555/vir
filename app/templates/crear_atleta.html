@@ -1,50 +1,44 @@
 {% extends "layout.html" %}
-{% block title %}Crear nuevo atleta{% endblock %}
+{% block title %}Crear atleta — VR Training{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
+  <div class="card glass p-4 lift">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h2 class="text-light mb-1">➕ Crear nuevo atleta</h2>
+        <div class="text-muted">Esto crea el perfil y credenciales de acceso.</div>
+      </div>
+      <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') }}">← Volver</a>
+    </div>
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="text-uppercase fw-bold">➕ Crear nuevo atleta</h2>
-    <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-outline-light">← Volver</a>
-  </div>
-
-  <div class="card glass p-4">
-    <p class="text-muted mb-4">
-      Esto crea el perfil del atleta y sus credenciales de acceso.
-    </p>
-
-    <form method="POST" class="row g-4">
-
-      <div class="col-md-6">
+    <form method="POST" class="row g-3 mt-3">
+      <div class="col-12 col-md-6">
         <label class="form-label">Nombre</label>
-        <input type="text" name="nombre" class="form-control" placeholder="Ej: Bichito" required>
+        <input class="form-control" name="nombre" placeholder="Ej: Bichito" required>
       </div>
 
-      <div class="col-md-6">
+      <div class="col-12 col-md-6">
         <label class="form-label">Email</label>
-        <input type="email" name="email" class="form-control" placeholder="bichito@vir.app" required>
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label">Grupo (opcional)</label>
-        <input type="text" name="grupo" class="form-control" placeholder="UA Run / Hyrox / Fuerza">
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label">Contraseña (opcional)</label>
-        <input type="text" name="password" class="form-control"
-               placeholder="Dejar vacío para generar automáticamente">
+        <input class="form-control" name="email" placeholder="bichito@vir.app" required>
       </div>
 
       <div class="col-12">
-        <button type="submit" class="btn btn-info w-100">Crear atleta</button>
+        <label class="form-label">Grupo (opcional)</label>
+        <input class="form-control" name="grupo" placeholder="Ej: UA Run / Hyrox / Fuerza">
       </div>
 
-      <div class="col-12 text-muted small">
-        Si no definís contraseña, se generará una automática y se mostrará una sola vez en pantalla.
+      <div class="col-12">
+        <label class="form-label">Contraseña (si la dejás vacía, se genera automáticamente)</label>
+        <input class="form-control" name="password" placeholder="Escribí una o dejá vacío">
       </div>
 
+      <div class="col-12">
+        <button class="btn btn-cta w-100" type="submit">Crear atleta</button>
+        <div class="text-muted small mt-2">
+          Al crear, te muestro la contraseña inicial en un mensaje (flash).
+        </div>
+      </div>
     </form>
   </div>
 </div>

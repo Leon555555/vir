@@ -7,10 +7,7 @@ from typing import Any, Dict, List, Tuple, Optional
 
 import os
 import secrets
-import string
-
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
@@ -115,15 +112,18 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
         db.session.commit()
     return planes
 
-def _plan_rutina_id(p: DiaPlan) -> Optional[int]:
-    if not p or not p.main or not isinstance(p.main, str):
+def _rutina_id_from_plan(plan: DiaPlan) -> Optional[int]:
+    if not plan:
         return None
-    if not p.main.startswith("RUTINA:"):
+    if not (plan.main and isinstance(plan.main, str) and plan.main.startswith("RUTINA:")):
         return None
-    rid_str = p.main.split(":", 1)[1].strip()
-    return int(rid_str) if rid_str.isdigit() else None
+    rid_str = plan.main.split(":", 1)[1].strip()
+    if not rid_str.isdigit():
+        return None
+    return int(rid_str)
 
 def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
+    """Día fuerza 'done' si todos los items de la rutina del día están hechos."""
     done_days: set[date] = set()
     plans = DiaPlan.query.filter(DiaPlan.user_id == user_id, DiaPlan.fecha.in_(fechas)).all()
     plans_by_date = {p.fecha: p for p in plans}
@@ -135,7 +135,7 @@ def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
         if (p.plan_type or "").lower() != "fuerza":
             continue
 
-        rid = _plan_rutina_id(p)
+        rid = _rutina_id_from_plan(p)
         if not rid:
             continue
 
@@ -163,6 +163,7 @@ def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
     return {l.fecha for l in logs}
 
 def compute_streak(user_id: int) -> int:
+    """Racha: días consecutivos hacia atrás donde el usuario entrenó (log.did_train) o completó fuerza."""
     today = date.today()
     streak = 0
 
@@ -176,7 +177,7 @@ def compute_streak(user_id: int) -> int:
 
         plan = DiaPlan.query.filter_by(user_id=user_id, fecha=d).first()
         if plan and (plan.plan_type or "").lower() == "fuerza":
-            rid = _plan_rutina_id(plan)
+            rid = _rutina_id_from_plan(plan)
             if rid:
                 items = RutinaItem.query.filter_by(rutina_id=rid).all()
                 if items:
@@ -195,6 +196,7 @@ def compute_streak(user_id: int) -> int:
     return streak
 
 def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaPlan]) -> Tuple[int, int]:
+    """Goal = cantidad de días no descanso, done = días completados (log o fuerza completa)"""
     goal = 0
     for f in fechas:
         p = planes.get(f)
@@ -208,7 +210,7 @@ def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaP
 
 
 # =============================================================
-# AUTH
+# HOME / LOGIN
 # =============================================================
 @main_bp.route("/")
 def index():
@@ -263,6 +265,7 @@ def perfil_usuario(user_id: int):
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
+    # default: hoy. si hoy no tiene nada, igual mostramos hoy y botón semana
     view = (request.args.get("view") or "today").strip().lower()  # today/week/month/progress
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     hoy = date.today()
@@ -273,12 +276,13 @@ def perfil_usuario(user_id: int):
         db.session.add(plan_hoy)
         db.session.commit()
 
+    # Semana
     fechas = week_dates(center)
     planes = ensure_week_plans(user.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
-
     done_week = get_strength_done_days(user.id, fechas).union(get_log_done_days(user.id, fechas))
 
+    # Mes
     dias_mes = month_dates(center.year, center.month)
     planes_mes_db = DiaPlan.query.filter(
         DiaPlan.user_id == user.id,
@@ -298,6 +302,7 @@ def perfil_usuario(user_id: int):
 
     done_month = get_strength_done_days(user.id, dias_mes).union(get_log_done_days(user.id, dias_mes))
 
+    # Grilla mes
     first_day = date(center.year, center.month, 1)
     start = start_of_week(first_day)
     last_day = dias_mes[-1]
@@ -316,6 +321,23 @@ def perfil_usuario(user_id: int):
 
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
+    # checks semana
+    done_set: set[Tuple[date, int]] = set()
+    checks = AthleteCheck.query.filter(
+        AthleteCheck.user_id == user.id,
+        AthleteCheck.fecha.in_(fechas)
+    ).all()
+    for c in checks:
+        if c.done:
+            done_set.add((c.fecha, c.rutina_item_id))
+
+    # logs semana
+    logs = AthleteLog.query.filter(
+        AthleteLog.user_id == user.id,
+        AthleteLog.fecha.in_(fechas)
+    ).all()
+    log_by_day: Dict[date, AthleteLog] = {l.fecha: l for l in logs}
+
     streak = compute_streak(user.id)
     week_goal, week_done = week_goal_and_done(user.id, fechas, planes)
 
@@ -323,24 +345,21 @@ def perfil_usuario(user_id: int):
         "perfil.html",
         user=user,
         view=view,
-
         hoy=hoy,
         plan_hoy=plan_hoy,
-
         center=center,
         fechas=fechas,
         planes=planes,
         semana_str=semana_str,
         done_week=done_week,
-
         dias_mes=dias_mes,
         planes_mes=planes_mes,
         done_month=done_month,
         month_grid=month_grid,
         month_label=month_label,
-
         rutinas=rutinas,
-
+        done_set=done_set,
+        log_by_day=log_by_day,
         streak=streak,
         week_goal=week_goal,
         week_done=week_done,
@@ -385,7 +404,7 @@ def api_day_detail():
         "finisher_done": (log.finisher_done or "") if log else "",
     }
 
-    rid = _plan_rutina_id(plan)
+    rid = _rutina_id_from_plan(plan)
     if rid:
         r = Rutina.query.get(rid)
         if r:
@@ -407,14 +426,13 @@ def api_day_detail():
                 for it in items
             ]
 
-            if items:
-                checks = AthleteCheck.query.filter(
-                    AthleteCheck.user_id == user_id,
-                    AthleteCheck.fecha == fecha,
-                    AthleteCheck.rutina_item_id.in_([it.id for it in items])
-                ).all()
-                done_ids = {c.rutina_item_id for c in checks if c.done}
-                payload["checks"] = list(done_ids)
+            checks = AthleteCheck.query.filter(
+                AthleteCheck.user_id == user_id,
+                AthleteCheck.fecha == fecha,
+                AthleteCheck.rutina_item_id.in_([it.id for it in items])
+            ).all()
+            done_ids = {c.rutina_item_id for c in checks if c.done}
+            payload["checks"] = list(done_ids)
 
     return jsonify(payload)
 
@@ -518,69 +536,6 @@ def dashboard_entrenador():
 
 
 # =============================================================
-# ✅ CREAR NUEVO ATLETA (GET/POST) + PASSWORD
-# =============================================================
-def _generate_password(length: int = 10) -> str:
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(length))
-
-def _set_user_password(user: User, raw_password: str) -> None:
-    # Si tu User tiene set_password(), lo usamos. Si no, guardamos hash.
-    if hasattr(user, "set_password") and callable(getattr(user, "set_password")):
-        user.set_password(raw_password)  # type: ignore[attr-defined]
-    else:
-        # Ajustá el nombre del campo si en tu modelo se llama distinto
-        if hasattr(user, "password_hash"):
-            user.password_hash = generate_password_hash(raw_password)  # type: ignore[attr-defined]
-        else:
-            # fallback (no ideal): intentamos "password"
-            user.password = generate_password_hash(raw_password)  # type: ignore[attr-defined]
-
-@main_bp.route("/admin/atletas/nuevo", methods=["GET", "POST"])
-@login_required
-def admin_nuevo_atleta():
-    if not is_admin():
-        flash("Acceso denegado", "danger")
-        return redirect(url_for("main.perfil_redirect"))
-
-    created_password: Optional[str] = None
-    created_user: Optional[User] = None
-
-    if request.method == "POST":
-        nombre = (request.form.get("nombre") or "").strip()
-        email = (request.form.get("email") or "").strip().lower()
-        grupo = (request.form.get("grupo") or "").strip()
-
-        if not nombre or not email:
-            flash("Nombre y email son obligatorios", "danger")
-            return render_template("nuevo_atleta.html", created_password=None, created_user=None)
-
-        exists = User.query.filter_by(email=email).first()
-        if exists:
-            flash("Ese email ya existe", "danger")
-            return render_template("nuevo_atleta.html", created_password=None, created_user=None)
-
-        pw = _generate_password(10)
-
-        u = User(nombre=nombre, email=email, grupo=grupo)
-        _set_user_password(u, pw)
-
-        # por si tu modelo tiene flags
-        if hasattr(u, "is_admin"):
-            setattr(u, "is_admin", False)
-
-        db.session.add(u)
-        db.session.commit()
-
-        created_password = pw
-        created_user = u
-
-        flash(f"✅ Atleta creado. Password inicial: {pw}", "success")
-
-    return render_template("nuevo_atleta.html", created_password=created_password, created_user=created_user)
-
-
-# =============================================================
 # PLANIFICADOR (SEMANA) - entrenador
 # =============================================================
 @main_bp.route("/coach/planificador")
@@ -605,7 +560,6 @@ def coach_planificador():
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     fechas = week_dates(center)
     planes = ensure_week_plans(atleta.id, fechas)
-
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
     return render_template(
@@ -752,6 +706,48 @@ def admin_delete_user(user_id: int):
 
     flash("✅ Atleta eliminado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
+
+
+# =============================================================
+# CREAR ATLETA (con contraseña visible al crearlo)
+# =============================================================
+@main_bp.route("/coach/atletas/nuevo", methods=["GET", "POST"])
+@login_required
+def coach_crear_atleta():
+    if not is_admin():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    if request.method == "POST":
+        nombre = (request.form.get("nombre") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        grupo = (request.form.get("grupo") or "").strip()
+        password = (request.form.get("password") or "").strip()
+
+        if not nombre or not email:
+            flash("Nombre y email son obligatorios.", "danger")
+            return redirect(url_for("main.coach_crear_atleta"))
+
+        exists = User.query.filter_by(email=email).first()
+        if exists:
+            flash("Ese email ya existe.", "danger")
+            return redirect(url_for("main.coach_crear_atleta"))
+
+        if not password:
+            # si no la escribís, generamos una segura
+            password = secrets.token_urlsafe(8)
+
+        u = User(nombre=nombre, email=email, grupo=grupo)
+        # asumo que tu User tiene set_password()
+        u.set_password(password)
+
+        db.session.add(u)
+        db.session.commit()
+
+        flash(f"✅ Atleta creado. Contraseña inicial: {password}", "success")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    return render_template("crear_atleta.html")
 
 
 # =============================================================

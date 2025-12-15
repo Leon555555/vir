@@ -70,6 +70,7 @@
   align-items: center;
   gap: 6px;
   transition: 0.25s ease;
+  border: none;
 }
 
 .nav-vr-tabs .nav-link:hover {
@@ -83,12 +84,8 @@
   box-shadow: 0 0 16px var(--cyan-glow);
 }
 
-.vr-tab {
-  display: none;
-}
-.vr-tab.active {
-  display: block;
-}
+.vr-tab { display: none; }
+.vr-tab.active { display: block; }
 
 /* ===========================================
    CARD BASE
@@ -126,11 +123,18 @@
   border: 1px solid rgba(255,255,255,0.08);
   transition: 0.22s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .day-card:hover {
   transform: translateY(-3px);
   box-shadow: 0px 0px 18px var(--cyan-soft);
+  outline: 1px solid rgba(34, 211, 238, 0.18);
+}
+
+.day-blocked {
+  opacity: .78;
+  outline: 1px dashed rgba(239, 68, 68, 0.25);
 }
 
 .day-fuerza   { border-left: 4px solid var(--yellow); }
@@ -144,14 +148,11 @@
   letter-spacing: 0.5px;
 }
 
-.day-card .small {
-  background: #080b0f;
-  border-radius: 10px;
-  padding: 9px;
-  border: 1px solid rgba(255,255,255,0.05);
-  font-size: 0.86rem;
-  color: #dce6ee;
-}
+/* Mini system (resumen dentro de card) */
+.mini-title{font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.55)}
+.mini-strong{font-size:.95rem; font-weight:700; color:#fff}
+.mini-muted{font-size:.82rem; color:rgba(255,255,255,.55)}
+.mini-open{margin-top:10px; font-size:.75rem; color:rgba(0,255,255,.75)}
 
 /* ===========================================
    CALENDARIO MENSUAL
@@ -169,6 +170,7 @@
   padding: 10px;
   border: 1px solid rgba(255,255,255,0.06);
   transition: 0.2s ease;
+  cursor: pointer;
 }
 
 .calendar-day:hover {
@@ -195,7 +197,6 @@
 }
 
 /* Pastillas estilo MyWellness */
-
 .event-pill {
   background: rgba(255,255,255,0.03);
   border-radius: 10px;
@@ -213,16 +214,6 @@
 .event-natacion { border-left-color: var(--blue); }
 .event-descanso { border-left-color: var(--gray); }
 
-/* Estado */
-.event-state-ok { border-left-color: var(--green); }
-.event-state-no { border-left-color: var(--red); }
-
-/* Dificultad */
-.event-diff-facil { border-left-color: #86efac; }
-.event-diff-media { border-left-color: #facc15; }
-.event-diff-dura  { border-left-color: #fb7185; }
-
-/* Sin plan */
 .plan-empty {
   font-size: 0.78rem;
   color: #6b7280;
@@ -231,7 +222,6 @@
 /* ===========================================
    BADGES
 =========================================== */
-
 .badge-fuerza   { background: var(--yellow); color: #000; }
 .badge-pista    { background: var(--red); }
 .badge-bike     { background: var(--green); }
@@ -239,160 +229,262 @@
 .badge-descanso { background: var(--gray); }
 
 /* ===========================================
-   MODALES
+   RUTINAS LIST (perfil tab)
 =========================================== */
-
-.modal-pro {
-  background: #05070a !important;
-  border-radius: 16px;
-  border: 1px solid var(--cyan-soft);
-  box-shadow: 0 0 30px var(--cyan-glow);
-  color: #ffffff;
-}
-
-/* ===========================================
-   BOTÓN GLOW (usado en creación de rutinas)
-=========================================== */
-
-.btn-glow {
-  background: var(--cyan);
-  color: #000;
-  font-weight: 600;
-  border-radius: 999px;
-  border: none;
-  box-shadow: 0 0 10px var(--cyan-soft);
-  transition: 0.2s ease;
-}
-
-.btn-glow:hover {
-  background: #5ee7ff;
-  color: #000;
-  box-shadow: 0 0 16px var(--cyan-glow);
-}
-
-/* ===========================================
-   RUTINAS ULTRA PRO — MyWellness + VR Glow
-=========================================== */
-
-.rutina-container {
-  margin-top: 40px;
-}
-
-.rutina-empty {
-  color: #9ca3af;
-  font-size: 0.9rem;
-}
-
-.sesion-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(140deg, #0b0f14, #05070a);
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 0 12px rgba(0,0,0,0.55);
-}
-
-.sesion-titulo {
-  margin: 0;
-  color: var(--cyan);
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-/* GRID de ejercicios */
-.rutina-grid {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 20px;
-}
-
-/* Tarjeta */
-.ej-card {
-  background: linear-gradient(150deg, #0b0f14, #05070a);
+.rutina-card{
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: 14px;
-  padding: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow:
-    inset 0 0 6px rgba(255,255,255,0.02),
-    0 0 18px rgba(0,0,0,0.7);
-  position: relative;
-  transition: 0.25s ease;
+  transition: .2s ease;
+}
+.rutina-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 0 14px var(--cyan-soft);
 }
 
-.ej-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 22px var(--cyan-soft);
+/* ===========================================
+   MODAL FULLSCREEN (Detalle día)
+=========================================== */
+
+.hidden{display:none !important;}
+
+.vr-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.78);
+  z-index:9999;
+  padding:18px;
 }
 
-/* Imagen */
-.ej-img {
-  width: 100%;
-  height: 160px;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 10px;
-  background: #111;
+.vr-modal-inner{
+  height:100%;
+  border-radius:16px;
+  overflow:hidden;
+  background:rgba(10,12,14,.95);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow: 0 0 30px rgba(0,0,0,.65);
 }
 
-.ej-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.vr-modal-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px 18px;
+  border-bottom:1px solid rgba(255,255,255,.08);
 }
 
-/* Info */
-.ej-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.vr-modal-title{
+  font-size:1.15rem;
+  font-weight:800;
+  color:#fff;
 }
 
-.ej-categoria {
-  color: var(--cyan);
-  font-size: 0.8rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+.vr-modal-sub{
+  font-size:.9rem;
+  color:rgba(255,255,255,.55);
 }
 
-.ej-nombre {
-  font-size: 1.02rem;
-  font-weight: 700;
-  color: #eaf6ff;
+.vr-modal-close{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  color:#fff;
+  border-radius:12px;
+  padding:8px 12px;
+  cursor:pointer;
 }
 
-.ej-detalles {
-  font-size: 0.85rem;
-  color: #d0d8e0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.vr-modal-body{
+  height:calc(100% - 58px);
+  padding:18px;
+  overflow:auto;
 }
 
-/* Número */
-.ej-num {
-  position: absolute;
-  bottom: 10px;
-  right: 12px;
-  font-size: 1rem;
-  color: #6c7a88;
-  font-weight: 700;
-  opacity: 0.65;
+.vr-modal-grid{
+  display:grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap:16px;
+}
+@media (max-width: 1000px){
+  .vr-modal-grid{grid-template-columns:1fr}
 }
 
-/* Rutinas base (listado antiguo) */
-
-.rutina-item:hover {
-  transform: translateX(4px);
-  box-shadow: 0 0 12px var(--cyan-soft);
+.vr-panel{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:14px;
 }
 
-.rutina-list-desc {
-  white-space: pre-line;
-  font-size: 0.8rem;
-  color: #9ca3af;
+.vr-panel-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.vr-panel-title{
+  font-weight:800;
+  color:#fff;
+}
+
+.vr-panel-subtitle{
+  color:rgba(255,255,255,.65);
+  margin:6px 0 10px;
+}
+
+.vr-pill{
+  font-size:.78rem;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(34,211,238,.12);
+  border:1px solid rgba(34,211,238,.22);
+  color:#bff;
+}
+
+.vr-tabs-mini{
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+
+.vr-tab-mini{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+  color:#fff;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:.82rem;
+  cursor:pointer;
+}
+
+.vr-tab-mini.active{
+  background:rgba(34,211,238,.14);
+  border-color:rgba(34,211,238,.25);
+}
+
+.vr-textbox{
+  white-space:pre-wrap;
+  color:#fff;
+  background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  padding:12px;
+  min-height:160px;
+}
+
+.vr-items{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.vr-item{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  padding:12px;
+  background:rgba(0,0,0,.20);
+}
+
+.vr-item-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+
+.vr-item-name{
+  font-weight:800;
+  color:#fff;
+}
+
+.vr-item-meta{
+  font-size:.85rem;
+  color:rgba(255,255,255,.60);
+  margin-top:6px;
+}
+
+.vr-item video{
+  width:100%;
+  border-radius:12px;
+  margin-top:10px;
+  max-height:360px;
+  background:#000;
+}
+
+.vr-item-note{
+  font-size:.88rem;
+  color:rgba(255,255,255,.65);
+  margin-top:8px;
+}
+
+.vr-chip{
+  display:inline-block;
+  font-size:.78rem;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(34,211,238,.10);
+  border:1px solid rgba(34,211,238,.18);
+  color:#bff;
+  margin:10px 0 6px;
+}
+
+.vr-area{
+  width:100%;
+  min-height:90px;
+  background:rgba(0,0,0,.22);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:12px;
+  padding:10px;
+  color:#fff;
+  outline:none;
+}
+
+.vr-area:focus{
+  border-color:rgba(34,211,238,.28);
+}
+
+.vr-switch{
+  position:relative;
+  display:inline-block;
+  width:54px;
+  height:30px;
+}
+
+.vr-switch input{
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.vr-slider{
+  position:absolute;
+  cursor:pointer;
+  inset:0;
+  background:rgba(255,255,255,.15);
+  transition:.2s;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+}
+
+.vr-slider:before{
+  position:absolute;
+  content:"";
+  height:22px;
+  width:22px;
+  left:4px;
+  top:3px;
+  background:white;
+  transition:.2s;
+  border-radius:50%;
+}
+
+.vr-switch input:checked + .vr-slider{
+  background:rgba(34,211,238,.22);
+}
+
+.vr-switch input:checked + .vr-slider:before{
+  transform:translateX(24px);
 }
 
 /* ===========================================
@@ -400,38 +492,14 @@
 =========================================== */
 
 @media (max-width: 992px) {
-  .week-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .calendar-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .perfil-logo {
-    height: 95px;
-  }
-}
-
-@media (max-width: 768px) {
-  .rutina-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .week-grid { grid-template-columns: repeat(3, 1fr); }
+  .calendar-grid { grid-template-columns: repeat(3, 1fr); }
+  .perfil-logo { height: 95px; }
 }
 
 @media (max-width: 576px) {
-  .week-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .calendar-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .rutina-grid {
-    grid-template-columns: 1fr;
-  }
-  .nav-vr-tabs .nav-link {
-    padding: 8px 12px;
-    font-size: 0.85rem;
-  }
-  .perfil-nombre {
-    font-size: 1.6rem;
-  }
+  .week-grid { grid-template-columns: repeat(2, 1fr); }
+  .calendar-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-vr-tabs .nav-link { padding: 8px 12px; font-size: 0.85rem; }
+  .perfil-nombre { font-size: 1.6rem; }
 }

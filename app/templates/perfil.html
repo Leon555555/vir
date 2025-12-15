@@ -2,21 +2,31 @@
 {% block title %}Perfil de {{ user.nombre }} — VR Training{% endblock %}
 
 {% block content %}
-<div class="perfil-container">
+<div class="perfil-container"
+     id="perfilRoot"
+     data-user-id="{{ user.id }}"
+     data-api-day-detail="{{ url_for('main.api_day_detail') }}"
+     data-api-check-item="{{ url_for('main.athlete_check_item') }}"
+     data-api-save-log="{{ url_for('main.athlete_save_log') }}"
+     data-api-block-day="{{ url_for('main.athlete_block_day') }}"
+     data-static-prefix="{{ url_for('static', filename='') }}">
 
+  <!-- HEADER -->
   <div class="text-center mb-4">
-    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" class="perfil-logo" alt="VR Training">
+    <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}"
+         class="perfil-logo" alt="VR Training">
     <h2 class="perfil-nombre mt-2">{{ user.nombre }}</h2>
     <div class="perfil-sub">
       {{ user.email }} • Grupo: {{ user.grupo or '—' }}
     </div>
   </div>
 
+  <!-- TABS -->
   <ul class="nav nav-tabs nav-vr-tabs justify-content-center mb-4" id="perfilTabs">
-    <li class="nav-item"><button class="nav-link active" data-tab="semana">📅 Semana</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="calendario">🗓️ Calendario</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="progreso">📈 Progreso</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="rutinas">🏋️ Rutinas</button></li>
+    <li class="nav-item"><button class="nav-link active" data-tab="semana" type="button">📅 Semana</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="calendario" type="button">🗓️ Calendario</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="progreso" type="button">📈 Progreso</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="rutinas" type="button">🏋️ Rutinas</button></li>
   </ul>
 
   <!-- ========================= TAB SEMANA ========================= -->
@@ -33,7 +43,9 @@
           {% set blocked = (plan.puede_entrenar or '') == 'no' %}
 
           <div class="day-card day-{{ tipo }} {% if blocked %}day-blocked{% endif %}"
-               onclick="openDayDetail('{{ f.isoformat() }}')">
+               data-fecha="{{ f.isoformat() }}"
+               role="button"
+               tabindex="0">
 
             <div class="d-flex justify-content-between mb-1">
               <strong>{{ f.strftime('%a')|upper }} {{ "%02d"|format(f.day) }}</strong>
@@ -51,7 +63,6 @@
                 <div class="mini-muted">{{ items|length }} ejercicios</div>
               </div>
             {% else %}
-              {# NO fuerza: solo resumen limpio #}
               {% set has_any = (plan.warmup or plan.main or plan.finisher) %}
               {% if has_any %}
                 <div class="mt-2">
@@ -86,7 +97,10 @@
           {% set blocked = (plan_mes and (plan_mes.puede_entrenar or '') == 'no') %}
 
           <div class="calendar-day day-{{ tipo_mes }} {% if blocked %}day-blocked{% endif %}"
-               onclick="toggleBlockDay('{{ f.isoformat() }}', {{ 'true' if blocked else 'false' }})">
+               data-fecha="{{ f.isoformat() }}"
+               data-blocked="{{ '1' if blocked else '0' }}"
+               role="button"
+               tabindex="0">
             <div class="cal-header">
               <span class="cal-day-num">{{ f.day }}</span>
               <span class="cal-weekday">{{ f.strftime('%a')|upper }}</span>
@@ -116,7 +130,9 @@
   <section id="tab-progreso" class="vr-tab">
     <div class="card bg-black border-0 shadow-lg mb-4 p-3">
       <h5 class="text-light mb-3">Progreso</h5>
-      <div class="text-muted">Acá conectamos el progreso con lo guardado en “Tu registro (lo realizado)”.</div>
+      <div class="text-muted">
+        Acá conectamos el progreso con lo guardado en “Tu registro (lo realizado)”.
+      </div>
     </div>
   </section>
 
@@ -127,10 +143,14 @@
       <div class="row g-3">
         {% for r in rutinas %}
           <div class="col-md-6 col-lg-4">
-            <div class="p-3 rounded" style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);">
-              <strong>{{ r.nombre }}</strong>
-              {% if r.tipo %}<span class="badge bg-info text-dark ms-2">{{ r.tipo }}</span>{% endif %}
-              {% if r.descripcion %}<div class="small text-muted mt-1">{{ r.descripcion }}</div>{% endif %}
+            <div class="p-3 rounded rutina-card">
+              <div class="d-flex align-items-start justify-content-between gap-2">
+                <div>
+                  <strong class="d-block">{{ r.nombre }}</strong>
+                  {% if r.descripcion %}<div class="small text-muted mt-1">{{ r.descripcion }}</div>{% endif %}
+                </div>
+                {% if r.tipo %}<span class="badge bg-info text-dark ms-2">{{ r.tipo }}</span>{% endif %}
+              </div>
             </div>
           </div>
         {% else %}
@@ -143,14 +163,14 @@
 </div>
 
 <!-- ========================= MODAL FULLSCREEN ========================= -->
-<div id="dayModal" class="vr-modal hidden" role="dialog" aria-modal="true">
+<div id="dayModal" class="vr-modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="vr-modal-inner">
     <div class="vr-modal-top">
       <div>
         <div id="modalTitle" class="vr-modal-title">Detalle</div>
         <div id="modalSubtitle" class="vr-modal-sub">—</div>
       </div>
-      <button class="vr-modal-close" onclick="closeDayModal()">✕</button>
+      <button class="vr-modal-close" type="button" aria-label="Cerrar">✕</button>
     </div>
 
     <div class="vr-modal-body">
@@ -165,9 +185,9 @@
           <!-- no fuerza -->
           <div id="propuestoBlocks" class="hidden">
             <div class="vr-tabs-mini">
-              <button class="vr-tab-mini active" data-mini="warmup" onclick="switchPropuesto('warmup')">Calentamiento</button>
-              <button class="vr-tab-mini" data-mini="main" onclick="switchPropuesto('main')">Bloque principal</button>
-              <button class="vr-tab-mini" data-mini="finisher" onclick="switchPropuesto('finisher')">Enfriamiento</button>
+              <button class="vr-tab-mini active" data-mini="warmup" type="button">Calentamiento</button>
+              <button class="vr-tab-mini" data-mini="main" type="button">Bloque principal</button>
+              <button class="vr-tab-mini" data-mini="finisher" type="button">Enfriamiento</button>
             </div>
 
             <div id="propuestoWarmup" class="vr-textbox"></div>
@@ -186,7 +206,7 @@
         <div class="vr-panel">
           <div class="vr-panel-head">
             <div class="vr-panel-title">Tu registro (lo realizado)</div>
-            <label class="vr-switch">
+            <label class="vr-switch" title="¿Has realizado el entreno?">
               <input id="didTrainToggle" type="checkbox" />
               <span class="vr-slider"></span>
             </label>
@@ -204,7 +224,7 @@
             <div class="vr-chip">Enfriamiento realizado</div>
             <textarea id="finisherDone" class="vr-area" placeholder="Escribe lo que hiciste..."></textarea>
 
-            <button class="btn btn-info w-100 mt-2" onclick="saveAthleteLog()">Guardar</button>
+            <button id="btnSaveLog" class="btn btn-info w-100 mt-2" type="button">Guardar</button>
             <div id="saveMsg" class="mini-muted mt-2"></div>
           </div>
         </div>
@@ -213,235 +233,8 @@
     </div>
   </div>
 </div>
-
-<style>
-/* ======= mini system ======= */
-.mini-title{font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.55)}
-.mini-strong{font-size:.95rem; font-weight:700; color:#fff}
-.mini-muted{font-size:.82rem; color:rgba(255,255,255,.55)}
-.mini-open{margin-top:10px; font-size:.75rem; color:rgba(0,255,255,.75)}
-.day-card{cursor:pointer; position:relative}
-.day-card:hover{outline:1px solid rgba(0,255,255,.25)}
-.day-blocked{opacity:.75; outline:1px dashed rgba(255,120,120,.35)}
-
-/* ======= modal full-screen ======= */
-.vr-modal.hidden{display:none}
-.vr-modal{position:fixed; inset:0; background:rgba(0,0,0,.78); z-index:9999; padding:20px}
-.vr-modal-inner{height:100%; border-radius:16px; overflow:hidden; background:rgba(10,12,14,.95); border:1px solid rgba(255,255,255,.08)}
-.vr-modal-top{display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.08)}
-.vr-modal-title{font-size:1.15rem; font-weight:800; color:#fff}
-.vr-modal-sub{font-size:.9rem; color:rgba(255,255,255,.55)}
-.vr-modal-close{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#fff; border-radius:12px; padding:8px 12px}
-.vr-modal-body{height:calc(100% - 58px); padding:18px; overflow:auto}
-.vr-modal-grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px}
-@media (max-width: 1000px){ .vr-modal-grid{grid-template-columns:1fr} }
-
-.vr-panel{background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:14px}
-.vr-panel-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
-.vr-panel-title{font-weight:800; color:#fff}
-.vr-panel-subtitle{color:rgba(255,255,255,.65); margin:6px 0 10px}
-
-.vr-pill{font-size:.78rem; padding:6px 10px; border-radius:999px; background:rgba(0,255,255,.12); border:1px solid rgba(0,255,255,.22); color:#bff}
-
-.vr-tabs-mini{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap}
-.vr-tab-mini{background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); color:#fff; border-radius:999px; padding:6px 10px; font-size:.82rem}
-.vr-tab-mini.active{background:rgba(0,255,255,.14); border-color:rgba(0,255,255,.25)}
-
-.vr-textbox{white-space:pre-wrap; color:#fff; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; min-height:140px}
-
-.vr-items{display:flex; flex-direction:column; gap:12px}
-.vr-item{border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:12px; background:rgba(0,0,0,.20)}
-.vr-item-head{display:flex; justify-content:space-between; align-items:center; gap:10px}
-.vr-item-name{font-weight:800; color:#fff}
-.vr-item-meta{font-size:.85rem; color:rgba(255,255,255,.60); margin-top:6px}
-.vr-item video{width:100%; border-radius:12px; margin-top:10px; max-height:360px}
-.vr-item-note{font-size:.88rem; color:rgba(255,255,255,.65); margin-top:8px}
-
-.vr-chip{display:inline-block; font-size:.78rem; padding:6px 10px; border-radius:999px; background:rgba(0,255,255,.10); border:1px solid rgba(0,255,255,.18); color:#bff; margin:10px 0 6px}
-.vr-area{width:100%; min-height:90px; background:rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:10px; color:#fff; outline:none}
-.vr-area:focus{border-color:rgba(0,255,255,.28)}
-
-.vr-switch{position:relative; display:inline-block; width:54px; height:30px}
-.vr-switch input{opacity:0; width:0; height:0}
-.vr-slider{position:absolute; cursor:pointer; inset:0; background:rgba(255,255,255,.15); transition:.2s; border-radius:999px; border:1px solid rgba(255,255,255,.12)}
-.vr-slider:before{position:absolute; content:""; height:22px; width:22px; left:4px; top:3px; background:white; transition:.2s; border-radius:50%}
-.vr-switch input:checked + .vr-slider{background:rgba(0,255,255,.22)}
-.vr-switch input:checked + .vr-slider:before{transform:translateX(24px)}
-</style>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const tabs = document.querySelectorAll(".nav-vr-tabs .nav-link");
-  const sections = {
-    semana: document.getElementById("tab-semana"),
-    calendario: document.getElementById("tab-calendario"),
-    progreso: document.getElementById("tab-progreso"),
-    rutinas: document.getElementById("tab-rutinas"),
-  };
-  function activateTab(name) {
-    tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === name));
-    Object.entries(sections).forEach(([key, sec]) => sec.classList.toggle("active", key === name));
-  }
-  tabs.forEach(btn => btn.addEventListener("click", () => activateTab(btn.dataset.tab)));
-  activateTab("semana");
-});
-
-let CURRENT_DATE = null;
-
-function openDayDetail(fechaISO) {
-  CURRENT_DATE = fechaISO;
-  document.getElementById("saveMsg").textContent = "";
-  fetch(`{{ url_for('main.api_day_detail') }}?user_id={{ user.id }}&fecha=${encodeURIComponent(fechaISO)}`)
-    .then(r => r.json())
-    .then(data => {
-      if (!data.ok) throw new Error(data.error || "Error");
-
-      const plan = data.plan;
-      const tipo = (plan.plan_type || "descanso").toLowerCase();
-
-      document.getElementById("modalTitle").textContent = (plan.plan_type || "Detalle").toUpperCase();
-      document.getElementById("modalSubtitle").textContent = `${data.fecha}`;
-      document.getElementById("modalTypeBadge").textContent = (plan.plan_type || "—").toUpperCase();
-
-      // log
-      const log = data.log || {};
-      document.getElementById("didTrainToggle").checked = !!log.did_train;
-      document.getElementById("warmupDone").value = log.warmup_done || "";
-      document.getElementById("mainDone").value = log.main_done || "";
-      document.getElementById("finisherDone").value = log.finisher_done || "";
-
-      // mostrar fuerza vs no fuerza
-      const isRutina = !!data.rutina;
-      document.getElementById("propuestoBlocks").classList.toggle("hidden", isRutina);
-      document.getElementById("propuestoFuerza").classList.toggle("hidden", !isRutina);
-
-      if (!isRutina) {
-        // no fuerza: 3 bloques
-        document.getElementById("propuestoWarmup").textContent = plan.warmup || "—";
-        document.getElementById("propuestoMain").textContent = plan.main || "—";
-        document.getElementById("propuestoFinisher").textContent = plan.finisher || "—";
-        switchPropuesto("warmup");
-      } else {
-        // fuerza: rutina + ejercicios
-        document.getElementById("rutinaName").textContent = `Rutina: ${data.rutina.nombre || ""}`;
-        const items = data.items || [];
-        const doneIds = new Set(data.checks || []);
-
-        const container = document.getElementById("itemsList");
-        container.innerHTML = "";
-
-        items.forEach(it => {
-          const div = document.createElement("div");
-          div.className = "vr-item";
-
-          const done = doneIds.has(it.id);
-
-          div.innerHTML = `
-            <div class="vr-item-head">
-              <div class="vr-item-name">${it.nombre}</div>
-              <button class="btn btn-sm ${done ? "btn-success" : "btn-outline-info"}"
-                      onclick="event.stopPropagation(); toggleItemDone(${it.id}, ${done ? 0 : 1}, this)">
-                ${done ? "✅ Realizado" : "Marcar"}
-              </button>
-            </div>
-            <div class="vr-item-meta">
-              ${it.series ? `Series: ${it.series}` : ""}
-              ${it.reps ? ` • Reps: ${it.reps}` : ""}
-              ${it.descanso ? ` • Descanso: ${it.descanso}` : ""}
-            </div>
-            ${it.video_url ? `
-              <video controls preload="metadata">
-                <source src="{{ url_for('static', filename='') }}${it.video_url}" type="video/mp4">
-              </video>
-            ` : ""}
-            ${it.nota ? `<div class="vr-item-note">${it.nota}</div>` : ""}
-          `;
-          container.appendChild(div);
-        });
-      }
-
-      document.getElementById("dayModal").classList.remove("hidden");
-    })
-    .catch(err => alert(err.message));
-}
-
-function closeDayModal() {
-  document.getElementById("dayModal").classList.add("hidden");
-}
-
-function switchPropuesto(which) {
-  document.querySelectorAll(".vr-tab-mini").forEach(b => b.classList.toggle("active", b.dataset.mini === which));
-  document.getElementById("propuestoWarmup").classList.toggle("hidden", which !== "warmup");
-  document.getElementById("propuestoMain").classList.toggle("hidden", which !== "main");
-  document.getElementById("propuestoFinisher").classList.toggle("hidden", which !== "finisher");
-}
-
-function toggleItemDone(itemId, doneValue, btn) {
-  const form = new FormData();
-  form.append("user_id", {{ user.id }});
-  form.append("fecha", CURRENT_DATE);
-  form.append("item_id", itemId);
-  form.append("done", doneValue ? "1" : "0");
-
-  fetch("{{ url_for('main.athlete_check_item') }}", { method:"POST", body: form })
-    .then(r => r.json())
-    .then(data => {
-      if (!data.ok) throw new Error(data.error || "Error");
-
-      if (doneValue) {
-        btn.classList.remove("btn-outline-info");
-        btn.classList.add("btn-success");
-        btn.textContent = "✅ Realizado";
-        btn.setAttribute("onclick", `event.stopPropagation(); toggleItemDone(${itemId}, 0, this)`);
-      } else {
-        btn.classList.remove("btn-success");
-        btn.classList.add("btn-outline-info");
-        btn.textContent = "Marcar";
-        btn.setAttribute("onclick", `event.stopPropagation(); toggleItemDone(${itemId}, 1, this)`);
-      }
-    })
-    .catch(err => alert(err.message));
-}
-
-function saveAthleteLog() {
-  const payload = {
-    user_id: {{ user.id }},
-    fecha: CURRENT_DATE,
-    did_train: document.getElementById("didTrainToggle").checked,
-    warmup_done: document.getElementById("warmupDone").value,
-    main_done: document.getElementById("mainDone").value,
-    finisher_done: document.getElementById("finisherDone").value,
-  };
-
-  fetch("{{ url_for('main.athlete_save_log') }}", {
-    method:"POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify(payload)
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.ok) throw new Error(data.error || "Error");
-    document.getElementById("saveMsg").textContent = "Guardado ✔";
-  })
-  .catch(err => alert(err.message));
-}
-
-function toggleBlockDay(fechaISO, currentlyBlocked) {
-  const next = !currentlyBlocked;
-  fetch("{{ url_for('main.athlete_block_day') }}", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ user_id: {{ user.id }}, fecha: fechaISO, blocked: next })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.ok) throw new Error(data.error || "Error");
-    // recargar rápido para reflejar
-    window.location.reload();
-  })
-  .catch(err => alert(err.message));
-}
-</script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
 {% endblock %}

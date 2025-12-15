@@ -5,13 +5,14 @@ from datetime import datetime, timedelta, date
 from calendar import monthrange
 from typing import Any, Dict, List, Tuple
 
+import os
+from werkzeug.utils import secure_filename
+
 from flask import (
     Blueprint, render_template, redirect, url_for,
     flash, request, jsonify, current_app
 )
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.utils import secure_filename
-import os
 
 from app.extensions import db
 from app.models import (
@@ -20,6 +21,7 @@ from app.models import (
 )
 
 main_bp = Blueprint("main", __name__)
+
 
 # =============================================================
 # FECHAS / UTILIDADES
@@ -47,9 +49,19 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
 
 def is_admin() -> bool:
     return bool(
-        current_user.is_authenticated
-        and (getattr(current_user, "is_admin", False) or current_user.email == "admin@vir.app")
+        current_user.is_authenticated and (
+            getattr(current_user, "is_admin", False) or current_user.email == "admin@vir.app"
+        )
     )
+
+@main_bp.app_context_processor
+def inject_is_admin():
+    # Para poder usar en Jinja: is_admin() y admin_ok
+    return {
+        "is_admin": is_admin,
+        "admin_ok": is_admin(),
+    }
+
 
 # =============================================================
 # SERIALIZADORES
@@ -61,8 +73,8 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
     return {
         "id": r.id,
         "nombre": r.nombre,
-        "tipo": r.tipo,
-        "descripcion": r.descripcion,
+        "tipo": getattr(r, "tipo", "") or "",
+        "descripcion": getattr(r, "descripcion", "") or "",
         "created_by": getattr(r, "created_by", None),
     }
 
@@ -81,6 +93,7 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
         "comentario_atleta": (getattr(p, "comentario_atleta", None) or ""),
     }
 
+
 # =============================================================
 # HOME / LOGIN
 # =============================================================
@@ -88,24 +101,26 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
 def index():
     if current_user.is_authenticated:
         if is_admin():
-            return redirect(url_for("main.dashboard_entrenador"))  # ✅ coach
+            return redirect(url_for("main.dashboard_entrenador"))
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form["email"].strip().lower()
-        password = request.form["password"]
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
 
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             login_user(user)
+            flash(f"Bienvenido {user.nombre}", "success")
             if is_admin():
                 return redirect(url_for("main.dashboard_entrenador"))
             return redirect(url_for("main.perfil_usuario", user_id=user.id))
 
         flash("Datos incorrectos", "danger")
+
     return render_template("login.html")
 
 @main_bp.route("/logout")
@@ -121,6 +136,7 @@ def perfil_redirect():
     if is_admin():
         return redirect(url_for("main.dashboard_entrenador"))
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
+
 
 # =============================================================
 # PERFIL (ATLETA)
@@ -163,6 +179,7 @@ def perfil_usuario(user_id: int):
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
+    # fuerza: rutina por día + items
     rutina_by_day: Dict[date, Rutina | None] = {}
     items_by_day: Dict[date, List[RutinaItem]] = {}
     rutina_items_cache: Dict[int, List[RutinaItem]] = {}
@@ -191,6 +208,7 @@ def perfil_usuario(user_id: int):
         rutina_by_day[f] = rutina
         items_by_day[f] = items
 
+    # checks
     done_set: set[Tuple[date, int]] = set()
     checks = AthleteCheck.query.filter(
         AthleteCheck.user_id == user.id,
@@ -200,6 +218,7 @@ def perfil_usuario(user_id: int):
         if c.done:
             done_set.add((c.fecha, c.rutina_item_id))
 
+    # logs
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha.in_(fechas)
@@ -222,6 +241,7 @@ def perfil_usuario(user_id: int):
         log_by_day=log_by_day,
         center=center,
     )
+
 
 # =============================================================
 # API: detalle del día (modal full-screen atleta)
@@ -295,6 +315,7 @@ def api_day_detail():
 
     return jsonify(payload)
 
+
 # =============================================================
 # ✅ CHECK por ejercicio (fuerza)
 # =============================================================
@@ -337,6 +358,7 @@ def athlete_check_item():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
 # =============================================================
 # ✅ Guardar "lo realizado"
 # =============================================================
@@ -369,8 +391,9 @@ def athlete_save_log():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
 # =============================================================
-# ✅ Calendario: bloquear día ("no puedo entrenar")
+# ✅ Bloquear día
 # =============================================================
 @main_bp.route("/athlete/block_day", methods=["POST"])
 @login_required
@@ -398,8 +421,9 @@ def athlete_block_day():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
 # =============================================================
-# COACH: Dashboard + Planificador en la MISMA plantilla
+# ✅ DASHBOARD ENTRENADOR (PANEL)  <<--- COMO TU 2ª IMAGEN
 # =============================================================
 @main_bp.route("/coach/dashboard")
 @login_required
@@ -408,63 +432,73 @@ def dashboard_entrenador():
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
-    mode = (request.args.get("mode") or "planificador").lower()
-    if mode not in ("panel", "planificador"):
-        mode = "planificador"
-
-    atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.asc()).all()
+    # Panel: rutinas + banco ejercicios + atletas
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
-    ejercicios = Ejercicio.query.order_by(Ejercicio.nombre.asc()).all()
-
-    # En modo "panel" no hace falta semana, pero la dejamos opcional
-    atleta = None
-    fechas: List[date] = []
-    planes: Dict[date, DiaPlan] = {}
-    semana_str = ""
-    center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
-
-    if mode == "planificador":
-        user_id = request.args.get("user_id", type=int)
-        if not user_id and atletas:
-            user_id = atletas[0].id
-
-        atleta = User.query.get(user_id) if user_id else None
-        if not atleta:
-            flash("No hay atletas", "warning")
-        else:
-            fechas = week_dates(center)
-
-            planes_db = DiaPlan.query.filter(
-                DiaPlan.user_id == atleta.id,
-                DiaPlan.fecha.in_(fechas)
-            ).all()
-            planes = {p.fecha: p for p in planes_db}
-
-            for f in fechas:
-                if f not in planes:
-                    nuevo = DiaPlan(user_id=atleta.id, fecha=f, plan_type="Descanso")
-                    planes[f] = nuevo
-                    db.session.add(nuevo)
-            db.session.commit()
-
-            semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+    ejercicios = Ejercicio.query.order_by(Ejercicio.id.desc()).all()
+    atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.desc()).all()
 
     return render_template(
-        "dashboard_entrenador.html",
-        mode=mode,                 # ✅ clave
+        "panel_entrenador.html",   # ✅ ESTE ES EL PANEL (la 2ª imagen)
+        rutinas=rutinas,
+        ejercicios=ejercicios,
+        atletas=atletas,
+    )
+
+
+# =============================================================
+# ✅ PLANIFICADOR (SEMANA)  <<--- LA GRILLA SEMANAL
+# =============================================================
+@main_bp.route("/coach/planificador")
+@login_required
+def coach_planificador():
+    if not is_admin():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.desc()).all()
+    rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
+
+    user_id = request.args.get("user_id", type=int)
+    if not user_id and atletas:
+        user_id = atletas[0].id
+
+    atleta = User.query.get(user_id) if user_id else None
+    if not atleta:
+        flash("No hay atletas", "warning")
+        return render_template("dashboard_entrenador.html", atletas=atletas, rutinas=rutinas, atleta=None)
+
+    center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
+    fechas = week_dates(center)
+
+    planes_db = DiaPlan.query.filter(
+        DiaPlan.user_id == atleta.id,
+        DiaPlan.fecha.in_(fechas)
+    ).all()
+    planes = {p.fecha: p for p in planes_db}
+
+    for f in fechas:
+        if f not in planes:
+            nuevo = DiaPlan(user_id=atleta.id, fecha=f, plan_type="Descanso")
+            planes[f] = nuevo
+            db.session.add(nuevo)
+    db.session.commit()
+
+    semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+
+    return render_template(
+        "dashboard_entrenador.html",  # ✅ TU TEMPLATE DE PLANIFICADOR (el que pegaste)
         atletas=atletas,
         rutinas=rutinas,
-        ejercicios=ejercicios,     # ✅ para tu “panel” si lo mostrás
         atleta=atleta,
         fechas=fechas,
         planes=planes,
         semana_str=semana_str,
         center=center,
-        hoy=date.today(),
     )
 
+
 # =============================================================
-# COACH: guardar día (planificador)
+# ✅ GUARDAR DÍA (PLANIFICADOR)
 # =============================================================
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
@@ -484,13 +518,13 @@ def save_day():
     plan_type = (request.form.get("plan_type") or "Descanso").strip()
     plan.plan_type = plan_type
 
-    # ✅ Fuerza: main = RUTINA:id
+    # Fuerza: main = "RUTINA:id"
     if plan_type.lower() == "fuerza":
+        rutina_select = (request.form.get("rutina_select") or "").strip()
+        plan.main = rutina_select
         plan.warmup = (request.form.get("warmup") or "").strip()
-        plan.main = (request.form.get("rutina_select") or "").strip()  # "RUTINA:5"
         plan.finisher = (request.form.get("finisher") or "").strip()
     else:
-        # ✅ RUN/BIKE/NATACION: 3 bloques
         plan.warmup = (request.form.get("warmup") or "").strip()
         plan.main = (request.form.get("main") or "").strip()
         plan.finisher = (request.form.get("finisher") or "").strip()
@@ -502,31 +536,60 @@ def save_day():
 
     db.session.commit()
     flash("✅ Día guardado", "success")
-    return redirect(url_for("main.dashboard_entrenador", mode="planificador", user_id=user_id, center=fecha.isoformat()))
+
+    # Volver al planificador, no al panel
+    return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
+
 
 # =============================================================
-# ADMIN: ejercicios (banco)
+# ✅ PANEL: CREAR RUTINA
+# =============================================================
+@main_bp.route("/crear_rutina", methods=["POST"])
+@login_required
+def crear_rutina():
+    if not is_admin():
+        flash("Solo el admin puede crear rutinas", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    nombre = (request.form.get("nombre") or "").strip()
+    tipo = (request.form.get("tipo") or "").strip()
+    descripcion = (request.form.get("descripcion") or "").strip()
+
+    if not nombre:
+        flash("El nombre es obligatorio", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    nueva = Rutina(nombre=nombre, tipo=tipo, descripcion=descripcion, created_by=current_user.id)
+    db.session.add(nueva)
+    db.session.commit()
+
+    flash("✅ Rutina creada", "success")
+    return redirect(url_for("main.dashboard_entrenador"))
+
+
+# =============================================================
+# ✅ PANEL: SUBIR EJERCICIO (BANCO)
 # =============================================================
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
 def admin_nuevo_ejercicio():
     if not is_admin():
         flash("Solo el admin puede crear ejercicios", "danger")
-        return redirect(url_for("main.dashboard_entrenador", mode="panel"))
+        return redirect(url_for("main.dashboard_entrenador"))
 
-    nombre = request.form.get("nombre", "").strip()
-    categoria = request.form.get("categoria", "").strip()
-    descripcion = request.form.get("descripcion", "").strip()
+    nombre = (request.form.get("nombre") or "").strip()
+    categoria = (request.form.get("categoria") or "").strip()
+    descripcion = (request.form.get("descripcion") or "").strip()
     file = request.files.get("video")
 
     if not nombre or not file:
         flash("Falta el nombre o el vídeo del ejercicio", "danger")
-        return redirect(url_for("main.dashboard_entrenador", mode="panel"))
+        return redirect(url_for("main.dashboard_entrenador"))
 
     filename = secure_filename(file.filename)
     if not filename:
         flash("Nombre de archivo no válido", "danger")
-        return redirect(url_for("main.dashboard_entrenador", mode="panel"))
+        return redirect(url_for("main.dashboard_entrenador"))
 
     upload_folder = os.path.join(current_app.static_folder, "videos")
     os.makedirs(upload_folder, exist_ok=True)
@@ -542,7 +605,34 @@ def admin_nuevo_ejercicio():
     db.session.commit()
 
     flash("✅ Ejercicio subido", "success")
-    return redirect(url_for("main.dashboard_entrenador", mode="panel"))
+    return redirect(url_for("main.dashboard_entrenador"))
+
+
+# =============================================================
+# ✅ PANEL: ELIMINAR ATLETA
+# =============================================================
+@main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
+@login_required
+def admin_delete_user(user_id: int):
+    if not is_admin():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    user = User.query.get_or_404(user_id)
+    if user.email == "admin@vir.app":
+        flash("No se puede eliminar admin", "warning")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    DiaPlan.query.filter_by(user_id=user.id).delete()
+    AthleteLog.query.filter_by(user_id=user.id).delete()
+    AthleteCheck.query.filter_by(user_id=user.id).delete()
+
+    db.session.delete(user)
+    db.session.commit()
+
+    flash("✅ Atleta eliminado", "success")
+    return redirect(url_for("main.dashboard_entrenador"))
+
 
 # =============================================================
 # CRUD rutinas (builder)
@@ -604,6 +694,7 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
     flash("🗑️ Item eliminado", "info")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
+
 
 # =============================================================
 # HEALTHCHECK

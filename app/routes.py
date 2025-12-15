@@ -6,8 +6,6 @@ from calendar import monthrange
 from typing import Any, Dict, List, Tuple, Optional
 
 import os
-import secrets
-import string
 from werkzeug.utils import secure_filename
 
 from flask import (
@@ -23,7 +21,6 @@ from app.models import (
 )
 
 main_bp = Blueprint("main", __name__)
-
 
 # =============================================================
 # FECHAS / UTILIDADES
@@ -60,7 +57,6 @@ def is_admin() -> bool:
 def inject_is_admin():
     return {"is_admin": is_admin, "admin_ok": is_admin()}
 
-
 # =============================================================
 # SERIALIZADORES
 # =============================================================
@@ -91,7 +87,6 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
         "comentario_atleta": (getattr(p, "comentario_atleta", None) or ""),
     }
 
-
 # =============================================================
 # HELPERS PERFIL (PROGRESO / RACHAS)
 # =============================================================
@@ -114,7 +109,6 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     return planes
 
 def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
-    """Día fuerza 'done' si todos los items de la rutina del día están hechos."""
     done_days: set[date] = set()
     plans = DiaPlan.query.filter(DiaPlan.user_id == user_id, DiaPlan.fecha.in_(fechas)).all()
     plans_by_date = {p.fecha: p for p in plans}
@@ -156,7 +150,6 @@ def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
     return {l.fecha for l in logs}
 
 def compute_streak(user_id: int) -> int:
-    """Racha: días consecutivos hacia atrás donde el usuario entrenó (log.did_train) o completó fuerza."""
     today = date.today()
     streak = 0
 
@@ -190,7 +183,6 @@ def compute_streak(user_id: int) -> int:
     return streak
 
 def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaPlan]) -> Tuple[int, int]:
-    """Goal = cantidad de días no descanso, done = días completados (log o fuerza completa)"""
     goal = 0
     for f in fechas:
         p = planes.get(f)
@@ -201,7 +193,6 @@ def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaP
 
     done_days = get_strength_done_days(user_id, fechas).union(get_log_done_days(user_id, fechas))
     return goal, len(done_days)
-
 
 # =============================================================
 # HOME / LOGIN
@@ -246,7 +237,6 @@ def perfil_redirect():
         return redirect(url_for("main.dashboard_entrenador"))
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-
 # =============================================================
 # PERFIL (ATLETA) - HOY / SEMANA / MES / PROGRESO
 # =============================================================
@@ -259,7 +249,7 @@ def perfil_usuario(user_id: int):
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-    view = (request.args.get("view") or "today").strip().lower()
+    view = (request.args.get("view") or "today").strip().lower()  # today/week/month/progress
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     hoy = date.today()
 
@@ -359,9 +349,52 @@ def perfil_usuario(user_id: int):
         week_done=week_done,
     )
 
+# =============================================================
+# ✅ ADMIN: CREAR ATLETA (CON PASSWORD)
+# =============================================================
+@main_bp.route("/admin/crear_atleta", methods=["GET", "POST"])
+@login_required
+def admin_crear_atleta():
+    if not is_admin():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    if request.method == "POST":
+        nombre = (request.form.get("nombre") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        grupo = (request.form.get("grupo") or "").strip()
+        password = (request.form.get("password") or "").strip()
+
+        if not nombre or not email:
+            flash("Nombre y email son obligatorios", "danger")
+            return redirect(url_for("main.admin_crear_atleta"))
+
+        if User.query.filter_by(email=email).first():
+            flash("Ya existe un usuario con ese email", "danger")
+            return redirect(url_for("main.admin_crear_atleta"))
+
+        # Si no escribe contraseña -> generamos una temporal (simple pero válida)
+        if not password:
+            password = os.urandom(4).hex()  # 8 chars
+
+        user = User(
+            nombre=nombre,
+            email=email,
+            grupo=grupo,
+            is_admin=False
+        )
+        user.set_password(password)
+
+        db.session.add(user)
+        db.session.commit()
+
+        flash(f"✅ Atleta creado. Password inicial: {password}", "success")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    return render_template("crear_atleta.html")
 
 # =============================================================
-# API: detalle del día (modal atleta)
+# API: detalle del día (modal full-screen atleta)
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -432,7 +465,6 @@ def api_day_detail():
 
     return jsonify(payload)
 
-
 # =============================================================
 # CHECK por ejercicio (fuerza)
 # =============================================================
@@ -475,7 +507,6 @@ def athlete_check_item():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 # =============================================================
 # Guardar "lo realizado" + marcar entreno (did_train)
 # =============================================================
@@ -508,7 +539,6 @@ def athlete_save_log():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 # =============================================================
 # DASHBOARD ENTRENADOR (PANEL)
 # =============================================================
@@ -529,49 +559,6 @@ def dashboard_entrenador():
         ejercicios=ejercicios,
         atletas=atletas,
     )
-
-
-# =============================================================
-# ✅ ADMIN: CREAR ATLETA (NUEVO PERFIL)
-# =============================================================
-def _gen_password(length: int = 10) -> str:
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(length))
-
-@main_bp.route("/admin/atletas/nuevo", methods=["GET", "POST"])
-@login_required
-def admin_crear_atleta():
-    if not is_admin():
-        flash("Acceso denegado", "danger")
-        return redirect(url_for("main.perfil_redirect"))
-
-    if request.method == "POST":
-        nombre = (request.form.get("nombre") or "").strip()
-        email = (request.form.get("email") or "").strip().lower()
-        grupo = (request.form.get("grupo") or "").strip()
-
-        if not nombre or not email:
-            flash("Falta nombre o email", "danger")
-            return redirect(url_for("main.admin_crear_atleta"))
-
-        if User.query.filter_by(email=email).first():
-            flash("Ese email ya existe", "warning")
-            return redirect(url_for("main.admin_crear_atleta"))
-
-        raw_pass = _gen_password(10)
-
-        u = User(nombre=nombre, email=email, grupo=grupo)
-        # Tu modelo YA tiene set_password porque usás check_password en login
-        u.set_password(raw_pass)
-
-        db.session.add(u)
-        db.session.commit()
-
-        flash(f"✅ Atleta creado. Email: {email} | Password: {raw_pass}", "success")
-        return redirect(url_for("main.dashboard_entrenador"))
-
-    return render_template("crear_atleta.html")
-
 
 # =============================================================
 # PLANIFICADOR (SEMANA) - entrenador
@@ -611,7 +598,6 @@ def coach_planificador():
         semana_str=semana_str,
         center=center,
     )
-
 
 # =============================================================
 # GUARDAR DÍA (PLANIFICADOR)
@@ -653,7 +639,6 @@ def save_day():
     flash("✅ Día guardado", "success")
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
-
 # =============================================================
 # PANEL: CREAR RUTINA
 # =============================================================
@@ -678,7 +663,6 @@ def crear_rutina():
 
     flash("✅ Rutina creada", "success")
     return redirect(url_for("main.dashboard_entrenador"))
-
 
 # =============================================================
 # PANEL: SUBIR EJERCICIO (BANCO)
@@ -720,7 +704,6 @@ def admin_nuevo_ejercicio():
     flash("✅ Ejercicio subido", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
-
 # =============================================================
 # PANEL: ELIMINAR ATLETA
 # =============================================================
@@ -746,7 +729,6 @@ def admin_delete_user(user_id: int):
     flash("✅ Atleta eliminado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
-
 # =============================================================
 # CRUD rutinas (builder)
 # =============================================================
@@ -762,7 +744,6 @@ def rutina_builder(rutina_id: int):
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
 
     return render_template("rutina_builder.html", rutina=rutina, items=items, ejercicios=ejercicios)
-
 
 @main_bp.route("/rutinas/<int:rutina_id>/add_item", methods=["POST"])
 @login_required
@@ -795,7 +776,6 @@ def rutina_add_item(rutina_id: int):
     flash("✅ Ejercicio añadido", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
-
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
 def rutina_update_item(rutina_id: int, item_id: int):
@@ -817,7 +797,6 @@ def rutina_update_item(rutina_id: int, item_id: int):
     flash("✅ Cambios guardados", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
-
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
 @login_required
 def rutina_delete_item(rutina_id: int, item_id: int):
@@ -831,7 +810,6 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
     flash("🗑️ Item eliminado", "info")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
-
 
 # =============================================================
 # HEALTHCHECK

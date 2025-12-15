@@ -1,466 +1,326 @@
 {% extends "layout.html" %}
-{% block title %}Perfil — {{ user.nombre }}{% endblock %}
+{% block title %}Perfil — VR Training{% endblock %}
 
 {% block content %}
-<div class="container mt-3">
+<div class="container">
 
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <div>
       <h2 class="mb-0 text-light">👤 {{ user.nombre }}</h2>
-      <div class="text-muted">
-        {{ user.email }}
-        {% if user.grupo %} · <span class="badge bg-secondary">{{ user.grupo }}</span>{% endif %}
-      </div>
-      <div class="text-muted mt-1">Semana: <strong>{{ semana_str }}</strong></div>
+      <div class="text-muted">{{ user.email }}</div>
     </div>
 
-    <div class="d-flex gap-2 align-items-center">
-      <form method="GET" class="d-flex gap-2">
-        <input class="form-control" type="date" name="center" value="{{ center.isoformat() if center else '' }}">
-        <button class="btn btn-outline-info" type="submit">Ver semana</button>
-      </form>
-
-      {% if admin_ok %}
-        <a class="btn btn-outline-light"
-           href="{{ url_for('main.coach_planificador', user_id=user.id, center=center.isoformat() if center else '') }}">
-          🧠 Planificar
-        </a>
-      {% endif %}
+    <div class="d-flex gap-2 flex-wrap">
+      <div class="mini-stat">
+        <div class="mini-title">Racha</div>
+        <div class="mini-value">🔥 {{ streak }}</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-title">Semana</div>
+        <div class="mini-value">✅ {{ week_done }} / {{ week_goal }}</div>
+      </div>
     </div>
   </div>
 
-  <div class="row g-3">
-    {% for f in fechas %}
-      {% set plan = planes[f] %}
-      {% set fecha_id = f.isoformat() %}
-      {% set st = day_status.get(f, {}) %}
-      {% set completed = st.get("completed", False) %}
-      {% set done = st.get("done", 0) %}
-      {% set total = st.get("total", 0) %}
-
-      <div class="col-md-6 col-lg-4">
-        <div class="card p-3 day-card">
-
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
-              <div class="day-title">{{ f.strftime('%A %d/%m')|upper }}</div>
-              <div class="small text-muted">
-                <span class="badge bg-secondary">{{ plan.plan_type }}</span>
-
-                {% if completed %}
-                  <span class="badge bg-success ms-1">Completado</span>
-                {% endif %}
-
-                {% if plan.puede_entrenar == "no" %}
-                  <span class="badge bg-danger ms-1">Bloqueado</span>
-                {% endif %}
-              </div>
-            </div>
-
-            <button class="btn btn-sm btn-outline-info"
-                    type="button"
-                    onclick="openDayDetail({{ user.id }}, '{{ fecha_id }}')">
-              Ver detalle
-            </button>
-          </div>
-
-          <div class="preview-box">
-            {% if plan.plan_type|lower == "fuerza" %}
-              {% set r = rutina_by_day[f] %}
-              {% if r %}
-                <div class="fw-bold text-light">🏋️ Rutina: {{ r.nombre }}</div>
-                <div class="small text-muted">Marcá cada ejercicio dentro del detalle.</div>
-              {% else %}
-                <div class="text-muted">No hay rutina asignada.</div>
-              {% endif %}
-
-            {% elif plan.plan_type|lower == "descanso" %}
-              <div class="text-muted">🧘 Descanso / recuperación.</div>
-
-            {% else %}
-              <div class="small text-muted mb-2">Objetivo del día</div>
-              <div class="text-light preview-text">{{ plan.main or "—" }}</div>
-              {% if plan.warmup %}
-                <div class="small mt-2"><span class="badge bg-dark border border-secondary">Warmup</span>
-                  <span class="text-muted ms-1">{{ plan.warmup }}</span>
-                </div>
-              {% endif %}
-              {% if plan.finisher %}
-                <div class="small mt-2"><span class="badge bg-dark border border-secondary">Finisher</span>
-                  <span class="text-muted ms-1">{{ plan.finisher }}</span>
-                </div>
-              {% endif %}
-            {% endif %}
-          </div>
-
-          <!-- ✅ PROGRESO (gamificación light A) -->
-          {% if plan.plan_type|lower == "fuerza" and total > 0 %}
-            <div class="mt-3">
-              <div class="d-flex justify-content-between small text-muted">
-                <span>Progreso</span>
-                <span>{{ done }}/{{ total }}</span>
-              </div>
-              <div class="progress progress-dark mt-1">
-                <div class="progress-bar" role="progressbar"
-                     style="width: {{ (done * 100 // total) if total else 0 }}%;"></div>
-              </div>
-            </div>
-          {% elif plan.plan_type|lower != "descanso" %}
-            <div class="mt-3 small text-muted">
-              Estado: <span class="badge {{ 'bg-success' if completed else 'bg-secondary' }}">
-                {{ 'Completado' if completed else 'Pendiente' }}
-              </span>
-            </div>
-          {% endif %}
-
-          <div class="mt-3 d-flex justify-content-between align-items-center">
-            <div class="small text-muted">Score propuesto</div>
-            <div class="badge bg-dark border border-secondary">{{ plan.propuesto_score or 0 }}</div>
-          </div>
-
+  <!-- =========================
+       HOY (primero)
+  ========================== -->
+  <div class="card glass p-3 mb-4">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <div class="text-muted" style="letter-spacing:.12em;">HOY</div>
+        <div class="d-flex align-items-center gap-2">
+          <h4 class="mb-0 text-light">{{ hoy.strftime('%A %d/%m')|upper }}</h4>
+          <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span>
         </div>
       </div>
-    {% endfor %}
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-info"
+                onclick="openDayDetail('{{ user.id }}','{{ hoy.isoformat() }}')">
+          ▶ Empezar
+        </button>
+        <a class="btn btn-outline-light"
+           href="{{ url_for('main.perfil_usuario', user_id=user.id, center=hoy.isoformat()) }}">
+          Ver semana
+        </a>
+      </div>
+    </div>
+
+    {% if show_today %}
+      <div class="mt-3 text-muted">
+        {% if (plan_hoy.plan_type|lower) == 'fuerza' %}
+          Hoy toca fuerza. Entrá y marcá tus ejercicios ✅
+        {% elif (plan_hoy.plan_type|lower) == 'descanso' %}
+          Hoy descanso (si entrenás igual, podés marcarlo).
+        {% else %}
+          Hoy toca {{ plan_hoy.plan_type }}. Entrá y cargá lo realizado.
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="mt-3 text-warning">
+        Hoy no hay nada cargado. Abajo tenés la semana para que veas tu plan.
+      </div>
+    {% endif %}
   </div>
+
+  <!-- =========================
+       SI HOY NO TIENE NADA => SEMANA
+  ========================== -->
+  {% if not show_today %}
+    <h5 class="text-light mb-2">📅 Tu semana ({{ semana_str }})</h5>
+    <div class="row g-3">
+      {% for f in fechas %}
+        {% set p = planes[f] %}
+        <div class="col-md-6 col-lg-4">
+          <div class="card glass p-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <strong class="text-light">{{ f.strftime('%a %d/%m')|upper }}</strong>
+              <span class="badge bg-secondary">{{ p.plan_type }}</span>
+            </div>
+
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-outline-info w-100"
+                      onclick="openDayDetail('{{ user.id }}','{{ f.isoformat() }}')">
+                Ver detalle
+              </button>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
 </div>
 
-<!-- Modal full screen (usa /api/day_detail) -->
+<!-- =========================
+     MODAL DETALLE DÍA
+========================== -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen">
-    <div class="modal-content modal-dark">
-      <div class="modal-header">
+    <div class="modal-content" style="background:#070a0c;color:#fff;">
+      <div class="modal-header" style="border-color:rgba(255,255,255,.08)">
         <div>
-          <h5 class="modal-title mb-0" id="dayModalTitle">Detalle del día</h5>
-          <div class="small text-muted" id="dayModalSubtitle">—</div>
+          <h5 class="modal-title mb-0" id="dayTitle">Detalle</h5>
+          <div class="text-muted" id="daySubtitle"></div>
         </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body">
-        <div id="dayModalBody">
-          <div class="text-center py-5" id="dayLoading">
-            <div class="spinner-border text-info" role="status"></div>
-            <div class="text-muted mt-2">Cargando...</div>
-          </div>
-
-          <div class="row g-3 d-none" id="dayContent">
-            <div class="col-lg-6">
-              <div class="card p-3 panel-box">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h6 class="mb-0 text-info">📌 Plan del día</h6>
-                  <span class="badge bg-secondary" id="planTypeBadge">—</span>
-                </div>
-
-                <div class="small text-muted">Warmup</div>
-                <pre class="pre-box" id="planWarmup">—</pre>
-
-                <div class="small text-muted mt-2">Bloque principal</div>
-                <pre class="pre-box" id="planMain">—</pre>
-
-                <div class="small text-muted mt-2">Finisher</div>
-                <pre class="pre-box" id="planFinisher">—</pre>
-
-                <hr style="border-color:rgba(255,255,255,.08)">
-
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="text-muted small">¿Entrenaste hoy?</div>
-                  <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="didTrainToggle">
-                    <label class="form-check-label small" for="didTrainToggle">Sí</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-lg-6">
-              <div class="card p-3 panel-box">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h6 class="mb-0 text-info">✅ Ejecución / Check</h6>
-                  <span class="badge bg-dark border border-secondary" id="rutinaName">—</span>
-                </div>
-
-                <!-- ✅ barra progreso dentro del modal (Fuerza) -->
-                <div id="modalProgressWrap" class="d-none">
-                  <div class="d-flex justify-content-between small text-muted">
-                    <span>Progreso</span>
-                    <span id="modalProgressText">0/0</span>
-                  </div>
-                  <div class="progress progress-dark mt-1 mb-2">
-                    <div class="progress-bar" id="modalProgressBar" role="progressbar" style="width:0%"></div>
-                  </div>
-                </div>
-
-                <div id="strengthBox" class="d-none">
-                  <div id="itemsList" class="items-list"></div>
-                </div>
-
-                <div id="enduranceBox" class="d-none">
-                  <div class="small text-muted mb-1">Warmup realizado</div>
-                  <textarea class="form-control area-dark" id="warmupDone" rows="3"></textarea>
-
-                  <div class="small text-muted mt-2 mb-1">Bloque principal realizado</div>
-                  <textarea class="form-control area-dark" id="mainDone" rows="4"></textarea>
-
-                  <div class="small text-muted mt-2 mb-1">Finisher / Enfriamiento</div>
-                  <textarea class="form-control area-dark" id="finisherDone" rows="3"></textarea>
-                </div>
-
-                <div class="d-grid mt-3">
-                  <button class="btn btn-info" onclick="saveDayLog()">💾 Guardar lo realizado</button>
-                </div>
-                <div class="small text-muted mt-2" id="saveHint">Guardá para llevar registro y mejorar progresión.</div>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        <div id="dayBody" class="container"></div>
       </div>
-
     </div>
   </div>
 </div>
 
 <style>
-.day-card{
+.glass{
   background: rgba(255,255,255,.03);
   border: 1px solid rgba(255,255,255,.08);
-  border-radius: 18px;
-  box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  border-radius: 16px;
 }
-.day-title{font-weight:800; letter-spacing:.06em;}
-.preview-box{
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.06);
-}
-.preview-text{white-space:pre-wrap; opacity:.95}
-.modal-dark{
-  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
-  color:#fff;
-}
-.panel-box{
+.mini-stat{
   background: rgba(255,255,255,.03);
   border: 1px solid rgba(255,255,255,.08);
-  border-radius: 18px;
-}
-.pre-box{
-  white-space: pre-wrap;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.08);
   border-radius: 14px;
-  padding: 10px;
-  margin: 0;
-  color: #fff;
-  min-height: 52px;
+  padding: 10px 12px;
+  min-width: 110px;
 }
-.area-dark{
-  background: rgba(0,0,0,.22);
+.mini-title{font-size:.78rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase}
+.mini-value{font-size:1.1rem;font-weight:700}
+.item-row{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:12px;
+  background: rgba(255,255,255,.02);
+}
+textarea.form-control{
+  background: rgba(0,0,0,.20);
   border: 1px solid rgba(255,255,255,.10);
   color:#fff;
-  border-radius: 14px;
 }
-.items-list{display:flex;flex-direction:column;gap: 10px;}
-.item-row{
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 14px;
-  padding: 12px;
-}
-.item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
-.item-name{font-weight:800}
-.item-meta{font-size:.9rem; color:rgba(255,255,255,.75)}
-.video-wrap{margin-top:10px;border-radius: 14px;overflow:hidden;border: 1px solid rgba(255,255,255,.08);}
-video{width:100%; max-height:360px; background:#000}
-.progress-dark{height:10px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
-.progress-bar{background:#22d3ee;}
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let CURRENT_DAY = { user_id: null, fecha: null, plan_type: null, items_total: 0, done_count: 0 };
+let dayModal;
 
-function escapeHtml(s){
-  return (s ?? "").toString()
-    .replaceAll("&","&amp;").replaceAll("<","&lt;")
-    .replaceAll(">","&gt;").replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-function setText(id, txt){
-  const el = document.getElementById(id);
-  if (el) el.textContent = txt ?? "—";
-}
-function show(elId){ document.getElementById(elId)?.classList.remove("d-none"); }
-function hide(elId){ document.getElementById(elId)?.classList.add("d-none"); }
-
-function updateModalProgress(){
-  const total = CURRENT_DAY.items_total || 0;
-  const done = CURRENT_DAY.done_count || 0;
-  if(total <= 0){
-    hide("modalProgressWrap");
-    return;
-  }
-  show("modalProgressWrap");
-  setText("modalProgressText", `${done}/${total}`);
-  const pct = Math.floor((done * 100) / total);
-  const bar = document.getElementById("modalProgressBar");
-  if(bar) bar.style.width = `${pct}%`;
-}
+function esc(s){ return (s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
 
 async function openDayDetail(userId, fecha){
-  CURRENT_DAY.user_id = userId;
-  CURRENT_DAY.fecha = fecha;
-  CURRENT_DAY.items_total = 0;
-  CURRENT_DAY.done_count = 0;
+  if (!dayModal) dayModal = new bootstrap.Modal(document.getElementById("dayModal"));
+  document.getElementById("dayTitle").textContent = "Cargando…";
+  document.getElementById("daySubtitle").textContent = fecha;
+  document.getElementById("dayBody").innerHTML = "<div class='text-muted'>Cargando plan…</div>";
+  dayModal.show();
 
-  const modal = new bootstrap.Modal(document.getElementById("dayModal"));
-  modal.show();
+  const res = await fetch(`/api/day_detail?user_id=${userId}&fecha=${fecha}`);
+  const data = await res.json();
+  if (!data.ok){
+    document.getElementById("dayTitle").textContent = "Error";
+    document.getElementById("dayBody").innerHTML = `<div class="alert alert-danger">${esc(data.error)}</div>`;
+    return;
+  }
 
-  hide("dayContent");
-  show("dayLoading");
-  document.getElementById("itemsList").innerHTML = "";
-  document.getElementById("strengthBox").classList.add("d-none");
-  document.getElementById("enduranceBox").classList.add("d-none");
-  hide("modalProgressWrap");
+  const plan = data.plan;
+  const tipo = (plan.plan_type || "Descanso");
+  document.getElementById("dayTitle").textContent = `📌 ${tipo}`;
+  document.getElementById("daySubtitle").textContent = data.fecha;
 
-  setText("dayModalSubtitle", `${fecha}`);
-  setText("rutinaName", "—");
-
-  try{
-    const url = `/api/day_detail?user_id=${encodeURIComponent(userId)}&fecha=${encodeURIComponent(fecha)}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if(!data.ok){
-      alert(data.error || "Error cargando el día");
-      return;
-    }
-
-    const plan = data.plan || {};
-    CURRENT_DAY.plan_type = (plan.plan_type || "").toLowerCase().trim();
-
-    setText("planTypeBadge", plan.plan_type || "—");
-    setText("planWarmup", plan.warmup || "—");
-    setText("planMain", plan.main || "—");
-    setText("planFinisher", plan.finisher || "—");
-
-    const log = data.log || {};
-    document.getElementById("didTrainToggle").checked = !!log.did_train;
-
-    const isStrength = (CURRENT_DAY.plan_type === "fuerza");
-
-    if(isStrength){
-      document.getElementById("strengthBox").classList.remove("d-none");
-      document.getElementById("enduranceBox").classList.add("d-none");
-
-      const rutina = data.rutina;
-      setText("rutinaName", rutina?.nombre || "Sin rutina");
-
-      const items = data.items || [];
-      const doneIds = new Set((data.checks || []).map(x => Number(x)));
-
-      CURRENT_DAY.items_total = items.length;
-      CURRENT_DAY.done_count = 0;
-      items.forEach(it => { if(doneIds.has(Number(it.id))) CURRENT_DAY.done_count += 1; });
-      updateModalProgress();
-
-      const list = document.getElementById("itemsList");
-      list.innerHTML = items.map(it => {
-        const id = Number(it.id);
-        const checked = doneIds.has(id) ? "checked" : "";
-        const metaParts = [];
-        if(it.series) metaParts.push(`${escapeHtml(it.series)} series`);
-        if(it.reps) metaParts.push(`${escapeHtml(it.reps)} reps`);
-        if(it.descanso) metaParts.push(`desc ${escapeHtml(it.descanso)}`);
-        const meta = metaParts.length ? metaParts.join(" · ") : "—";
-        const video = it.video_url
-          ? `<div class="video-wrap">
-               <video controls preload="metadata">
-                 <source src="/static/${encodeURIComponent(it.video_url)}" type="video/mp4">
-               </video>
-             </div>`
-          : "";
-        const nota = it.nota ? `<div class="small text-muted mt-2">Nota: ${escapeHtml(it.nota)}</div>` : "";
-
-        return `
-          <div class="item-row">
-            <div class="item-top">
-              <div>
-                <div class="item-name">${escapeHtml(it.nombre || "")}</div>
-                <div class="item-meta">${meta}</div>
-                ${nota}
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" ${checked}
-                       onchange="toggleItem(${userId}, '${fecha}', ${id}, this.checked)">
-                <label class="form-check-label small">Hecho</label>
-              </div>
-            </div>
-            ${video}
-          </div>
-        `;
-      }).join("");
-
-    } else {
-      document.getElementById("strengthBox").classList.add("d-none");
-      document.getElementById("enduranceBox").classList.remove("d-none");
-
-      document.getElementById("warmupDone").value = log.warmup_done || "";
-      document.getElementById("mainDone").value = log.main_done || "";
-      document.getElementById("finisherDone").value = log.finisher_done || "";
-    }
-
-    hide("dayLoading");
-    show("dayContent");
-  } catch(e){
-    console.error(e);
-    alert("Error cargando detalle");
+  // Render
+  if ((tipo||"").toLowerCase() === "fuerza" && data.rutina){
+    renderFuerza(userId, data.fecha, data);
+  } else {
+    renderEndurance(userId, data.fecha, data);
   }
 }
 
-async function toggleItem(userId, fecha, itemId, done){
+function renderFuerza(userId, fecha, data){
+  const r = data.rutina;
+  const items = data.items || [];
+  const checks = new Set(data.checks || []);
+
+  let html = `
+    <div class="mb-3">
+      <h4 class="text-light mb-1">🏋️ ${esc(r.nombre)}</h4>
+      ${r.descripcion ? `<div class="text-muted">${esc(r.descripcion)}</div>` : ""}
+    </div>
+    <div class="row g-3">
+  `;
+
+  items.forEach(it=>{
+    const checked = checks.has(it.id) ? "checked" : "";
+    const video = it.video_url ? `
+      <video class="w-100 rounded mb-2" controls preload="metadata" style="max-height:420px;">
+        <source src="/static/${esc(it.video_url)}" type="video/mp4">
+      </video>` : "";
+
+    html += `
+      <div class="col-lg-6">
+        <div class="item-row">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-light">${esc(it.nombre)}</strong>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox"
+                     ${checked}
+                     onchange="toggleCheck(${userId},'${fecha}',${it.id}, this.checked)">
+              <label class="form-check-label text-muted">Hecho</label>
+            </div>
+          </div>
+
+          <div class="text-muted mb-2">
+            ${esc(it.series)} · ${esc(it.reps)} · Desc ${esc(it.descanso)}
+          </div>
+
+          ${it.nota ? `<div class="text-muted mb-2">📝 ${esc(it.nota)}</div>` : ""}
+
+          ${video}
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>
+    <hr style="border-color:rgba(255,255,255,.08)" />
+    <div class="d-flex gap-2 align-items-center">
+      <button class="btn btn-success" onclick="markDidTrain(${userId},'${fecha}', true)">✅ Marcar entreno completado</button>
+      <button class="btn btn-outline-light" onclick="markDidTrain(${userId},'${fecha}', false)">↩ Quitar marca</button>
+      <span class="text-muted">Esto alimenta racha y progreso.</span>
+    </div>
+  `;
+
+  document.getElementById("dayBody").innerHTML = html;
+}
+
+function renderEndurance(userId, fecha, data){
+  const log = data.log || {};
+  const plan = data.plan || {};
+  const warm = plan.warmup || "";
+  const main = plan.main || "";
+  const fin = plan.finisher || "";
+
+  let html = `
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="item-row">
+          <h5 class="text-light">Plan</h5>
+          <div class="text-muted mb-2"><strong>Activación:</strong><br>${esc(warm).replaceAll("\n","<br>")}</div>
+          <div class="text-muted mb-2"><strong>Bloque principal:</strong><br>${esc(main).replaceAll("\n","<br>")}</div>
+          <div class="text-muted"><strong>Enfriamiento:</strong><br>${esc(fin).replaceAll("\n","<br>")}</div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="item-row">
+          <h5 class="text-light">Lo realizado</h5>
+
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="didTrain" ${log.did_train ? "checked":""}>
+            <label class="form-check-label text-muted">Hoy entrené</label>
+          </div>
+
+          <label class="text-muted">Activación realizada</label>
+          <textarea id="warmup_done" class="form-control mb-2" rows="2">${esc(log.warmup_done||"")}</textarea>
+
+          <label class="text-muted">Bloque principal realizado</label>
+          <textarea id="main_done" class="form-control mb-2" rows="3">${esc(log.main_done||"")}</textarea>
+
+          <label class="text-muted">Enfriamiento realizado</label>
+          <textarea id="finisher_done" class="form-control mb-2" rows="2">${esc(log.finisher_done||"")}</textarea>
+
+          <button class="btn btn-primary w-100" onclick="saveLog(${userId},'${fecha}')">💾 Guardar</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("dayBody").innerHTML = html;
+}
+
+async function toggleCheck(userId, fecha, itemId, checked){
   const fd = new FormData();
   fd.append("user_id", userId);
   fd.append("fecha", fecha);
   fd.append("item_id", itemId);
-  fd.append("done", done ? "1" : "0");
+  fd.append("done", checked ? "1" : "0");
 
   const res = await fetch("/athlete/check_item", { method:"POST", body: fd });
   const data = await res.json();
-  if(!data.ok){
-    alert(data.error || "Error guardando check");
-    return;
-  }
-
-  // actualizar barra modal
-  CURRENT_DAY.done_count += done ? 1 : -1;
-  if(CURRENT_DAY.done_count < 0) CURRENT_DAY.done_count = 0;
-  updateModalProgress();
+  if (!data.ok) alert(data.error || "Error");
 }
 
-async function saveDayLog(){
+async function saveLog(userId, fecha){
   const payload = {
-    user_id: CURRENT_DAY.user_id,
-    fecha: CURRENT_DAY.fecha,
-    did_train: document.getElementById("didTrainToggle").checked,
-    warmup_done: document.getElementById("warmupDone")?.value || "",
-    main_done: document.getElementById("mainDone")?.value || "",
-    finisher_done: document.getElementById("finisherDone")?.value || ""
+    user_id: userId,
+    fecha,
+    did_train: document.getElementById("didTrain").checked,
+    warmup_done: document.getElementById("warmup_done").value,
+    main_done: document.getElementById("main_done").value,
+    finisher_done: document.getElementById("finisher_done").value,
   };
 
   const res = await fetch("/athlete/save_log", {
-    method: "POST",
-    headers: { "Content-Type":"application/json" },
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
     body: JSON.stringify(payload)
   });
-
   const data = await res.json();
-  if(data.ok){
-    document.getElementById("saveHint").textContent = "✅ Guardado. Perfecto.";
-  } else {
-    alert(data.error || "Error guardando");
-  }
+  if (!data.ok) return alert(data.error || "Error");
+  alert("✅ Guardado");
+}
+
+async function markDidTrain(userId, fecha, v){
+  const payload = { user_id: userId, fecha, did_train: v, warmup_done:"", main_done:"", finisher_done:"" };
+  const res = await fetch("/athlete/save_log", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!data.ok) return alert(data.error || "Error");
+  alert(v ? "🔥 Sumaste a la racha" : "↩ Quitado");
 }
 </script>
 {% endblock %}

@@ -2,454 +2,383 @@
 {% block title %}Perfil — VR Training{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container-fluid mt-4">
 
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h2 class="mb-0 text-light">👤 {{ user.nombre }}</h2>
-      <div class="text-muted">{{ user.email }}</div>
+      <h2 class="mb-0 text-strong">👤 {{ user.nombre }}</h2>
+      <div class="text-soft">{{ user.email }}</div>
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
       <div class="mini-stat">
         <div class="mini-title">Racha</div>
-        <div class="mini-value">🔥 {{ streak }}</div>
+        <div class="mini-value">🔥 {{ streak or 0 }}</div>
       </div>
       <div class="mini-stat">
         <div class="mini-title">Semana</div>
-        <div class="mini-value">✅ {{ week_done }} / {{ week_goal }}</div>
+        <div class="mini-value">✅ {{ week_done }}/{{ week_goal }}</div>
       </div>
     </div>
   </div>
 
-  <!-- NAV -->
-  <div class="card glass p-2 mb-3">
-    <div class="d-flex flex-wrap gap-2">
-      <a class="btn btn-sm {% if view=='today' %}btn-info{% else %}btn-outline-info{% endif %}"
-         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='today', center=hoy.isoformat()) }}">Hoy</a>
+  <!-- NAV (server-side por ?view=...) -->
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <a class="btn {% if view=='today' %}btn-info{% else %}btn-outline-light{% endif %}"
+       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='today', center=center.isoformat()) }}">
+      ▶ Hoy
+    </a>
 
-      <a class="btn btn-sm {% if view=='week' %}btn-info{% else %}btn-outline-info{% endif %}"
-         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=hoy.isoformat()) }}">Semana</a>
+    <a class="btn {% if view=='week' %}btn-info{% else %}btn-outline-light{% endif %}"
+       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=center.isoformat()) }}">
+      📅 Semana
+    </a>
 
-      <a class="btn btn-sm {% if view=='month' %}btn-info{% else %}btn-outline-info{% endif %}"
-         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='month', center=center.isoformat()) }}">Mes</a>
+    <a class="btn {% if view=='month' %}btn-info{% else %}btn-outline-light{% endif %}"
+       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='month', center=center.isoformat()) }}">
+      🗓 Mes
+    </a>
 
-      <a class="btn btn-sm {% if view=='progress' %}btn-info{% else %}btn-outline-info{% endif %}"
-         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">Progreso</a>
-    </div>
+    <a class="btn {% if view=='progress' %}btn-info{% else %}btn-outline-light{% endif %}"
+       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">
+      📈 Progreso
+    </a>
   </div>
 
+  <!-- =========================
+       HOY
+  ========================== -->
   {% if view == 'today' %}
-    <div class="card glass p-3 mb-4">
-      <div class="d-flex align-items-center justify-content-between">
-        <div>
-          <div class="text-muted" style="letter-spacing:.12em;">HOY</div>
-          <div class="d-flex align-items-center gap-2">
-            <h4 class="mb-0 text-light">{{ hoy.strftime('%A %d/%m')|upper }}</h4>
-            <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span>
-          </div>
+  <div class="card glass p-3">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+      <div>
+        <div class="text-soft text-uppercase" style="letter-spacing:.14em;font-weight:800;">Hoy</div>
+        <div class="text-strong" style="font-size:1.35rem;">
+          {{ hoy.strftime('%A %d/%m')|upper }}
+          <span class="badge bg-secondary ms-2">{{ plan_hoy.plan_type or 'Descanso' }}</span>
         </div>
 
-        <div class="d-flex gap-2">
-          <button class="btn btn-info"
-                  onclick="openDayDetail('{{ user.id }}','{{ hoy.isoformat() }}')">
-            ▶ Empezar
-          </button>
-          <a class="btn btn-outline-light"
-             href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=hoy.isoformat()) }}">
-            Ver semana
-          </a>
+        <div class="mt-2 text-soft">
+          {% if (plan_hoy.plan_type or '').lower() == 'descanso' %}
+            Hoy es descanso / recuperación. Si querés, mirá tu semana para planear el siguiente día.
+          {% else %}
+            Tenés plan listo. Entrá a “Empezar” y marcá lo realizado ✅
+          {% endif %}
         </div>
       </div>
 
-      <div class="mt-3 text-muted">
-        {% if (plan_hoy.plan_type|lower) == 'fuerza' %}
-          Hoy toca fuerza. Entrá y marcá tus ejercicios ✅
-        {% elif (plan_hoy.plan_type|lower) == 'descanso' %}
-          Hoy descanso (si entrenás igual, podés marcarlo).
-        {% else %}
-          Hoy toca {{ plan_hoy.plan_type }}. Entrá y cargá lo realizado.
-        {% endif %}
+      <div class="d-flex gap-2">
+        <button class="btn btn-info" type="button" onclick="openDay('{{ hoy.isoformat() }}')">▶ Empezar</button>
+        <a class="btn btn-outline-light"
+           href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=center.isoformat()) }}">
+          Ver semana
+        </a>
       </div>
     </div>
+  </div>
   {% endif %}
 
+  <!-- =========================
+       SEMANA
+  ========================== -->
   {% if view == 'week' %}
-    <div class="d-flex align-items-center justify-content-between mb-2">
-      <h5 class="text-light mb-0">📅 Semana ({{ semana_str }})</h5>
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div>
+      <h5 class="section-title mb-0">Semana {{ semana_str }}</h5>
+      <div class="text-soft">Tocá un día para ver detalle y videos.</div>
     </div>
 
-    <div class="row g-3">
-      {% for f in fechas %}
-        {% set p = planes[f] %}
-        {% set is_done = (f in done_week) %}
-        <div class="col-md-6 col-lg-4">
-          <div class="card glass p-3">
-            <div class="d-flex justify-content-between align-items-center">
-              <strong class="text-light">{{ f.strftime('%a %d/%m')|upper }}</strong>
-              <div class="d-flex gap-2 align-items-center">
-                {% if is_done %}
-                  <span class="badge bg-success">HECHO</span>
-                {% endif %}
-                <span class="badge bg-secondary">{{ p.plan_type }}</span>
+    <form method="GET" class="d-flex gap-2">
+      <input type="hidden" name="view" value="week">
+      <input class="form-control" type="date" name="center" value="{{ center.isoformat() }}">
+      <button class="btn btn-outline-info" type="submit">Cambiar</button>
+    </form>
+  </div>
+
+  <div class="row g-3">
+    {% for f in fechas %}
+      {% set p = planes.get(f) %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card glass p-3 lift">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <div class="text-soft text-uppercase" style="letter-spacing:.12em;font-weight:900;">
+                {{ f.strftime('%a') }}
+              </div>
+              <div class="text-strong" style="font-size:1.15rem;">
+                {{ f.strftime('%d/%m') }}
               </div>
             </div>
 
-            <div class="mt-3 d-flex gap-2">
-              <button class="btn btn-outline-info w-100"
-                      onclick="openDayDetail('{{ user.id }}','{{ f.isoformat() }}')">
-                Ver / Completar
-              </button>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-secondary">{{ (p.plan_type if p else '—') }}</span>
+              {% if f in done_week %}
+                <span class="badge bg-success">HECHO</span>
+              {% endif %}
             </div>
           </div>
+
+          <div class="text-soft" style="min-height:46px;">
+            {% if not p or (p.plan_type or '').lower() == 'descanso' %}
+              Descanso / movilidad / recuperación.
+            {% else %}
+              {% if (p.plan_type or '').lower() == 'fuerza' %}
+                {% if p.main and p.main.startswith('RUTINA:') %}
+                  Rutina asignada (con videos).
+                {% else %}
+                  Fuerza (sin rutina asignada).
+                {% endif %}
+              {% else %}
+                {{ (p.main or p.warmup or 'Plan listo') }}
+              {% endif %}
+            {% endif %}
+          </div>
+
+          <div class="d-grid mt-2">
+            <button class="btn btn-outline-info" type="button" onclick="openDay('{{ f.isoformat() }}')">
+              Ver detalle
+            </button>
+          </div>
         </div>
-      {% endfor %}
-    </div>
+      </div>
+    {% endfor %}
+  </div>
   {% endif %}
 
+  <!-- =========================
+       MES
+  ========================== -->
   {% if view == 'month' %}
-    <div class="d-flex align-items-center justify-content-between mb-2">
-      <h5 class="text-light mb-0">🗓️ {{ month_label }}</h5>
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div>
+      <h5 class="section-title mb-0">Mes {{ month_label }}</h5>
+      <div class="text-soft">Tocá un día para ver detalle.</div>
     </div>
 
-    <div class="card glass p-3">
-      <div class="month-grid">
-        <div class="month-head">L</div><div class="month-head">M</div><div class="month-head">X</div>
-        <div class="month-head">J</div><div class="month-head">V</div><div class="month-head">S</div><div class="month-head">D</div>
+    <form method="GET" class="d-flex gap-2">
+      <input type="hidden" name="view" value="month">
+      <input class="form-control" type="month" name="center" value="{{ center.strftime('%Y-%m') }}">
+      <button class="btn btn-outline-info" type="submit">Ir</button>
+    </form>
+  </div>
 
-        {% for week in month_grid %}
-          {% for d in week %}
-            {% if d %}
-              {% set p = planes_mes[d] %}
-              {% set done = (d in done_month) %}
-              <button class="month-cell {% if done %}done{% endif %}"
-                      type="button"
-                      onclick="openDayDetail('{{ user.id }}','{{ d.isoformat() }}')">
-                <div class="daynum">{{ d.day }}</div>
-                <div class="ptype">{{ p.plan_type }}</div>
-              </button>
-            {% else %}
-              <div class="month-cell empty"></div>
-            {% endif %}
-          {% endfor %}
-        {% endfor %}
-      </div>
-      <div class="text-muted mt-2">Tip: tocá un día para ver el entrenamiento y marcarlo ✅</div>
-    </div>
+  <div class="month-grid">
+    <div class="month-head">L</div><div class="month-head">M</div><div class="month-head">X</div>
+    <div class="month-head">J</div><div class="month-head">V</div><div class="month-head">S</div><div class="month-head">D</div>
+
+    {% for week in month_grid %}
+      {% for d in week %}
+        {% if d %}
+          {% set p = planes_mes.get(d) %}
+          <div class="month-cell {% if d in done_month %}done{% endif %}" onclick="openDay('{{ d.isoformat() }}')">
+            <div class="daynum">{{ d.day }}</div>
+            <div class="ptype">{{ (p.plan_type if p else '—') }}</div>
+          </div>
+        {% else %}
+          <div class="month-cell empty"></div>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
   {% endif %}
 
+  <!-- =========================
+       PROGRESO
+  ========================== -->
   {% if view == 'progress' %}
-    <div class="row g-3">
-      <div class="col-lg-6">
-        <div class="card glass p-3">
-          <h5 class="text-light">📈 Progreso semanal</h5>
-          <div class="text-muted mb-2">Objetivo: {{ week_goal }} — Hechos: {{ week_done }}</div>
+  <h5 class="section-title">Progreso</h5>
 
-          {% set pct = (0 if week_goal == 0 else (week_done * 100 / week_goal)) %}
-          <div class="progress" role="progressbar" aria-valuenow="{{ pct|int }}" aria-valuemin="0" aria-valuemax="100">
-            <div class="progress-bar" style="width: {{ pct }}%"></div>
-          </div>
-
-          <div class="text-muted mt-2">
-            {% if week_goal == 0 %}
-              Esta semana no hay entrenos planificados todavía.
-            {% elif week_done >= week_goal %}
-              Brutal. Semana completa ✅🔥
-            {% else %}
-              Te faltan {{ week_goal - week_done }} para completar la semana.
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="card glass p-3">
-          <h5 class="text-light">🔥 Racha</h5>
-          <div class="text-muted">Consecutivos completados: <strong>{{ streak }}</strong></div>
-          <div class="mt-3 text-muted">
-            Consejo: aunque sea un entreno corto, marcá “Hoy entrené” para sostener hábito.
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12">
-        <div class="card glass p-3">
-          <h5 class="text-light">🗓️ Días completados del mes</h5>
-          <div class="text-muted">Completados: <strong>{{ done_month|length }}</strong> días</div>
-          <div class="mt-2">
-            <a class="btn btn-outline-info" href="{{ url_for('main.perfil_usuario', user_id=user.id, view='month', center=center.isoformat()) }}">
-              Ver calendario del mes
-            </a>
-          </div>
-        </div>
-      </div>
+  <div class="card glass p-3">
+    <div class="text-soft mb-2">
+      Objetivo semanal: <span class="text-strong">{{ week_goal }}</span> días · Hechos: <span class="text-strong">{{ week_done }}</span>
     </div>
+
+    {% set pct = 0 %}
+    {% if week_goal and week_goal > 0 %}
+      {% set pct = (week_done * 100) // week_goal %}
+    {% endif %}
+
+    <div class="progress mb-2">
+      <div class="progress-bar" role="progressbar" style="width: {{ pct }}%"></div>
+    </div>
+
+    <div class="text-soft">
+      Meta: completar la semana para subir de nivel 🏆 (esto engancha MUCHO cuando sumemos medallas).
+    </div>
+  </div>
   {% endif %}
 
 </div>
 
-<!-- MODAL -->
+<!-- =========================
+     MODAL (detalle)
+========================= -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-fullscreen">
-    <div class="modal-content" style="background:#070a0c;color:#fff;">
-      <div class="modal-header" style="border-color:rgba(255,255,255,.08)">
-        <div>
-          <h5 class="modal-title mb-0" id="dayTitle">Detalle</h5>
-          <div class="text-muted" id="daySubtitle"></div>
-        </div>
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content modal-dark">
+      <div class="modal-header">
+        <h5 class="modal-title text-strong" id="dayTitle">Detalle</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body">
-        <div id="dayBody" class="container"></div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card glass p-3">
+              <h5 class="section-title">Plan</h5>
+
+              <div class="field-title">Activación</div>
+              <div class="field-value" id="planWarmup">—</div>
+
+              <div class="field-title mt-3">Bloque principal</div>
+              <div class="field-value" id="planMain">—</div>
+
+              <div class="field-title mt-3">Enfriamiento</div>
+              <div class="field-value" id="planFinisher">—</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card glass p-3">
+              <h5 class="section-title">Lo realizado</h5>
+
+              <label class="switch-hecho mb-2">
+                <input id="didTrain" type="checkbox">
+                <span>Hoy entrené</span>
+              </label>
+
+              <div class="text-soft mb-1">Activación realizado</div>
+              <textarea id="warmupDone" class="form-control mb-2" rows="2" placeholder="Qué hiciste..."></textarea>
+
+              <div class="text-soft mb-1">Bloque principal realizado</div>
+              <textarea id="mainDone" class="form-control mb-2" rows="2" placeholder="Qué hiciste..."></textarea>
+
+              <div class="text-soft mb-1">Enfriamiento realizado</div>
+              <textarea id="finisherDone" class="form-control mb-2" rows="2" placeholder="Qué hiciste..."></textarea>
+
+              <button class="btn btn-primary w-100" type="button" onclick="saveLog()">💾 Guardar</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="strengthBox" class="mt-3" style="display:none;">
+          <h5 class="section-title">Fuerza (videos)</h5>
+          <div id="strengthItems"></div>
+        </div>
+
       </div>
     </div>
   </div>
 </div>
 
-<style>
-.glass{
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px;
-}
-.mini-stat{
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 14px;
-  padding: 10px 12px;
-  min-width: 110px;
-}
-.mini-title{font-size:.78rem;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase}
-.mini-value{font-size:1.1rem;font-weight:700}
-
-.item-row{
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:14px;
-  padding:12px;
-  background: rgba(255,255,255,.02);
-}
-textarea.form-control{
-  background: rgba(0,0,0,.20);
-  border: 1px solid rgba(255,255,255,.10);
-  color:#fff;
-}
-
-.month-grid{
-  display:grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap:10px;
-}
-.month-head{
-  color:rgba(255,255,255,.65);
-  text-align:center;
-  font-weight:700;
-  letter-spacing:.12em;
-}
-.month-cell{
-  border:1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.02);
-  border-radius:14px;
-  padding:10px;
-  min-height:72px;
-  color:#fff;
-  text-align:left;
-  cursor:pointer;
-  transition: .15s ease;
-}
-.month-cell:hover{ transform: translateY(-1px); border-color: rgba(34,211,238,.35); }
-.month-cell.done{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.08); }
-.month-cell.empty{ border:1px dashed rgba(255,255,255,.06); background: transparent; min-height:72px; border-radius:14px; }
-.daynum{ font-weight:800; }
-.ptype{ font-size:.78rem; color: rgba(255,255,255,.65); margin-top:2px; }
-</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let dayModal;
+let currentUserId = {{ user.id }};
+let currentFecha = null;
 
-function esc(s){ return (s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+async function openDay(fecha){
+  currentFecha = fecha;
 
-async function openDayDetail(userId, fecha){
-  if (!dayModal) dayModal = new bootstrap.Modal(document.getElementById("dayModal"));
-  document.getElementById("dayTitle").textContent = "Cargando…";
-  document.getElementById("daySubtitle").textContent = fecha;
-  document.getElementById("dayBody").innerHTML = "<div class='text-muted'>Cargando plan…</div>";
-  dayModal.show();
-
-  const res = await fetch(`/api/day_detail?user_id=${userId}&fecha=${fecha}`);
+  const res = await fetch(`/api/day_detail?user_id=${currentUserId}&fecha=${fecha}`);
   const data = await res.json();
-  if (!data.ok){
-    document.getElementById("dayTitle").textContent = "Error";
-    document.getElementById("dayBody").innerHTML = `<div class="alert alert-danger">${esc(data.error)}</div>`;
-    return;
-  }
+  if(!data.ok){ alert(data.error || "Error"); return; }
 
-  const plan = data.plan;
-  const tipo = (plan.plan_type || "Descanso");
-  document.getElementById("dayTitle").textContent = `📌 ${tipo}`;
-  document.getElementById("daySubtitle").textContent = data.fecha;
+  const p = data.plan;
 
-  if ((tipo||"").toLowerCase() === "fuerza" && data.rutina){
-    renderFuerza(userId, data.fecha, data);
+  document.getElementById("dayTitle").innerText = `${p.plan_type} · ${fecha}`;
+  document.getElementById("planWarmup").innerText = p.warmup || "—";
+  document.getElementById("planMain").innerText = p.main || "—";
+  document.getElementById("planFinisher").innerText = p.finisher || "—";
+
+  document.getElementById("didTrain").checked = !!data.log?.did_train;
+  document.getElementById("warmupDone").value = data.log?.warmup_done || "";
+  document.getElementById("mainDone").value = data.log?.main_done || "";
+  document.getElementById("finisherDone").value = data.log?.finisher_done || "";
+
+  const strengthBox = document.getElementById("strengthBox");
+  const strengthItems = document.getElementById("strengthItems");
+  strengthItems.innerHTML = "";
+
+  const isFuerza = (p.plan_type || "").toLowerCase() === "fuerza";
+  if(isFuerza && data.items && data.items.length){
+    strengthBox.style.display = "";
+    const doneSet = new Set(data.checks || []);
+
+    data.items.forEach(it=>{
+      const row = document.createElement("div");
+      row.className = "item-row mb-2";
+
+      row.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center gap-2">
+          <div style="min-width:0;">
+            <div class="text-strong" style="font-size:1.05rem;">${it.nombre}</div>
+            <div class="text-soft">${it.series || ""} ${it.reps || ""} ${it.descanso ? (" · Desc " + it.descanso) : ""}</div>
+          </div>
+          <label class="switch-hecho">
+            <input type="checkbox" ${doneSet.has(it.id) ? "checked" : ""} onchange="toggleItem(${it.id}, this.checked)">
+            <span>Hecho</span>
+          </label>
+        </div>
+
+        ${it.video_url ? `
+          <div class="mt-2">
+            <video class="w-100" controls preload="metadata">
+              <source src="/static/${it.video_url}" type="video/mp4">
+            </video>
+          </div>` : ""}
+
+        ${it.nota ? `<div class="text-soft mt-2">${it.nota}</div>` : ""}
+      `;
+
+      strengthItems.appendChild(row);
+    });
+
   } else {
-    renderEndurance(userId, data.fecha, data);
+    strengthBox.style.display = "none";
   }
+
+  const modal = new bootstrap.Modal(document.getElementById("dayModal"));
+  modal.show();
 }
 
-function renderFuerza(userId, fecha, data){
-  const r = data.rutina;
-  const items = data.items || [];
-  const checks = new Set(data.checks || []);
+async function saveLog(){
+  if(!currentFecha) return;
 
-  let html = `
-    <div class="mb-3">
-      <h4 class="text-light mb-1">🏋️ ${esc(r.nombre)}</h4>
-      ${r.descripcion ? `<div class="text-muted">${esc(r.descripcion)}</div>` : ""}
-    </div>
-    <div class="row g-3">
-  `;
-
-  items.forEach(it=>{
-    const checked = checks.has(it.id) ? "checked" : "";
-    const video = it.video_url ? `
-      <video class="w-100 rounded mb-2" controls preload="metadata" style="max-height:420px;">
-        <source src="/static/${esc(it.video_url)}" type="video/mp4">
-      </video>` : "";
-
-    html += `
-      <div class="col-lg-6">
-        <div class="item-row">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong class="text-light">${esc(it.nombre)}</strong>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox"
-                     ${checked}
-                     onchange="toggleCheck(${userId},'${fecha}',${it.id}, this.checked)">
-              <label class="form-check-label text-muted">Hecho</label>
-            </div>
-          </div>
-
-          <div class="text-muted mb-2">
-            ${esc(it.series)} · ${esc(it.reps)} · Desc ${esc(it.descanso)}
-          </div>
-
-          ${it.nota ? `<div class="text-muted mb-2">📝 ${esc(it.nota)}</div>` : ""}
-
-          ${video}
-        </div>
-      </div>
-    `;
-  });
-
-  html += `</div>
-    <hr style="border-color:rgba(255,255,255,.08)" />
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      <button class="btn btn-success" onclick="markDidTrain(${userId},'${fecha}', true)">✅ Marcar entreno completado</button>
-      <button class="btn btn-outline-light" onclick="markDidTrain(${userId},'${fecha}', false)">↩ Quitar marca</button>
-      <span class="text-muted">Esto alimenta racha y progreso.</span>
-    </div>
-  `;
-
-  document.getElementById("dayBody").innerHTML = html;
-}
-
-function renderEndurance(userId, fecha, data){
-  const log = data.log || {};
-  const plan = data.plan || {};
-  const warm = plan.warmup || "";
-  const main = plan.main || "";
-  const fin = plan.finisher || "";
-
-  let html = `
-    <div class="row g-3">
-      <div class="col-lg-6">
-        <div class="item-row">
-          <h5 class="text-light">Plan</h5>
-          <div class="text-muted mb-2"><strong>Activación:</strong><br>${esc(warm).replaceAll("\n","<br>")}</div>
-          <div class="text-muted mb-2"><strong>Bloque principal:</strong><br>${esc(main).replaceAll("\n","<br>")}</div>
-          <div class="text-muted"><strong>Enfriamiento:</strong><br>${esc(fin).replaceAll("\n","<br>")}</div>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="item-row">
-          <h5 class="text-light">Lo realizado</h5>
-
-          <div class="form-check form-switch mb-2">
-            <input class="form-check-input" type="checkbox" id="didTrain" ${log.did_train ? "checked":""}>
-            <label class="form-check-label text-muted">Hoy entrené</label>
-          </div>
-
-          <label class="text-muted">Activación realizada</label>
-          <textarea id="warmup_done" class="form-control mb-2" rows="2">${esc(log.warmup_done||"")}</textarea>
-
-          <label class="text-muted">Bloque principal realizado</label>
-          <textarea id="main_done" class="form-control mb-2" rows="3">${esc(log.main_done||"")}</textarea>
-
-          <label class="text-muted">Enfriamiento realizado</label>
-          <textarea id="finisher_done" class="form-control mb-2" rows="2">${esc(log.finisher_done||"")}</textarea>
-
-          <button class="btn btn-primary w-100" onclick="saveLog(${userId},'${fecha}')">💾 Guardar</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("dayBody").innerHTML = html;
-}
-
-async function toggleCheck(userId, fecha, itemId, checked){
-  const fd = new FormData();
-  fd.append("user_id", userId);
-  fd.append("fecha", fecha);
-  fd.append("item_id", itemId);
-  fd.append("done", checked ? "1" : "0");
-
-  const res = await fetch("/athlete/check_item", { method:"POST", body: fd });
-  const data = await res.json();
-  if (!data.ok) alert(data.error || "Error guardando check");
-}
-
-async function saveLog(userId, fecha){
   const payload = {
-    user_id: userId,
-    fecha: fecha,
-    did_train: document.getElementById("didTrain")?.checked || false,
-    warmup_done: document.getElementById("warmup_done")?.value || "",
-    main_done: document.getElementById("main_done")?.value || "",
-    finisher_done: document.getElementById("finisher_done")?.value || "",
+    user_id: currentUserId,
+    fecha: currentFecha,
+    did_train: document.getElementById("didTrain").checked,
+    warmup_done: document.getElementById("warmupDone").value,
+    main_done: document.getElementById("mainDone").value,
+    finisher_done: document.getElementById("finisherDone").value
   };
 
   const res = await fetch("/athlete/save_log", {
-    method:"POST",
+    method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify(payload)
   });
+
   const data = await res.json();
-  if (!data.ok) alert(data.error || "Error guardando");
-  else alert("✅ Guardado");
+  if(!data.ok){ alert(data.error || "Error guardando"); return; }
+  alert("✅ Guardado");
 }
 
-async function markDidTrain(userId, fecha, didTrain){
-  const payload = {
-    user_id: userId,
-    fecha: fecha,
-    did_train: !!didTrain,
-    warmup_done: "",
-    main_done: "",
-    finisher_done: "",
-  };
+async function toggleItem(itemId, checked){
+  if(!currentFecha) return;
 
-  const res = await fetch("/athlete/save_log", {
-    method:"POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(payload)
-  });
+  const form = new FormData();
+  form.append("user_id", currentUserId);
+  form.append("fecha", currentFecha);
+  form.append("item_id", itemId);
+  form.append("done", checked ? "1" : "0");
+
+  const res = await fetch("/athlete/check_item", { method:"POST", body: form });
   const data = await res.json();
-  if (!data.ok) alert(data.error || "Error guardando");
-  else alert("✅ Marcado");
+  if(!data.ok){ alert(data.error || "Error"); }
 }
 </script>
 {% endblock %}

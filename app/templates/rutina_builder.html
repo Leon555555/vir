@@ -4,128 +4,117 @@
 {% block content %}
 <div class="container-fluid mt-4">
 
-  <h2 class="mb-4 text-uppercase" style="font-weight:700;">
-    Editar rutina
-    <small class="text-muted">Rutina: {{ rutina.nombre }}{% if rutina.tipo %} ({{ rutina.tipo }}){% endif %}</small>
-  </h2>
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <h2 class="text-strong mb-0">Editar rutina</h2>
+      <div class="text-soft">Rutina: <strong class="text-strong">{{ rutina.nombre }}</strong> {% if rutina.tipo %}({{ rutina.tipo }}){% endif %}</div>
+    </div>
+    <a class="btn btn-outline-info" href="{{ url_for('main.dashboard_entrenador') }}">← Volver</a>
+  </div>
 
   <div class="row g-4">
-    <!-- IZQ: EJERCICIOS DE LA RUTINA -->
+    <!-- IZQ -->
     <div class="col-lg-6">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-header">
-          <h5 class="mb-0">Ejercicios de la rutina</h5>
-        </div>
-        <div class="card-body">
+      <div class="card glass p-3">
+        <h5 class="section-title">📌 Ejercicios de la rutina</h5>
 
-          {% if items %}
-            {% for item in items %}
-              <div class="mb-4 p-3 border border-secondary rounded">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <strong>{{ loop.index }}. {{ item.nombre }}</strong>
-                  <form method="post"
-                        action="{{ url_for('main.rutina_delete_item', rutina_id=rutina.id, item_id=item.id) }}"
-                        onsubmit="return confirm('¿Eliminar {{ item.nombre }} de la rutina?');">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
-                  </form>
-                </div>
-
-                {% if item.video_url %}
-                  <video class="w-100 rounded mb-3" controls preload="metadata" style="max-height: 320px;">
-                    <source src="{{ url_for('static', filename=item.video_url) }}" type="video/mp4">
-                    Tu navegador no soporta vídeo HTML5.
-                  </video>
-                {% endif %}
-
-                <!-- ✅ update -->
+        {% if items %}
+          {% for item in items %}
+            <div class="item-row mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong class="text-strong">{{ loop.index }}. {{ item.nombre }}</strong>
                 <form method="post"
-                      action="{{ url_for('main.rutina_update_item', rutina_id=rutina.id, item_id=item.id) }}"
-                      class="row g-2 mt-2">
-
-                  <div class="col-md-4">
-                    <label class="form-label form-label-sm">Series</label>
-                    <input type="text" name="series" value="{{ item.series or '' }}" class="form-control form-control-sm">
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label form-label-sm">Reps</label>
-                    <input type="text" name="reps" value="{{ item.reps or '' }}" class="form-control form-control-sm">
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label form-label-sm">Descanso</label>
-                    <input type="text" name="descanso" value="{{ item.descanso or '' }}" class="form-control form-control-sm">
-                  </div>
-
-                  <div class="col-12">
-                    <label class="form-label form-label-sm">Nota</label>
-                    <textarea name="nota" rows="2" class="form-control form-control-sm">{{ item.nota or '' }}</textarea>
-                  </div>
-
-                  <div class="col-12 mt-2 d-grid">
-                    <button type="submit" class="btn btn-sm btn-primary">
-                      Guardar cambios
-                    </button>
-                  </div>
+                      action="{{ url_for('main.rutina_delete_item', rutina_id=rutina.id, item_id=item.id) }}"
+                      onsubmit="return confirm('¿Eliminar {{ item.nombre }} de la rutina?');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
                 </form>
               </div>
-            {% endfor %}
-          {% else %}
-            <p class="text-muted">Esta rutina todavía no tiene ejercicios.</p>
-          {% endif %}
 
-        </div>
+              {% if item.video_url %}
+                <video class="w-100 mb-2" controls preload="metadata" style="max-height: 320px;">
+                  <source src="{{ url_for('static', filename=item.video_url) }}" type="video/mp4">
+                </video>
+              {% endif %}
+
+              <form method="post"
+                    action="{{ url_for('main.rutina_update_item', rutina_id=rutina.id, item_id=item.id) }}"
+                    class="row g-2">
+
+                <div class="col-md-4">
+                  <label class="form-label form-label-sm">Series</label>
+                  <input type="text" name="series" value="{{ item.series or '' }}" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label form-label-sm">Reps</label>
+                  <input type="text" name="reps" value="{{ item.reps or '' }}" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label form-label-sm">Descanso</label>
+                  <input type="text" name="descanso" value="{{ item.descanso or '' }}" class="form-control form-control-sm">
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label form-label-sm">Nota</label>
+                  <textarea name="nota" rows="2" class="form-control form-control-sm">{{ item.nota or '' }}</textarea>
+                </div>
+
+                <div class="col-12 d-grid mt-2">
+                  <button type="submit" class="btn btn-sm btn-primary">Guardar cambios</button>
+                </div>
+              </form>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-soft">Esta rutina todavía no tiene ejercicios.</div>
+        {% endif %}
       </div>
     </div>
 
-    <!-- DER: BANCO -->
+    <!-- DER -->
     <div class="col-lg-6">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-header">
-          <h5 class="mb-0">Banco de ejercicios</h5>
-        </div>
-        <div class="card-body">
+      <div class="card glass p-3">
+        <h5 class="section-title">🧱 Banco de ejercicios</h5>
 
-          {% if ejercicios %}
-            {% for ej in ejercicios %}
-              <div class="mb-4 p-3 border border-secondary rounded">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <strong>{{ ej.nombre }}</strong>
-                  {% if ej.categoria %}<span class="badge bg-info">{{ ej.categoria }}</span>{% endif %}
+        {% if ejercicios %}
+          {% for ej in ejercicios %}
+            <div class="item-row mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong class="text-strong">{{ ej.nombre }}</strong>
+                {% if ej.categoria %}<span class="badge bg-info">{{ ej.categoria }}</span>{% endif %}
+              </div>
+
+              {% if ej.video_filename %}
+                <video class="w-100 mb-2" controls preload="metadata" style="max-height: 240px;">
+                  <source src="{{ url_for('static', filename='videos/' ~ ej.video_filename) }}" type="video/mp4">
+                </video>
+              {% endif %}
+
+              <form method="post" action="{{ url_for('main.rutina_add_item', rutina_id=rutina.id) }}" class="row g-2">
+                <input type="hidden" name="ejercicio_id" value="{{ ej.id }}">
+
+                <div class="col-md-4">
+                  <input type="text" name="series" placeholder="Series" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-4">
+                  <input type="text" name="reps" placeholder="Reps" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-4">
+                  <input type="text" name="descanso" placeholder="Descanso" class="form-control form-control-sm">
                 </div>
 
-                {% if ej.video_filename %}
-                  <video class="w-100 rounded mb-2" controls preload="metadata" style="max-height: 240px;">
-                    <source src="{{ url_for('static', filename='videos/' ~ ej.video_filename) }}" type="video/mp4">
-                  </video>
-                {% endif %}
+                <div class="col-12">
+                  <textarea name="nota" rows="2" placeholder="Nota (opcional)" class="form-control form-control-sm"></textarea>
+                </div>
 
-                <form method="post" action="{{ url_for('main.rutina_add_item', rutina_id=rutina.id) }}" class="row g-2">
-                  <input type="hidden" name="ejercicio_id" value="{{ ej.id }}">
-
-                  <div class="col-md-4">
-                    <input type="text" name="series" placeholder="Series" class="form-control form-control-sm">
-                  </div>
-                  <div class="col-md-4">
-                    <input type="text" name="reps" placeholder="Reps" class="form-control form-control-sm">
-                  </div>
-                  <div class="col-md-4">
-                    <input type="text" name="descanso" placeholder="Descanso" class="form-control form-control-sm">
-                  </div>
-
-                  <div class="col-12">
-                    <textarea name="nota" rows="2" placeholder="Nota (opcional)" class="form-control form-control-sm"></textarea>
-                  </div>
-
-                  <div class="col-12 mt-2 d-grid">
-                    <button type="submit" class="btn btn-sm btn-outline-primary">+ Añadir a rutina</button>
-                  </div>
-                </form>
-              </div>
-            {% endfor %}
-          {% else %}
-            <p class="text-muted">No hay ejercicios en el banco todavía.</p>
-          {% endif %}
-
-        </div>
+                <div class="col-12 d-grid mt-2">
+                  <button type="submit" class="btn btn-sm btn-outline-info">+ Añadir a rutina</button>
+                </div>
+              </form>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-soft">No hay ejercicios en el banco todavía.</div>
+        {% endif %}
       </div>
     </div>
 

@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block title %}Crear atleta{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="text-strong mb-0">➕ Crear nuevo atleta</h2>
+      <div class="text-soft">Esto crea el perfil y credenciales de acceso.</div>
+    </div>
+    <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') }}">← Volver</a>
+  </div>
+
+  <div class="card glass p-3">
+    <form method="POST" class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Nombre</label>
+        <input class="form-control" name="nombre" placeholder="Ej: Bichito" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input class="form-control" name="email" placeholder="bichito@vir.app" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Grupo (opcional)</label>
+        <input class="form-control" name="grupo" placeholder="Ej: UA Run / Hyrox / Fuerza">
+      </div>
+
+      <div class="col-12">
+        <button class="btn btn-info w-100" type="submit">Crear atleta</button>
+        <div class="text-soft mt-2">
+          Al crear, te muestro el password inicial en un mensaje (flash). Después lo cambiamos si querés.
+        </div>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

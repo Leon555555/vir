@@ -1,7 +1,9 @@
 # run.py
-from datetime import datetime
+from __future__ import annotations
+
 import os
 import psycopg2
+from psycopg2 import sql
 
 from app import create_app
 from app.extensions import db
@@ -12,62 +14,91 @@ app = create_app()
 
 def ensure_columns():
     """
-    Render + Postgres: si no usás migrations, esto te evita que se caiga el deploy
-    cuando agregás columnas nuevas.
+    Render + Postgres (sin migrations):
+    - Crea/actualiza columnas críticas si faltan para evitar caídas en deploy.
     """
     DATABASE_URL = os.getenv("DATABASE_URL")
     if not DATABASE_URL:
         print("⚠️ DATABASE_URL no configurada.")
         return
 
+    conn = None
+    cur = None
+
     try:
         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
         cur = conn.cursor()
 
-        def col_exists(table: str, col: str) -> bool:
+        def col_exists(table: str, col: str, schema: str = "public") -> bool:
             cur.execute(
                 """
-                SELECT 1 FROM information_schema.columns
-                WHERE table_name=%s AND column_name=%s
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema=%s AND table_name=%s AND column_name=%s
                 """,
-                (table, col),
+                (schema, table, col),
             )
             return cur.fetchone() is not None
 
-        # -------- USER
-        if col_exists("user", "fecha_creacion") is False:
-            print("🛠️ Agregando user.fecha_creacion...")
-            cur.execute("""ALTER TABLE "user" ADD COLUMN fecha_creacion TIMESTAMP DEFAULT NOW();""")
+        def add_col(query: str, msg: str):
+            print(msg)
+            cur.execute(query)
             conn.commit()
 
-        if col_exists("user", "is_admin") is False:
-            print("🛠️ Agregando user.is_admin...")
-            cur.execute("""ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;""")
-            conn.commit()
+        # ---------------- USER
+        if not col_exists("user", "fecha_creacion"):
+            add_col(
+                """ALTER TABLE "user" ADD COLUMN fecha_creacion TIMESTAMP DEFAULT NOW();""",
+                "🛠️ Agregando user.fecha_creacion...",
+            )
 
-        # -------- RUTINA
-        if col_exists("rutina", "tipo") is False:
-            print("🛠️ Agregando rutina.tipo...")
-            cur.execute("""ALTER TABLE rutina ADD COLUMN tipo VARCHAR(100) DEFAULT 'General';""")
-            conn.commit()
+        if not col_exists("user", "is_admin"):
+            add_col(
+                """ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;""",
+                "🛠️ Agregando user.is_admin...",
+            )
 
-        # -------- DIA_PLAN (bloqueo atleta)
-        if col_exists("dia_plan", "puede_entrenar") is False:
-            print("🛠️ Agregando dia_plan.puede_entrenar...")
-            cur.execute("""ALTER TABLE dia_plan ADD COLUMN puede_entrenar VARCHAR(10) DEFAULT 'si';""")
-            conn.commit()
+        # ---------------- RUTINA
+        if not col_exists("rutina", "tipo"):
+            add_col(
+                """ALTER TABLE rutina ADD COLUMN tipo VARCHAR(100) DEFAULT 'General';""",
+                "🛠️ Agregando rutina.tipo...",
+            )
 
-        if col_exists("dia_plan", "comentario_atleta") is False:
-            print("🛠️ Agregando dia_plan.comentario_atleta...")
-            cur.execute("""ALTER TABLE dia_plan ADD COLUMN comentario_atleta TEXT;""")
-            conn.commit()
+        # ✅ FIX DEL ERROR: rutina.created_at
+        if not col_exists("rutina", "created_at"):
+            add_col(
+                """ALTER TABLE rutina ADD COLUMN created_at TIMESTAMP DEFAULT NOW();""",
+                "🛠️ Agregando rutina.created_at...",
+            )
+
+        # ---------------- DIA_PLAN (bloqueo atleta)
+        if not col_exists("dia_plan", "puede_entrenar"):
+            add_col(
+                """ALTER TABLE dia_plan ADD COLUMN puede_entrenar VARCHAR(10) DEFAULT 'si';""",
+                "🛠️ Agregando dia_plan.puede_entrenar...",
+            )
+
+        if not col_exists("dia_plan", "comentario_atleta"):
+            add_col(
+                """ALTER TABLE dia_plan ADD COLUMN comentario_atleta TEXT;""",
+                "🛠️ Agregando dia_plan.comentario_atleta...",
+            )
 
         print("✅ Estructura de base sincronizada.")
-        cur.close()
-        conn.close()
 
     except Exception as e:
+        if conn:
+            conn.rollback()
         print("⚠️ Error verificando estructura:", e)
+
+    finally:
+        try:
+            if cur:
+                cur.close()
+        finally:
+            if conn:
+                conn.close()
 
 
 ensure_columns()

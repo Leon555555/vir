@@ -1,505 +1,452 @@
-/* ===========================================
-   VR TRAINING PRO — UI 2025
-   MyWellness Inspired + Neon VR Style
-=========================================== */
+/* static/css/styles_v2.css
+   VR Training — UI v2 (premium dark glass)
+   Reemplazar archivo entero.
+*/
 
-:root {
-  --cyan: #22d3ee;
-  --cyan-soft: rgba(34, 211, 238, 0.25);
-  --cyan-glow: rgba(34, 211, 238, 0.55);
-  --red: #ef4444;
-  --green: #22c55e;
-  --blue: #3b82f6;
-  --yellow: #facc15;
-  --gray: #4b5563;
+:root{
+  --bg0:#050608;
+  --bg1:#070a0c;
+  --glass: rgba(255,255,255,.04);
+  --glass2: rgba(255,255,255,.06);
+  --border: rgba(255,255,255,.10);
+  --border2: rgba(255,255,255,.14);
+  --muted: rgba(255,255,255,.60);
+  --muted2: rgba(255,255,255,.45);
+  --text: rgba(255,255,255,.92);
+  --accent: #22d3ee;   /* cyan */
+  --accent2:#0ea5e9;   /* blue */
+  --good:#22c55e;      /* green */
+  --warn:#f59e0b;      /* amber */
+  --bad:#ef4444;       /* red */
 
-  --card-bg: #05070a;
-  --card-soft: #0b0f12;
-  --border-soft: rgba(255, 255, 255, 0.08);
+  --r12: 12px;
+  --r16: 16px;
+  --r20: 20px;
+
+  --shadow: 0 20px 60px rgba(0,0,0,.55);
+  --shadow2: 0 10px 30px rgba(0,0,0,.45);
 }
 
-/* ===========================================
-   CONTENEDOR PERFIL
-=========================================== */
-
-.perfil-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 12px 40px;
+/* =========================
+   GLOBAL
+========================= */
+*{ box-sizing: border-box; }
+html, body{ height:100%; }
+body{
+  background:
+    radial-gradient(1000px 600px at 20% 20%, rgba(34,211,238,.10), transparent 55%),
+    radial-gradient(900px 500px at 85% 15%, rgba(14,165,233,.10), transparent 55%),
+    radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
+  color: var(--text);
 }
 
-/* ===========================================
-   HEADER DEL PERFIL
-=========================================== */
+a{ color: var(--accent); }
+a:hover{ color: #7ee7f7; }
 
-.perfil-logo {
-  height: 110px;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 0 22px var(--cyan-glow));
-  object-fit: contain;
-}
+.container{ max-width: 1180px; }
+.container-fluid{ max-width: 1400px; }
 
-.perfil-nombre {
-  font-size: 1.9rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #eafaff;
-}
+hr{ border-color: rgba(255,255,255,.10) !important; opacity:1; }
 
-.perfil-sub {
-  color: #9fb6c0;
-  font-size: 0.98rem;
-}
-
-/* ===========================================
-   TABS SUPERIORES (NAV VR)
-=========================================== */
-
-.nav-vr-tabs {
-  border-bottom: 1px solid rgba(34, 211, 238, 0.2);
-}
-
-.nav-vr-tabs .nav-link {
-  color: #9dd9f0;
-  font-weight: 600;
-  padding: 9px 22px;
-  margin: 0 6px;
+/* nicer scrollbars (chromium) */
+*::-webkit-scrollbar{ width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,.12);
   border-radius: 999px;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: 0.25s ease;
-  border: none;
 }
+*::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,.18); }
+*::-webkit-scrollbar-track{ background: rgba(0,0,0,.15); }
 
-.nav-vr-tabs .nav-link:hover {
-  background: rgba(34, 211, 238, 0.12);
-  color: #ffffff;
+/* =========================
+   NAVBAR (layout.html)
+========================= */
+header.navbar{
+  border-bottom: 1px solid rgba(34,211,238,.55) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
 }
-
-.nav-vr-tabs .nav-link.active {
-  background: var(--cyan);
-  color: #000;
-  box-shadow: 0 0 16px var(--cyan-glow);
+.brand-name{
+  letter-spacing: .18em;
+  font-size: .95rem;
+  opacity: .95;
 }
-
-.vr-tab { display: none; }
-.vr-tab.active { display: block; }
-
-/* ===========================================
-   CARD BASE
-=========================================== */
-
-.card.bg-black {
-  background: linear-gradient(160deg, #05070a, #0b0f12);
-  border-radius: 18px;
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 0 20px rgba(0,0,0,0.65);
-}
-
-.card-pro {
-  background: linear-gradient(150deg, #05070a, #090d12);
-  border-radius: 16px;
-  border: 1px solid var(--border-soft);
-  padding: 18px;
-  box-shadow: 0 0 18px rgba(0,0,0,0.7);
-}
-
-/* ===========================================
-   GRID SEMANAL
-=========================================== */
-
-.week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(140px, 1fr));
-  gap: 14px;
-}
-
-.day-card {
-  background: linear-gradient(150deg, #0b0f14, #05070a);
-  border-radius: 14px;
-  padding: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  transition: 0.22s ease;
-  cursor: pointer;
+.nav-links a{
   position: relative;
+  padding: .35rem .2rem;
+}
+.nav-links a::after{
+  content:"";
+  position:absolute;
+  left:0;
+  bottom: -6px;
+  width:0;
+  height:2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transition: .18s ease;
+  opacity:.9;
+}
+.nav-links a:hover::after{ width: 100%; }
+
+/* =========================
+   CARDS — GLASS
+========================= */
+.card.glass,
+.glass{
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r16);
+  box-shadow: var(--shadow2);
+  backdrop-filter: blur(10px);
+}
+.card{
+  border-radius: var(--r16);
+}
+.card-header{
+  background: rgba(255,255,255,.03) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+}
+.card.bg-dark{
+  background: rgba(255,255,255,.03) !important;
+  border-color: rgba(255,255,255,.10) !important;
 }
 
-.day-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0px 0px 18px var(--cyan-soft);
-  outline: 1px solid rgba(34, 211, 238, 0.18);
+/* subtle lift */
+.lift{
+  transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+.lift:hover{
+  transform: translateY(-2px);
+  border-color: rgba(34,211,238,.30);
+  box-shadow: var(--shadow);
 }
 
-.day-blocked {
-  opacity: .78;
-  outline: 1px dashed rgba(239, 68, 68, 0.25);
+/* =========================
+   FORMS
+========================= */
+.form-control,
+.form-select{
+  background: rgba(0,0,0,.22) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  color: var(--text) !important;
+  border-radius: 14px !important;
+  padding: .62rem .82rem;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+}
+.form-control:focus,
+.form-select:focus{
+  border-color: rgba(34,211,238,.55) !important;
+  box-shadow: 0 0 0 .22rem rgba(34,211,238,.14) !important;
 }
 
-.day-fuerza   { border-left: 4px solid var(--yellow); }
-.day-pista    { border-left: 4px solid var(--red); }
-.day-bike     { border-left: 4px solid var(--green); }
-.day-natacion { border-left: 4px solid var(--blue); }
-.day-descanso { border-left: 4px solid var(--gray); }
-
-.day-card strong {
-  font-size: 0.95rem;
-  letter-spacing: 0.5px;
+.form-control::placeholder{
+  color: rgba(255,255,255,.35);
 }
 
-/* Mini system (resumen dentro de card) */
-.mini-title{font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.55)}
-.mini-strong{font-size:.95rem; font-weight:700; color:#fff}
-.mini-muted{font-size:.82rem; color:rgba(255,255,255,.55)}
-.mini-open{margin-top:10px; font-size:.75rem; color:rgba(0,255,255,.75)}
+.form-label{
+  color: rgba(255,255,255,.75);
+  font-weight: 700;
+  letter-spacing: .06em;
+}
 
-/* ===========================================
-   CALENDARIO MENSUAL
-=========================================== */
+input[type="file"]{
+  color: rgba(255,255,255,.65);
+}
 
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(110px, 1fr));
+/* =========================
+   BUTTONS
+========================= */
+.btn{
+  border-radius: 14px !important;
+  font-weight: 800;
+  letter-spacing: .04em;
+  padding: .62rem .95rem;
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+.btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+.btn:active{ transform: translateY(0px); filter: brightness(.98); }
+
+.btn-info{
+  background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
+  border: none !important;
+  color: #001014 !important;
+  box-shadow: 0 12px 30px rgba(34,211,238,.20);
+}
+.btn-outline-info{
+  border-color: rgba(34,211,238,.55) !important;
+  color: rgba(224,251,255,.92) !important;
+}
+.btn-outline-info:hover{
+  background: rgba(34,211,238,.14) !important;
+  border-color: rgba(34,211,238,.65) !important;
+}
+
+.btn-primary{
+  background: linear-gradient(135deg, #2563eb, #22d3ee) !important;
+  border: none !important;
+  color: #001014 !important;
+  box-shadow: 0 12px 30px rgba(37,99,235,.18);
+}
+.btn-outline-light{
+  border-color: rgba(255,255,255,.22) !important;
+  color: rgba(255,255,255,.86) !important;
+}
+.btn-outline-light:hover{ background: rgba(255,255,255,.08) !important; }
+
+.btn-success{
+  background: linear-gradient(135deg, #22c55e, #10b981) !important;
+  border: none !important;
+  color: #00130a !important;
+}
+.btn-outline-danger{
+  border-color: rgba(239,68,68,.55) !important;
+  color: rgba(255,210,210,.95) !important;
+}
+.btn-outline-danger:hover{
+  background: rgba(239,68,68,.14) !important;
+  border-color: rgba(239,68,68,.70) !important;
+}
+
+/* smaller buttons */
+.btn-sm{
+  padding: .42rem .75rem !important;
+  border-radius: 12px !important;
+  font-weight: 800;
+}
+
+/* =========================
+   BADGES / TAGS
+========================= */
+.badge{
+  border-radius: 999px;
+  padding: .45rem .7rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.bg-secondary{
+  background: rgba(255,255,255,.12) !important;
+  border: 1px solid rgba(255,255,255,.10);
+}
+.bg-success{
+  background: rgba(34,197,94,.18) !important;
+  border: 1px solid rgba(34,197,94,.35);
+  color: rgba(220,255,233,.95) !important;
+}
+.bg-info{
+  background: rgba(34,211,238,.16) !important;
+  border: 1px solid rgba(34,211,238,.32);
+  color: rgba(224,251,255,.95) !important;
+}
+
+/* =========================
+   ALERTS (flash)
+========================= */
+.alert{
+  border-radius: var(--r16);
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.90);
+  box-shadow: var(--shadow2);
+}
+.alert-success{
+  border-color: rgba(34,197,94,.30);
+  background: rgba(34,197,94,.10);
+}
+.alert-danger{
+  border-color: rgba(239,68,68,.30);
+  background: rgba(239,68,68,.10);
+}
+.alert-info{
+  border-color: rgba(34,211,238,.30);
+  background: rgba(34,211,238,.10);
+}
+
+/* =========================
+   PROFILE COMPONENTS
+========================= */
+.mini-stat{
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: var(--r16);
+  padding: 10px 12px;
+  min-width: 120px;
+  box-shadow: var(--shadow2);
+}
+.mini-title{
+  font-size:.76rem;
+  color: rgba(255,255,255,.55);
+  letter-spacing:.16em;
+  text-transform: uppercase;
+}
+.mini-value{
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
+.item-row{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius: var(--r16);
+  padding: 14px;
+  background: rgba(255,255,255,.03);
+  box-shadow: var(--shadow2);
+}
+.item-row strong{
+  font-size: 1.05rem;
+}
+
+video{
+  border-radius: var(--r16);
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.2);
+}
+
+/* =========================
+   WEEK CARDS (perfil week)
+========================= */
+.card.glass{
+  overflow: hidden;
+}
+.card.glass .btn{
+  box-shadow: none;
+}
+
+/* =========================
+   MONTH GRID (perfil month)
+========================= */
+.month-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 10px;
 }
-
-.calendar-day {
-  background: #05070a;
-  border-radius: 12px;
+.month-head{
+  color: rgba(255,255,255,.62);
+  text-align:center;
+  font-weight: 900;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+.month-cell{
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: var(--r16);
   padding: 10px;
-  border: 1px solid rgba(255,255,255,0.06);
-  transition: 0.2s ease;
-  cursor: pointer;
-}
-
-.calendar-day:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0 16px var(--cyan-soft);
-}
-
-.cal-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.cal-day-num {
-  font-size: 1.02rem;
-  font-weight: 700;
-  color: #eaf5ff;
-}
-
-.cal-weekday {
-  font-size: 0.7rem;
-  letter-spacing: 1px;
-  color: #74808b;
-}
-
-/* Pastillas estilo MyWellness */
-.event-pill {
-  background: rgba(255,255,255,0.03);
-  border-radius: 10px;
-  padding: 6px 8px;
-  font-size: 0.78rem;
-  border-left: 4px solid var(--cyan);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.event-fuerza   { border-left-color: var(--yellow); }
-.event-pista    { border-left-color: var(--red); }
-.event-bike     { border-left-color: var(--green); }
-.event-natacion { border-left-color: var(--blue); }
-.event-descanso { border-left-color: var(--gray); }
-
-.plan-empty {
-  font-size: 0.78rem;
-  color: #6b7280;
-}
-
-/* ===========================================
-   BADGES
-=========================================== */
-.badge-fuerza   { background: var(--yellow); color: #000; }
-.badge-pista    { background: var(--red); }
-.badge-bike     { background: var(--green); }
-.badge-natacion { background: var(--blue); }
-.badge-descanso { background: var(--gray); }
-
-/* ===========================================
-   RUTINAS LIST (perfil tab)
-=========================================== */
-.rutina-card{
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 14px;
-  transition: .2s ease;
-}
-.rutina-card:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 0 14px var(--cyan-soft);
-}
-
-/* ===========================================
-   MODAL FULLSCREEN (Detalle día)
-=========================================== */
-
-.hidden{display:none !important;}
-
-.vr-modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.78);
-  z-index:9999;
-  padding:18px;
-}
-
-.vr-modal-inner{
-  height:100%;
-  border-radius:16px;
-  overflow:hidden;
-  background:rgba(10,12,14,.95);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow: 0 0 30px rgba(0,0,0,.65);
-}
-
-.vr-modal-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:14px 18px;
-  border-bottom:1px solid rgba(255,255,255,.08);
-}
-
-.vr-modal-title{
-  font-size:1.15rem;
-  font-weight:800;
+  min-height: 76px;
   color:#fff;
-}
-
-.vr-modal-sub{
-  font-size:.9rem;
-  color:rgba(255,255,255,.55);
-}
-
-.vr-modal-close{
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.12);
-  color:#fff;
-  border-radius:12px;
-  padding:8px 12px;
+  text-align:left;
   cursor:pointer;
+  transition: transform .12s ease, border-color .12s ease, background .12s ease;
+}
+.month-cell:hover{
+  transform: translateY(-1px);
+  border-color: rgba(34,211,238,.35);
+  background: rgba(34,211,238,.06);
+}
+.month-cell.done{
+  border-color: rgba(34,197,94,.35);
+  background: rgba(34,197,94,.08);
+}
+.month-cell.empty{
+  border:1px dashed rgba(255,255,255,.08);
+  background: transparent;
+  min-height: 76px;
+}
+.daynum{ font-weight: 900; font-size: 1.05rem; }
+.ptype{ font-size: .80rem; color: rgba(255,255,255,.60); margin-top:2px; }
+
+/* =========================
+   PROGRESS BAR
+========================= */
+.progress{
+  background: rgba(255,255,255,.08) !important;
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.10);
+}
+.progress-bar{
+  background: linear-gradient(90deg, var(--accent), var(--good)) !important;
 }
 
-.vr-modal-body{
-  height:calc(100% - 58px);
-  padding:18px;
-  overflow:auto;
+/* =========================
+   MODAL
+========================= */
+.modal-content{
+  border-radius: 22px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: var(--shadow);
+}
+.modal-header{
+  background: rgba(255,255,255,.03);
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
 }
 
-.vr-modal-grid{
-  display:grid;
-  grid-template-columns: 1.1fr .9fr;
-  gap:16px;
-}
-@media (max-width: 1000px){
-  .vr-modal-grid{grid-template-columns:1fr}
-}
-
-.vr-panel{
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:16px;
-  padding:14px;
-}
-
-.vr-panel-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:10px;
-}
-
-.vr-panel-title{
-  font-weight:800;
-  color:#fff;
-}
-
-.vr-panel-subtitle{
-  color:rgba(255,255,255,.65);
-  margin:6px 0 10px;
-}
-
-.vr-pill{
-  font-size:.78rem;
-  padding:6px 10px;
-  border-radius:999px;
-  background:rgba(34,211,238,.12);
-  border:1px solid rgba(34,211,238,.22);
-  color:#bff;
-}
-
-.vr-tabs-mini{
+/* =========================
+   COACH PLANIFICADOR (tu dashboard_entrenador.html)
+========================= */
+.mini-tabs{
   display:flex;
   gap:8px;
-  margin-bottom:10px;
   flex-wrap:wrap;
+  margin-bottom:10px;
 }
-
-.vr-tab-mini{
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.10);
-  color:#fff;
+.mini-tab{
   border-radius:999px;
-  padding:6px 10px;
-  font-size:.82rem;
-  cursor:pointer;
-}
-
-.vr-tab-mini.active{
-  background:rgba(34,211,238,.14);
-  border-color:rgba(34,211,238,.25);
-}
-
-.vr-textbox{
-  white-space:pre-wrap;
+  padding: 7px 12px;
+  font-size: .82rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12);
   color:#fff;
-  background:rgba(0,0,0,.25);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:12px;
-  padding:12px;
-  min-height:160px;
+  transition: .12s ease;
 }
-
-.vr-items{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+.mini-tab:hover{
+  border-color: rgba(34,211,238,.35);
+  background: rgba(34,211,238,.07);
 }
-
-.vr-item{
-  border:1px solid rgba(255,255,255,.10);
-  border-radius:14px;
-  padding:12px;
-  background:rgba(0,0,0,.20);
+.mini-tab.active{
+  background: rgba(34,211,238,.16);
+  border-color: rgba(34,211,238,.30);
 }
-
-.vr-item-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-}
-
-.vr-item-name{
-  font-weight:800;
+.mini-area{
+  min-height: 92px;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.12);
   color:#fff;
+  border-radius: var(--r16);
+  margin-top: 8px;
 }
 
-.vr-item-meta{
-  font-size:.85rem;
-  color:rgba(255,255,255,.60);
-  margin-top:6px;
+/* nicer cards inside planificador */
+.endurance-box,.strength-box{
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: var(--r16);
+  padding: 12px;
 }
 
-.vr-item video{
-  width:100%;
-  border-radius:12px;
-  margin-top:10px;
-  max-height:360px;
-  background:#000;
+/* =========================
+   TABLES (if you use)
+========================= */
+.table{
+  color: rgba(255,255,255,.86);
+}
+.table td, .table th{
+  border-color: rgba(255,255,255,.10) !important;
+}
+.table-dark{
+  --bs-table-bg: rgba(255,255,255,.06);
 }
 
-.vr-item-note{
-  font-size:.88rem;
-  color:rgba(255,255,255,.65);
-  margin-top:8px;
-}
-
-.vr-chip{
-  display:inline-block;
-  font-size:.78rem;
-  padding:6px 10px;
-  border-radius:999px;
-  background:rgba(34,211,238,.10);
-  border:1px solid rgba(34,211,238,.18);
-  color:#bff;
-  margin:10px 0 6px;
-}
-
-.vr-area{
-  width:100%;
-  min-height:90px;
-  background:rgba(0,0,0,.22);
-  border:1px solid rgba(255,255,255,.10);
-  border-radius:12px;
-  padding:10px;
-  color:#fff;
-  outline:none;
-}
-
-.vr-area:focus{
-  border-color:rgba(34,211,238,.28);
-}
-
-.vr-switch{
-  position:relative;
-  display:inline-block;
-  width:54px;
-  height:30px;
-}
-
-.vr-switch input{
-  opacity:0;
-  width:0;
-  height:0;
-}
-
-.vr-slider{
-  position:absolute;
-  cursor:pointer;
-  inset:0;
-  background:rgba(255,255,255,.15);
-  transition:.2s;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.12);
-}
-
-.vr-slider:before{
-  position:absolute;
-  content:"";
-  height:22px;
-  width:22px;
-  left:4px;
-  top:3px;
-  background:white;
-  transition:.2s;
-  border-radius:50%;
-}
-
-.vr-switch input:checked + .vr-slider{
-  background:rgba(34,211,238,.22);
-}
-
-.vr-switch input:checked + .vr-slider:before{
-  transform:translateX(24px);
-}
-
-/* ===========================================
+/* =========================
    RESPONSIVE
-=========================================== */
-
-@media (max-width: 992px) {
-  .week-grid { grid-template-columns: repeat(3, 1fr); }
-  .calendar-grid { grid-template-columns: repeat(3, 1fr); }
-  .perfil-logo { height: 95px; }
+========================= */
+@media (max-width: 992px){
+  .container{ padding-left: 14px; padding-right: 14px; }
+  header.navbar{ padding: .8rem 1rem; }
+  .brand-name{ display:none; }
 }
-
-@media (max-width: 576px) {
-  .week-grid { grid-template-columns: repeat(2, 1fr); }
-  .calendar-grid { grid-template-columns: repeat(2, 1fr); }
-  .nav-vr-tabs .nav-link { padding: 8px 12px; font-size: 0.85rem; }
-  .perfil-nombre { font-size: 1.6rem; }
+@media (max-width: 576px){
+  .mini-stat{ min-width: 100px; }
+  .month-grid{ gap: 8px; }
+  .month-cell{ min-height: 70px; }
 }

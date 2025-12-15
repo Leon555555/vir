@@ -1,171 +1,139 @@
-from datetime import datetime
+# app/models.py
+from __future__ import annotations
 
-from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, date
 from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.extensions import db
 
 
-# ===================================
-# 👤 Modelo de usuario
-# ===================================
-class User(db.Model, UserMixin):
+class User(UserMixin, db.Model):
     __tablename__ = "user"
 
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    grupo = db.Column(db.String(50), default="Atleta")
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=True)
+
+    grupo = db.Column(db.String(120), nullable=True)
+
+    # ✅ IMPORTANTE: Render te rompía por esto faltante en la DB
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
+
+    fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
+        if not self.password_hash:
+            return False
         return check_password_hash(self.password_hash, password)
 
 
-# ===================================
-# 🧱 Modelo de Rutina
-# ===================================
-class Rutina(db.Model):
-    __tablename__ = "rutina"
-
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(200), nullable=False)
-    descripcion = db.Column(db.Text)
-    tipo = db.Column(db.String(100), default="General")  # fuerza, pista, bike, etc.
-    created_by = db.Column(db.Integer, db.ForeignKey("user.id"))
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-
-    items = db.relationship(
-        "RutinaItem",
-        backref="rutina",
-        cascade="all, delete-orphan",
-        order_by="RutinaItem.id",
-        lazy=True,
-    )
-
-
-# ===================================
-# 🎥 Banco de Ejercicios
-# ===================================
-class Ejercicio(db.Model):
-    __tablename__ = "ejercicio"
-
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(200), nullable=False)
-    categoria = db.Column(db.String(50))  # fuerza, core, movilidad, etc.
-    descripcion = db.Column(db.Text)
-
-    # Se guarda en /static/videos/
-    video_filename = db.Column(db.String(255), nullable=False)
-
-    imagen_filename = db.Column(db.String(255))
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-
-    rutina_items = db.relationship(
-        "RutinaItem",
-        back_populates="ejercicio",
-        lazy=True,
-    )
-
-
-# ===================================
-# 🏋️‍♀️ Ejercicio dentro de una Rutina
-# ===================================
-class RutinaItem(db.Model):
-    __tablename__ = "rutina_item"
-
-    id = db.Column(db.Integer, primary_key=True)
-    rutina_id = db.Column(db.Integer, db.ForeignKey("rutina.id"), nullable=False)
-
-    # Link al banco de ejercicios (opcional, pero lo usamos)
-    ejercicio_id = db.Column(db.Integer, db.ForeignKey("ejercicio.id"))
-
-    nombre = db.Column(db.String(200), nullable=False)
-    series = db.Column(db.String(50))
-    reps = db.Column(db.String(50))
-    descanso = db.Column(db.String(50))
-
-    imagen_url = db.Column(db.String(255))
-    video_url = db.Column(db.String(255))
-
-    # ⚠️ Se llama "nota" (no "notas")
-    nota = db.Column(db.Text)
-
-    ejercicio = db.relationship(
-        "Ejercicio",
-        back_populates="rutina_items",
-        lazy=True,
-    )
-
-
-# ===================================
-# 📅 Modelo de día planificado
-# ===================================
 class DiaPlan(db.Model):
     __tablename__ = "dia_plan"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    fecha = db.Column(db.Date, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    fecha = db.Column(db.Date, nullable=False, index=True)
 
-    plan_type = db.Column(db.String(50), default="descanso")
+    # Fuerza / Run / Bike / Natacion / Descanso
+    plan_type = db.Column(db.String(40), nullable=False, default="Descanso")
 
-    # Para RUN / BIKE / SWIM etc.
-    warmup = db.Column(db.Text)
-    main = db.Column(db.Text)
-    finisher = db.Column(db.Text)
+    # Para deportes resistencia:
+    warmup = db.Column(db.Text, nullable=True)
+    main = db.Column(db.Text, nullable=True)      # en fuerza guarda "RUTINA:<id>"
+    finisher = db.Column(db.Text, nullable=True)
 
-    propuesto_score = db.Column(db.Integer, default=0)
-    realizado_score = db.Column(db.Integer, default=0)
+    propuesto_score = db.Column(db.Integer, nullable=True, default=0)
+    realizado_score = db.Column(db.Integer, nullable=True, default=0)
 
-    # Para bloquear el día desde calendario ("no puedo entrenar")
-    puede_entrenar = db.Column(db.String(50))  # "si" / "no"
-    dificultad = db.Column(db.String(50))
-    comentario_atleta = db.Column(db.Text)
+    # ✅ bloqueo atleta en calendario
+    puede_entrenar = db.Column(db.String(10), nullable=True, default="si")  # "si" / "no"
+    comentario_atleta = db.Column(db.Text, nullable=True)
 
-    user = db.relationship("User", backref="dias", lazy=True)
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "fecha", name="uq_plan_user_fecha"),
+    )
 
 
-# ===================================
-# ✅ Check por ejercicio (fuerza)
-# ===================================
+class Rutina(db.Model):
+    __tablename__ = "rutina"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(180), nullable=False)
+    tipo = db.Column(db.String(100), nullable=True, default="General")
+    descripcion = db.Column(db.Text, nullable=True)
+
+    created_by = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+class Ejercicio(db.Model):
+    __tablename__ = "ejercicio"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(180), nullable=False)
+    categoria = db.Column(db.String(120), nullable=True)
+    descripcion = db.Column(db.Text, nullable=True)
+
+    # Nombre del archivo en /static/videos/
+    video_filename = db.Column(db.String(255), nullable=True)
+
+
+class RutinaItem(db.Model):
+    __tablename__ = "rutina_item"
+
+    id = db.Column(db.Integer, primary_key=True)
+    rutina_id = db.Column(db.Integer, db.ForeignKey("rutina.id"), nullable=False, index=True)
+    ejercicio_id = db.Column(db.Integer, db.ForeignKey("ejercicio.id"), nullable=True)
+
+    nombre = db.Column(db.String(180), nullable=False)
+
+    series = db.Column(db.String(50), nullable=True)
+    reps = db.Column(db.String(50), nullable=True)
+    descanso = db.Column(db.String(50), nullable=True)
+
+    # ✅ ojo: en tu template usás it.nota
+    nota = db.Column(db.Text, nullable=True)
+
+    # Guardamos ruta relativa: "videos/archivo.mp4"
+    video_url = db.Column(db.String(255), nullable=True)
+
+
 class AthleteCheck(db.Model):
     __tablename__ = "athlete_check"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"), nullable=False)
-    fecha = db.Column(db.Date, nullable=False)
-    rutina_item_id = db.Column(db.Integer, db.ForeignKey('rutina_item.id', ondelete="CASCADE"), nullable=False)
-    done = db.Column(db.Boolean, nullable=False, default=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    fecha = db.Column(db.Date, nullable=False, index=True)
+    rutina_item_id = db.Column(db.Integer, db.ForeignKey("rutina_item.id"), nullable=False, index=True)
+
+    done = db.Column(db.Boolean, nullable=False, default=False)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     __table_args__ = (
-        db.UniqueConstraint("user_id", "fecha", "rutina_item_id", name="uq_athlete_check"),
+        db.UniqueConstraint("user_id", "fecha", "rutina_item_id", name="uq_check_user_fecha_item"),
     )
 
 
-# ===================================
-# ✅ Log del atleta (lo realizado) - NO pisa lo propuesto
-# ===================================
 class AthleteLog(db.Model):
     __tablename__ = "athlete_log"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"), nullable=False)
-    fecha = db.Column(db.Date, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    fecha = db.Column(db.Date, nullable=False, index=True)
 
     did_train = db.Column(db.Boolean, nullable=False, default=False)
 
-    warmup_done = db.Column(db.Text)
-    main_done = db.Column(db.Text)
-    finisher_done = db.Column(db.Text)
+    warmup_done = db.Column(db.Text, nullable=True)
+    main_done = db.Column(db.Text, nullable=True)
+    finisher_done = db.Column(db.Text, nullable=True)
 
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     __table_args__ = (
-        db.UniqueConstraint("user_id", "fecha", name="uq_athlete_log_user_fecha"),
+        db.UniqueConstraint("user_id", "fecha", name="uq_log_user_fecha"),
     )

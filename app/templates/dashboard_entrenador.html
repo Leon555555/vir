@@ -1,235 +1,194 @@
 {% extends "layout.html" %}
-{% block title %}Dashboard Entrenador{% endblock %}
+{% block title %}Dashboard Entrenador — VR Training{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4 dashboard-entrenador">
+<div class="container mt-4">
 
-  <!-- Título -->
-  <h2 class="mb-4 text-uppercase" style="font-weight:700;">
-    🏋️ Panel del entrenador — Admin ViR
-  </h2>
+  <h2 class="text-light mb-1">📅 Planificador — {{ atleta.nombre if atleta else "—" }}</h2>
+  {% if atleta %}
+    <div class="text-muted mb-3">Semana: {{ semana_str }}</div>
+  {% endif %}
 
-  <div class="row g-4">
-
-    <!-- ===================================================== -->
-    <!--        BLOQUE IZQUIERDO: RUTINAS                     -->
-    <!-- ===================================================== -->
-    <div class="col-lg-6">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-header d-flex align-items-center">
-          <h5 class="mb-0">Rutinas</h5>
-        </div>
-
-        <div class="card-body">
-
-          <!-- Form crear rutina -->
-          <form method="post"
-                action="{{ url_for('main.crear_rutina') }}"
-                class="row g-2 mb-3">
-            <div class="col-md-4">
-              <input type="text"
-                     name="nombre"
-                     class="form-control form-control-sm"
-                     placeholder="Nombre rutina"
-                     required>
-            </div>
-            <div class="col-md-3">
-              <input type="text"
-                     name="tipo"
-                     class="form-control form-control-sm"
-                     placeholder="Tipo (fuerza, run...)">
-            </div>
-            <div class="col-md-4">
-              <input type="text"
-                     name="descripcion"
-                     class="form-control form-control-sm"
-                     placeholder="Descripción corta">
-            </div>
-            <div class="col-md-1 d-grid">
-              <button type="submit" class="btn btn-sm btn-primary">
-                Crear
-              </button>
-            </div>
-          </form>
-
-          <!-- Lista de rutinas -->
-          <ul class="list-group list-group-flush">
-            {% for r in rutinas %}
-              <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>{{ r.nombre }}</strong>
-                  {% if r.tipo %}
-                    <span class="badge bg-info ms-2 text-dark">{{ r.tipo }}</span>
-                  {% endif %}
-                  {% if r.descripcion %}
-                    <small class="text-muted ms-2">{{ r.descripcion }}</small>
-                  {% endif %}
-                </div>
-                <a href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}"
-                   class="btn btn-sm btn-outline-light">
-                  Editar rutina
-                </a>
-              </li>
-            {% else %}
-              <li class="list-group-item bg-dark text-muted">
-                Aún no hay rutinas creadas.
-              </li>
-            {% endfor %}
-          </ul>
-
-        </div>
-      </div>
+  <!-- selector atleta -->
+  <form method="GET" class="row g-2 mb-4">
+    <div class="col-md-5">
+      <select class="form-select" name="user_id">
+        {% for a in atletas %}
+          <option value="{{ a.id }}" {% if atleta and a.id==atleta.id %}selected{% endif %}>
+            {{ a.nombre }} ({{ a.email }})
+          </option>
+        {% endfor %}
+      </select>
     </div>
+    <div class="col-md-3">
+      <input class="form-control" type="date" name="center" value="{{ center.isoformat() if center else '' }}">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-info w-100" type="submit">Ver semana</button>
+    </div>
+  </form>
 
-    <!-- ===================================================== -->
-    <!--        BLOQUE DERECHO: BANCO DE EJERCICIOS (VÍDEO)    -->
-    <!-- ===================================================== -->
-    <div class="col-lg-6">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-header d-flex align-items-center">
-          <h5 class="mb-0">Banco de ejercicios (vídeo)</h5>
-        </div>
+  {% if atleta %}
+  <div class="row g-3">
+    {% for f in fechas %}
+      {% set plan = planes[f] %}
+      <div class="col-md-6 col-lg-4">
+        <form method="POST" action="{{ url_for('main.save_day') }}" class="card p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;">
+          <input type="hidden" name="user_id" value="{{ atleta.id }}">
+          <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
 
-        <div class="card-body">
-
-          <!-- Form subir ejercicio -->
-          <form method="post"
-                action="{{ url_for('main.admin_nuevo_ejercicio') }}"
-                enctype="multipart/form-data"
-                class="row g-2 mb-3">
-            <div class="col-md-3">
-              <input type="text"
-                     name="nombre"
-                     class="form-control form-control-sm"
-                     placeholder="Nombre del ejercicio"
-                     required>
-            </div>
-            <div class="col-md-2">
-              <input type="text"
-                     name="categoria"
-                     class="form-control form-control-sm"
-                     placeholder="Categoría">
-            </div>
-            <div class="col-md-4">
-              <input type="text"
-                     name="descripcion"
-                     class="form-control form-control-sm"
-                     placeholder="Descripción (opcional)">
-            </div>
-            <div class="col-md-2">
-              <input type="file"
-                     name="video"
-                     accept="video/*"
-                     class="form-control form-control-sm"
-                     required>
-            </div>
-            <div class="col-md-1 d-grid">
-              <button type="submit" class="btn btn-sm btn-primary">
-                Subir
-              </button>
-            </div>
-          </form>
-
-          <!-- Tarjetas de ejercicios con vídeo -->
-          <div class="row g-3">
-            {% for ej in ejercicios %}
-              <div class="col-md-4">
-                <div class="card bg-secondary bg-opacity-10 border-secondary h-100">
-                  <div class="card-header py-2 border-secondary">
-                    <strong class="small">{{ ej.nombre }}</strong><br>
-                    {% if ej.categoria %}
-                      <span class="badge bg-info text-dark">{{ ej.categoria }}</span>
-                    {% endif %}
-                  </div>
-                  <div class="card-body p-2">
-                    <video class="w-100 rounded" controls preload="metadata" style="max-height: 170px;">
-                      <source src="{{ url_for('static', filename='videos/' ~ ej.video_filename) }}"
-                              type="video/mp4">
-                      Tu navegador no soporta vídeo HTML5.
-                    </video>
-                  </div>
-                </div>
-              </div>
-            {% else %}
-              <p class="text-muted">Todavía no has subido ejercicios al banco.</p>
-            {% endfor %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-light">{{ f.strftime('%a %d/%m')|upper }}</strong>
+            <span class="badge bg-secondary" id="badge-{{ f.isoformat() }}">{{ plan.plan_type }}</span>
           </div>
 
-        </div>
-      </div>
-    </div>
+          <!-- SELECT TIPO -->
+          <select class="form-select mb-3"
+                  name="plan_type"
+                  id="planType-{{ f.isoformat() }}"
+                  onchange="onPlanTypeChange('{{ f.isoformat() }}')">
+            <option value="Descanso" {% if plan.plan_type=='Descanso' %}selected{% endif %}>Descanso</option>
+            <option value="Fuerza" {% if plan.plan_type=='Fuerza' %}selected{% endif %}>Fuerza</option>
+            <option value="Run" {% if plan.plan_type=='Run' %}selected{% endif %}>Run</option>
+            <option value="Bike" {% if plan.plan_type=='Bike' %}selected{% endif %}>Bike</option>
+            <option value="Natacion" {% if plan.plan_type=='Natacion' %}selected{% endif %}>Natación</option>
+          </select>
 
-  </div>
+          <!-- NO FUERZA: 3 botones -->
+          <div id="enduranceBox-{{ f.isoformat() }}" class="endurance-box hidden">
+            <div class="mini-tabs">
+              <button type="button" class="mini-tab active"
+                      data-fecha="{{ f.isoformat() }}" data-target="warmup"
+                      onclick="switchMiniTab('{{ f.isoformat() }}','warmup')">Activación</button>
+              <button type="button" class="mini-tab"
+                      data-fecha="{{ f.isoformat() }}" data-target="main"
+                      onclick="switchMiniTab('{{ f.isoformat() }}','main')">Bloque principal</button>
+              <button type="button" class="mini-tab"
+                      data-fecha="{{ f.isoformat() }}" data-target="finisher"
+                      onclick="switchMiniTab('{{ f.isoformat() }}','finisher')">Enfriamiento</button>
+            </div>
 
-  <!-- ========================================================= -->
-  <!--            BLOQUE ATLETAS / USUARIOS                     -->
-  <!-- ========================================================= -->
-  <div class="row g-4 mt-4">
-    <div class="col-12">
-      <div class="card bg-dark border-secondary shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Atletas</h5>
-        </div>
+            <textarea class="form-control mini-area"
+                      id="warmup-{{ f.isoformat() }}"
+                      name="warmup"
+                      placeholder="Ej: movilidad + skipping...">{{ plan.warmup or "" }}</textarea>
 
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-dark table-striped align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Email</th>
-                  <th>Grupo</th>
-                  <th style="width: 340px;">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for atleta in atletas %}
-                  <tr>
-                    <td>{{ atleta.nombre }}</td>
-                    <td>{{ atleta.email }}</td>
-                    <td>{{ atleta.grupo or "—" }}</td>
-                    <td>
-                      <div class="btn-group btn-group-sm" role="group">
+            <textarea class="form-control mini-area hidden"
+                      id="main-{{ f.isoformat() }}"
+                      name="main"
+                      placeholder="Ej: 3x1000 a 5'10'' rec 2'...">{{ plan.main or "" }}</textarea>
 
-                        <!-- ✅ NUEVO: PLANIFICAR -->
-                        <a href="{{ url_for('main.coach_planificador', user_id=atleta.id) }}"
-                           class="btn btn-info">
-                          Planificar
-                        </a>
-
-                        <!-- Ver como atleta -->
-                        <a href="{{ url_for('main.perfil_usuario', user_id=atleta.id) }}"
-                           class="btn btn-outline-light">
-                          Ver perfil
-                        </a>
-
-                        <!-- Eliminar -->
-                        <form method="post"
-                              action="{{ url_for('main.admin_delete_user', user_id=atleta.id) }}"
-                              onsubmit="return confirm('¿Eliminar a {{ atleta.nombre }}? Esta acción no se puede deshacer.');">
-                          <button type="submit" class="btn btn-outline-danger">
-                            Eliminar
-                          </button>
-                        </form>
-
-                      </div>
-                    </td>
-                  </tr>
-                {% else %}
-                  <tr>
-                    <td colspan="4" class="text-muted text-center">
-                      Todavía no hay atletas (usuarios) creados.
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+            <textarea class="form-control mini-area hidden"
+                      id="finisher-{{ f.isoformat() }}"
+                      name="finisher"
+                      placeholder="Ej: 10' suave + estirar">{{ plan.finisher or "" }}</textarea>
           </div>
-        </div>
 
+          <!-- FUERZA: selector rutina -->
+          <div id="strengthBox-{{ f.isoformat() }}" class="strength-box hidden">
+            <select class="form-select mb-2" name="rutina_select" id="rutinaSel-{{ f.isoformat() }}">
+              <option value="">— Sin rutina —</option>
+              {% for r in rutinas %}
+                <option value="RUTINA:{{ r.id }}" {% if plan.main == ("RUTINA:" ~ r.id) %}selected{% endif %}>
+                  {{ r.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="small text-muted text-center" style="letter-spacing:.12em;">RUTINA:ID</div>
+
+            <!-- opcional: warmup/finisher en fuerza si querés -->
+            <textarea class="form-control mini-area mt-2" name="warmup" placeholder="Warmup (opcional)">{{ plan.warmup or "" }}</textarea>
+            <textarea class="form-control mini-area mt-2" name="finisher" placeholder="Finisher (opcional)">{{ plan.finisher or "" }}</textarea>
+          </div>
+
+          <div class="d-flex gap-2 mt-3">
+            <input class="form-control" type="number" name="propuesto_score" value="{{ plan.propuesto_score or 0 }}" />
+            <button class="btn btn-primary w-100" type="submit">💾 Guardar día</button>
+          </div>
+
+        </form>
       </div>
-    </div>
+    {% endfor %}
   </div>
+  {% endif %}
 
 </div>
+
+<style>
+.hidden{display:none !important;}
+.endurance-box,.strength-box{
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 12px;
+}
+.mini-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.mini-tab{
+  border-radius:999px;padding:6px 10px;font-size:.82rem;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  color:#fff;
+}
+.mini-tab.active{
+  background: rgba(34,211,238,.16);
+  border-color: rgba(34,211,238,.28);
+}
+.mini-area{
+  min-height: 92px;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.10);
+  color:#fff;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+</style>
+
+<script>
+function normalizeType(v){ return (v || "").toLowerCase().trim(); }
+
+function onPlanTypeChange(fecha){
+  const sel = document.getElementById(`planType-${fecha}`);
+  const type = normalizeType(sel.value);
+
+  const endurance = document.getElementById(`enduranceBox-${fecha}`);
+  const strength = document.getElementById(`strengthBox-${fecha}`);
+  const badge = document.getElementById(`badge-${fecha}`);
+
+  if (badge) badge.textContent = sel.value;
+
+  if (type === "fuerza") {
+    endurance.classList.add("hidden");
+    strength.classList.remove("hidden");
+    return;
+  }
+
+  if (type === "descanso") {
+    endurance.classList.add("hidden");
+    strength.classList.add("hidden");
+    return;
+  }
+
+  strength.classList.add("hidden");
+  endurance.classList.remove("hidden");
+  switchMiniTab(fecha, "warmup");
+}
+
+function switchMiniTab(fecha, which){
+  const tabs = document.querySelectorAll(`.mini-tab[data-fecha="${fecha}"]`);
+  tabs.forEach(t => t.classList.toggle("active", t.dataset.target === which));
+
+  ["warmup","main","finisher"].forEach(k=>{
+    const el = document.getElementById(`${k}-${fecha}`);
+    if (!el) return;
+    el.classList.toggle("hidden", k !== which);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("[id^='planType-']").forEach(sel=>{
+    const fecha = sel.id.replace("planType-","");
+    onPlanTypeChange(fecha);
+  });
+});
+</script>
 {% endblock %}

@@ -32,21 +32,25 @@
   <div class="row g-3">
     {% for f in fechas %}
       {% set plan = planes[f] %}
+      {% set fecha_id = f.isoformat() %}
       <div class="col-md-6 col-lg-4">
-        <form method="POST" action="{{ url_for('main.save_day') }}" class="card p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;">
+        <form method="POST" action="{{ url_for('main.save_day') }}"
+              class="card p-3"
+              style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;">
+
           <input type="hidden" name="user_id" value="{{ atleta.id }}">
-          <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
+          <input type="hidden" name="fecha" value="{{ fecha_id }}">
 
           <div class="d-flex justify-content-between align-items-center mb-2">
             <strong class="text-light">{{ f.strftime('%a %d/%m')|upper }}</strong>
-            <span class="badge bg-secondary" id="badge-{{ f.isoformat() }}">{{ plan.plan_type }}</span>
+            <span class="badge bg-secondary" id="badge-{{ fecha_id }}">{{ plan.plan_type }}</span>
           </div>
 
           <!-- SELECT TIPO -->
           <select class="form-select mb-3"
                   name="plan_type"
-                  id="planType-{{ f.isoformat() }}"
-                  onchange="onPlanTypeChange('{{ f.isoformat() }}')">
+                  id="planType-{{ fecha_id }}"
+                  onchange="onPlanTypeChange('{{ fecha_id }}')">
             <option value="Descanso" {% if plan.plan_type=='Descanso' %}selected{% endif %}>Descanso</option>
             <option value="Fuerza" {% if plan.plan_type=='Fuerza' %}selected{% endif %}>Fuerza</option>
             <option value="Run" {% if plan.plan_type=='Run' %}selected{% endif %}>Run</option>
@@ -55,38 +59,38 @@
           </select>
 
           <!-- NO FUERZA: 3 botones -->
-          <div id="enduranceBox-{{ f.isoformat() }}" class="endurance-box hidden">
+          <div id="enduranceBox-{{ fecha_id }}" class="endurance-box hidden">
             <div class="mini-tabs">
               <button type="button" class="mini-tab active"
-                      data-fecha="{{ f.isoformat() }}" data-target="warmup"
-                      onclick="switchMiniTab('{{ f.isoformat() }}','warmup')">Activación</button>
+                      data-fecha="{{ fecha_id }}" data-target="warmup"
+                      onclick="switchMiniTab('{{ fecha_id }}','warmup')">Activación</button>
               <button type="button" class="mini-tab"
-                      data-fecha="{{ f.isoformat() }}" data-target="main"
-                      onclick="switchMiniTab('{{ f.isoformat() }}','main')">Bloque principal</button>
+                      data-fecha="{{ fecha_id }}" data-target="main"
+                      onclick="switchMiniTab('{{ fecha_id }}','main')">Bloque principal</button>
               <button type="button" class="mini-tab"
-                      data-fecha="{{ f.isoformat() }}" data-target="finisher"
-                      onclick="switchMiniTab('{{ f.isoformat() }}','finisher')">Enfriamiento</button>
+                      data-fecha="{{ fecha_id }}" data-target="finisher"
+                      onclick="switchMiniTab('{{ fecha_id }}','finisher')">Enfriamiento</button>
             </div>
 
             <textarea class="form-control mini-area"
-                      id="warmup-{{ f.isoformat() }}"
+                      id="warmup-{{ fecha_id }}"
                       name="warmup"
                       placeholder="Ej: movilidad + skipping...">{{ plan.warmup or "" }}</textarea>
 
             <textarea class="form-control mini-area hidden"
-                      id="main-{{ f.isoformat() }}"
+                      id="main-{{ fecha_id }}"
                       name="main"
                       placeholder="Ej: 3x1000 a 5'10'' rec 2'...">{{ plan.main or "" }}</textarea>
 
             <textarea class="form-control mini-area hidden"
-                      id="finisher-{{ f.isoformat() }}"
+                      id="finisher-{{ fecha_id }}"
                       name="finisher"
                       placeholder="Ej: 10' suave + estirar">{{ plan.finisher or "" }}</textarea>
           </div>
 
           <!-- FUERZA: selector rutina -->
-          <div id="strengthBox-{{ f.isoformat() }}" class="strength-box hidden">
-            <select class="form-select mb-2" name="rutina_select" id="rutinaSel-{{ f.isoformat() }}">
+          <div id="strengthBox-{{ fecha_id }}" class="strength-box hidden">
+            <select class="form-select mb-2" name="rutina_select" id="rutinaSel-{{ fecha_id }}">
               <option value="">— Sin rutina —</option>
               {% for r in rutinas %}
                 <option value="RUTINA:{{ r.id }}" {% if plan.main == ("RUTINA:" ~ r.id) %}selected{% endif %}>
@@ -94,9 +98,9 @@
                 </option>
               {% endfor %}
             </select>
+
             <div class="small text-muted text-center" style="letter-spacing:.12em;">RUTINA:ID</div>
 
-            <!-- opcional: warmup/finisher en fuerza si querés -->
             <textarea class="form-control mini-area mt-2" name="warmup" placeholder="Warmup (opcional)">{{ plan.warmup or "" }}</textarea>
             <textarea class="form-control mini-area mt-2" name="finisher" placeholder="Finisher (opcional)">{{ plan.finisher or "" }}</textarea>
           </div>
@@ -143,11 +147,16 @@
 }
 </style>
 
+{% endblock %}
+
+{% block extra_js %}
 <script>
 function normalizeType(v){ return (v || "").toLowerCase().trim(); }
 
 function onPlanTypeChange(fecha){
   const sel = document.getElementById(`planType-${fecha}`);
+  if (!sel) return;
+
   const type = normalizeType(sel.value);
 
   const endurance = document.getElementById(`enduranceBox-${fecha}`);
@@ -157,19 +166,19 @@ function onPlanTypeChange(fecha){
   if (badge) badge.textContent = sel.value;
 
   if (type === "fuerza") {
-    endurance.classList.add("hidden");
-    strength.classList.remove("hidden");
+    endurance?.classList.add("hidden");
+    strength?.classList.remove("hidden");
     return;
   }
 
   if (type === "descanso") {
-    endurance.classList.add("hidden");
-    strength.classList.add("hidden");
+    endurance?.classList.add("hidden");
+    strength?.classList.add("hidden");
     return;
   }
 
-  strength.classList.add("hidden");
-  endurance.classList.remove("hidden");
+  strength?.classList.add("hidden");
+  endurance?.classList.remove("hidden");
   switchMiniTab(fecha, "warmup");
 }
 

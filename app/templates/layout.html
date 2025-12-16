@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 
   <!-- ✅ Tu tema SIEMPRE después de Bootstrap -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}?v=99">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}?v=200">
 
   {% block extra_css %}{% endblock %}
 </head>
@@ -42,7 +42,7 @@
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for cat, msg in messages %}
-            <div class="alert alert-{{ cat }} mb-3">{{ msg }}</div>
+            <div class="alert alert-{{ cat }} mb-3 vr-alert">{{ msg }}</div>
           {% endfor %}
         {% endif %}
       {% endwith %}

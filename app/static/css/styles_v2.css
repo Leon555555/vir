@@ -1,19 +1,33 @@
 :root{
   --bg0:#000;
   --bg1:#0b0f12;
+
   --glass:rgba(255,255,255,.05);
   --glass2:rgba(255,255,255,.03);
   --stroke:rgba(255,255,255,.10);
+
   --text:rgba(255,255,255,.92);
   --muted:rgba(255,255,255,.62);
-  --cyan: #22d3ee;
+  --muted2:rgba(255,255,255,.42);
+
+  --cyan:#22d3ee;
   --cyan2:#0ea5e9;
+
+  --good:#22c55e;
+  --warn:#f59e0b;
+  --bad:#ef4444;
+
+  --shadow: 0 16px 50px rgba(0,0,0,.45);
+  --radius: 18px;
 }
 
 *{ font-family:"Rajdhani", system-ui, -apple-system, Segoe UI, Roboto, Arial; }
 
 .vr-body{
-  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
+  background:
+    radial-gradient(1200px 650px at 30% 0%, rgba(34,211,238,.10), transparent 60%),
+    radial-gradient(900px 520px at 80% 0%, rgba(34,197,94,.06), transparent 60%),
+    radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
   color: var(--text);
   min-height:100vh;
 }
@@ -24,25 +38,44 @@
   border-bottom: 1px solid var(--stroke);
   backdrop-filter: blur(10px);
 }
-.vr-brand{ color:var(--text); font-weight:800; letter-spacing:.06em; }
+.vr-brand{ color:var(--text); font-weight:900; letter-spacing:.08em; }
 .vr-link{
   color: var(--muted);
   text-decoration:none;
-  font-weight:700;
+  font-weight:800;
+  letter-spacing:.02em;
 }
 .vr-link:hover{ color: var(--text); }
+
+/* Header avatar */
+.vr-avatar{
+  width:46px;
+  height:46px;
+  border-radius:16px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Kicker */
+.vr-kicker{
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
 
 /* Glass cards */
 .glass{
   background: var(--glass2);
   border: 1px solid var(--stroke);
-  border-radius: 18px;
-  box-shadow: 0 16px 40px rgba(0,0,0,.35);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   backdrop-filter: blur(10px);
 }
 
 .lift{ transition: transform .15s ease, box-shadow .15s ease; }
-.lift:hover{ transform: translateY(-2px); box-shadow: 0 20px 50px rgba(0,0,0,.45); }
+.lift:hover{ transform: translateY(-2px); box-shadow: 0 20px 60px rgba(0,0,0,.55); }
 
 /* Forms */
 .form-control, .form-select, textarea{
@@ -56,23 +89,36 @@
   border-color: rgba(34,211,238,.65) !important;
   box-shadow: 0 0 0 .2rem rgba(34,211,238,.12) !important;
 }
+.ua-input{
+  background: rgba(0,0,0,.35) !important;
+}
 
 /* Buttons */
 .btn-info{
   background: linear-gradient(135deg, var(--cyan), var(--cyan2)) !important;
   border: 0 !important;
   color: #041015 !important;
-  font-weight: 900 !important;
+  font-weight: 1000 !important;
   border-radius: 14px !important;
 }
 .btn-outline-info{
   border-color: rgba(34,211,238,.55) !important;
   color: rgba(34,211,238,.9) !important;
   border-radius: 14px !important;
-  font-weight: 900 !important;
+  font-weight: 1000 !important;
 }
 .btn-outline-info:hover{
   background: rgba(34,211,238,.10) !important;
+}
+.btn-outline-light{
+  border-color: rgba(255,255,255,.18) !important;
+  color: rgba(255,255,255,.86) !important;
+  border-radius: 14px !important;
+  font-weight: 1000 !important;
+}
+.btn-outline-light:hover{
+  background: rgba(255,255,255,.06) !important;
+  border-color: rgba(255,255,255,.28) !important;
 }
 
 /* Small stats (perfil) */
@@ -87,19 +133,134 @@
   letter-spacing: .18em;
   text-transform: uppercase;
   font-size: .78rem;
-  color: rgba(255,255,255,.62);
-  font-weight: 900;
+  color: var(--muted);
+  font-weight: 1000;
 }
 .mini-value{
   font-size: 1.05rem;
-  font-weight: 900;
-  color: rgba(255,255,255,.92);
+  font-weight: 1000;
+  color: var(--text);
 }
 .progress{ background: rgba(255,255,255,.08) !important; border-radius: 999px; }
 .progress-bar{ background: linear-gradient(135deg, var(--cyan), var(--cyan2)) !important; }
 
-/* Alerts a tono oscuro */
-.alert{
+/* Alerts */
+.vr-alert{
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.92);
+}
+
+/* Script box */
+.vr-scriptbox{
+  border-radius: 16px;
+  white-space: pre-wrap;
+  line-height: 1.35;
+  font-size: .98rem;
+}
+
+/* ============================
+   CALENDARIO MENSUAL PRO
+============================ */
+.month-grid{
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  padding: 8px;
+}
+
+.month-head{
+  color: var(--muted2);
+  font-weight: 1000;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  font-size: .78rem;
+  padding: 6px 8px;
+  border-radius: 12px;
+}
+
+.month-cell{
+  position: relative;
+  min-height: 98px;
+  padding: 10px 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  box-shadow: 0 12px 28px rgba(0,0,0,.35);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: transform .12s ease, border-color .12s ease, background .12s ease, box-shadow .12s ease;
+  overflow: hidden;
+}
+.month-cell:hover{
+  transform: translateY(-2px);
+  border-color: rgba(34,211,238,.38);
+  box-shadow: 0 18px 45px rgba(0,0,0,.45);
+  background: radial-gradient(420px 180px at 25% 0%, rgba(34,211,238,.12), transparent 65%),
+              linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+}
+
+.month-cell.empty{
+  cursor: default;
+  box-shadow: none;
+  border-style: dashed;
+  border-color: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.02);
+  opacity: .35;
+}
+.month-cell.empty:hover{ transform:none; }
+
+.month-cell .daynum{
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-weight: 1000;
+  font-size: .95rem;
+  color: rgba(255,255,255,.72);
+}
+
+.month-cell .ptype{
+  margin-top: 26px;
+  font-weight: 1000;
+  font-size: .92rem;
+  color: rgba(255,255,255,.92);
+  line-height: 1.1;
+  letter-spacing: .02em;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* DONE */
+.month-cell.done{
+  border-color: rgba(34,197,94,.45);
+  background: radial-gradient(420px 180px at 20% 0%, rgba(34,197,94,.16), transparent 65%),
+              linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+}
+.month-cell.done::before{
+  content: "✓";
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  font-weight: 1000;
+  font-size: .95rem;
+  color: rgba(34,197,94,.95);
+  opacity: .95;
+}
+
+/* Colores por tipo (si los nombres coinciden) */
+.month-cell[data-type="Descanso"] .ptype{ color: rgba(255,255,255,.68); }
+.month-cell[data-type="Fuerza"] .ptype{ color: rgba(34,211,238,.92); }
+.month-cell[data-type="Run"] .ptype{ color: rgba(239,68,68,.92); }
+.month-cell[data-type="Bike"] .ptype{ color: rgba(34,197,94,.92); }
+.month-cell[data-type="Natacion"] .ptype{ color: rgba(14,165,233,.92); }
+
+/* Responsive */
+@media (max-width: 768px){
+  .month-grid{ gap: 8px; padding: 4px; }
+  .month-cell{ min-height: 82px; border-radius: 16px; }
+  .month-cell .ptype{ font-size: .86rem; }
 }

@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block title %}Crear atleta — VR Training{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <h2 class="text-light mb-0">➕ Crear nuevo atleta</h2>
+      <div class="text-muted">Esto crea el perfil y credenciales de acceso.</div>
+    </div>
+    <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') }}">← Volver</a>
+  </div>
+
+  <div class="card glass p-3 p-md-4">
+    <form method="POST" class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label text-light">Nombre</label>
+        <input class="form-control" name="nombre" placeholder="Ej: Bichito" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label text-light">Email</label>
+        <input class="form-control" name="email" placeholder="bichito@vir.app" required>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label text-light">Grupo (opcional)</label>
+        <input class="form-control" name="grupo" placeholder="Ej: UA Run / Hyrox / Fuerza">
+      </div>
+
+      <div class="col-12">
+        <button class="btn btn-info w-100 fw-bold">Crear atleta</button>
+      </div>
+
+      <div class="col-12">
+        <div class="text-muted" style="font-size:.95rem;">
+          Al crear, te muestro el password inicial en un mensaje (flash). Después lo cambian si querés.
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

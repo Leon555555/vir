@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Tuple, Optional
 
 import os
 import secrets
+import string
 from werkzeug.utils import secure_filename
 
 from flask import (
@@ -112,16 +113,6 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
         db.session.commit()
     return planes
 
-def _rutina_id_from_plan(plan: DiaPlan) -> Optional[int]:
-    if not plan:
-        return None
-    if not (plan.main and isinstance(plan.main, str) and plan.main.startswith("RUTINA:")):
-        return None
-    rid_str = plan.main.split(":", 1)[1].strip()
-    if not rid_str.isdigit():
-        return None
-    return int(rid_str)
-
 def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
     """Día fuerza 'done' si todos los items de la rutina del día están hechos."""
     done_days: set[date] = set()
@@ -134,11 +125,13 @@ def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
             continue
         if (p.plan_type or "").lower() != "fuerza":
             continue
-
-        rid = _rutina_id_from_plan(p)
-        if not rid:
+        if not (p.main and isinstance(p.main, str) and p.main.startswith("RUTINA:")):
             continue
 
+        rid_str = p.main.split(":", 1)[1].strip()
+        if not rid_str.isdigit():
+            continue
+        rid = int(rid_str)
         items = RutinaItem.query.filter_by(rutina_id=rid).all()
         if not items:
             continue
@@ -169,16 +162,18 @@ def compute_streak(user_id: int) -> int:
 
     for i in range(0, 365):
         d = today - timedelta(days=i)
-
+        # criterio "hecho"
         log = AthleteLog.query.filter_by(user_id=user_id, fecha=d).first()
         if log and log.did_train:
             streak += 1
             continue
 
+        # fuerza: completo si todos checks del día están hechos
         plan = DiaPlan.query.filter_by(user_id=user_id, fecha=d).first()
-        if plan and (plan.plan_type or "").lower() == "fuerza":
-            rid = _rutina_id_from_plan(plan)
-            if rid:
+        if plan and (plan.plan_type or "").lower() == "fuerza" and plan.main and isinstance(plan.main, str) and plan.main.startswith("RUTINA:"):
+            rid_str = plan.main.split(":", 1)[1].strip()
+            if rid_str.isdigit():
+                rid = int(rid_str)
                 items = RutinaItem.query.filter_by(rutina_id=rid).all()
                 if items:
                     checks = AthleteCheck.query.filter(
@@ -191,6 +186,7 @@ def compute_streak(user_id: int) -> int:
                         streak += 1
                         continue
 
+        # si no está hecho, se corta
         break
 
     return streak
@@ -265,11 +261,11 @@ def perfil_usuario(user_id: int):
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-    # default: hoy. si hoy no tiene nada, igual mostramos hoy y botón semana
     view = (request.args.get("view") or "today").strip().lower()  # today/week/month/progress
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     hoy = date.today()
 
+    # HOY plan
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
@@ -280,6 +276,7 @@ def perfil_usuario(user_id: int):
     fechas = week_dates(center)
     planes = ensure_week_plans(user.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+
     done_week = get_strength_done_days(user.id, fechas).union(get_log_done_days(user.id, fechas))
 
     # Mes
@@ -302,7 +299,7 @@ def perfil_usuario(user_id: int):
 
     done_month = get_strength_done_days(user.id, dias_mes).union(get_log_done_days(user.id, dias_mes))
 
-    # Grilla mes
+    # Calendario mes (semanas)
     first_day = date(center.year, center.month, 1)
     start = start_of_week(first_day)
     last_day = dias_mes[-1]
@@ -319,9 +316,10 @@ def perfil_usuario(user_id: int):
 
     month_label = first_day.strftime("%B %Y").upper()
 
+    # Rutinas (por si ampliás)
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
-    # checks semana
+    # checks semana (para compatibilidad con tu lógica previa)
     done_set: set[Tuple[date, int]] = set()
     checks = AthleteCheck.query.filter(
         AthleteCheck.user_id == user.id,
@@ -331,7 +329,7 @@ def perfil_usuario(user_id: int):
         if c.done:
             done_set.add((c.fecha, c.rutina_item_id))
 
-    # logs semana
+    # logs semana (compat)
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha.in_(fechas)
@@ -345,21 +343,26 @@ def perfil_usuario(user_id: int):
         "perfil.html",
         user=user,
         view=view,
+
         hoy=hoy,
         plan_hoy=plan_hoy,
+
         center=center,
         fechas=fechas,
         planes=planes,
         semana_str=semana_str,
         done_week=done_week,
+
         dias_mes=dias_mes,
         planes_mes=planes_mes,
         done_month=done_month,
         month_grid=month_grid,
         month_label=month_label,
+
         rutinas=rutinas,
         done_set=done_set,
         log_by_day=log_by_day,
+
         streak=streak,
         week_goal=week_goal,
         week_done=week_done,
@@ -404,35 +407,37 @@ def api_day_detail():
         "finisher_done": (log.finisher_done or "") if log else "",
     }
 
-    rid = _rutina_id_from_plan(plan)
-    if rid:
-        r = Rutina.query.get(rid)
-        if r:
-            items = (
-                RutinaItem.query.filter_by(rutina_id=rid)
-                .order_by(RutinaItem.id.asc()).all()
-            )
-            payload["rutina"] = serialize_rutina(r)
-            payload["items"] = [
-                {
-                    "id": it.id,
-                    "nombre": it.nombre,
-                    "series": it.series or "",
-                    "reps": it.reps or "",
-                    "descanso": it.descanso or "",
-                    "video_url": it.video_url or "",
-                    "nota": it.nota or "",
-                }
-                for it in items
-            ]
+    if plan.main and isinstance(plan.main, str) and plan.main.startswith("RUTINA:"):
+        rid_str = plan.main.split(":", 1)[1].strip()
+        if rid_str.isdigit():
+            rid = int(rid_str)
+            r = Rutina.query.get(rid)
+            if r:
+                items = (
+                    RutinaItem.query.filter_by(rutina_id=rid)
+                    .order_by(RutinaItem.id.asc()).all()
+                )
+                payload["rutina"] = serialize_rutina(r)
+                payload["items"] = [
+                    {
+                        "id": it.id,
+                        "nombre": it.nombre,
+                        "series": it.series or "",
+                        "reps": it.reps or "",
+                        "descanso": it.descanso or "",
+                        "video_url": it.video_url or "",
+                        "nota": it.nota or "",
+                    }
+                    for it in items
+                ]
 
-            checks = AthleteCheck.query.filter(
-                AthleteCheck.user_id == user_id,
-                AthleteCheck.fecha == fecha,
-                AthleteCheck.rutina_item_id.in_([it.id for it in items])
-            ).all()
-            done_ids = {c.rutina_item_id for c in checks if c.done}
-            payload["checks"] = list(done_ids)
+                checks = AthleteCheck.query.filter(
+                    AthleteCheck.user_id == user_id,
+                    AthleteCheck.fecha == fecha,
+                    AthleteCheck.rutina_item_id.in_([it.id for it in items])
+                ).all()
+                done_ids = {c.rutina_item_id for c in checks if c.done}
+                payload["checks"] = list(done_ids)
 
     return jsonify(payload)
 
@@ -536,6 +541,56 @@ def dashboard_entrenador():
 
 
 # =============================================================
+# ✅ NUEVO ATLETA (GET/POST) + password inicial
+# =============================================================
+def _gen_password(length: int = 10) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+@main_bp.route("/admin/nuevo_atleta", methods=["GET", "POST"])
+@login_required
+def admin_nuevo_atleta():
+    if not is_admin():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    if request.method == "POST":
+        nombre = (request.form.get("nombre") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        grupo = (request.form.get("grupo") or "").strip()
+
+        if not nombre or not email:
+            flash("Nombre y email son obligatorios", "danger")
+            return render_template("admin_nuevo_atleta.html")
+
+        exists = User.query.filter_by(email=email).first()
+        if exists:
+            flash("Ya existe un usuario con ese email", "danger")
+            return render_template("admin_nuevo_atleta.html")
+
+        raw_pass = _gen_password(10)
+
+        u = User(
+            nombre=nombre,
+            email=email,
+            grupo=grupo or None,
+            is_admin=False
+        )
+
+        # tu modelo ya tiene esto (lo usás en login)
+        u.set_password(raw_pass)
+
+        db.session.add(u)
+        db.session.commit()
+
+        flash(f"✅ Atleta creado. Password inicial: {raw_pass}", "success")
+        flash("👉 Copiá y pasale esa contraseña al atleta (después la cambiamos).", "info")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    return render_template("admin_nuevo_atleta.html")
+
+
+# =============================================================
 # PLANIFICADOR (SEMANA) - entrenador
 # =============================================================
 @main_bp.route("/coach/planificador")
@@ -559,7 +614,9 @@ def coach_planificador():
 
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     fechas = week_dates(center)
+
     planes = ensure_week_plans(atleta.id, fechas)
+
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
     return render_template(
@@ -709,48 +766,6 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# CREAR ATLETA (con contraseña visible al crearlo)
-# =============================================================
-@main_bp.route("/coach/atletas/nuevo", methods=["GET", "POST"])
-@login_required
-def coach_crear_atleta():
-    if not is_admin():
-        flash("Acceso denegado", "danger")
-        return redirect(url_for("main.perfil_redirect"))
-
-    if request.method == "POST":
-        nombre = (request.form.get("nombre") or "").strip()
-        email = (request.form.get("email") or "").strip().lower()
-        grupo = (request.form.get("grupo") or "").strip()
-        password = (request.form.get("password") or "").strip()
-
-        if not nombre or not email:
-            flash("Nombre y email son obligatorios.", "danger")
-            return redirect(url_for("main.coach_crear_atleta"))
-
-        exists = User.query.filter_by(email=email).first()
-        if exists:
-            flash("Ese email ya existe.", "danger")
-            return redirect(url_for("main.coach_crear_atleta"))
-
-        if not password:
-            # si no la escribís, generamos una segura
-            password = secrets.token_urlsafe(8)
-
-        u = User(nombre=nombre, email=email, grupo=grupo)
-        # asumo que tu User tiene set_password()
-        u.set_password(password)
-
-        db.session.add(u)
-        db.session.commit()
-
-        flash(f"✅ Atleta creado. Contraseña inicial: {password}", "success")
-        return redirect(url_for("main.dashboard_entrenador"))
-
-    return render_template("crear_atleta.html")
-
-
-# =============================================================
 # CRUD rutinas (builder)
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/builder")
@@ -802,6 +817,7 @@ def rutina_add_item(rutina_id: int):
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
 def rutina_update_item(rutina_id: int, item_id: int):
+    """✅ ESTA RUTA FALTABA (tu template la llama)"""
     if not is_admin():
         flash("Solo el admin puede editar rutinas", "danger")
         return redirect(url_for("main.perfil_redirect"))

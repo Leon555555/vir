@@ -1,176 +1,194 @@
 {% extends "layout.html" %}
-{% block title %}Panel Entrenador{% endblock %}
+{% block title %}Panel entrenador{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <div class="section-title">PANEL ENTRENADOR</div>
+    <div class="text-soft">Rutinas · Banco de ejercicios · Atletas</div>
+  </div>
+  <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">
+    <i class="bi bi-calendar3"></i> Planificador
+  </a>
+</div>
 
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
-    <div>
-      <h2 class="mb-0">🏋️ Panel del Entrenador</h2>
-      <div class="text-muted">Gestioná atletas, rutinas y banco de ejercicios</div>
-    </div>
-
-    <div class="d-flex gap-2 flex-wrap">
-      <a class="btn btn-info" href="{{ url_for('main.admin_nuevo_atleta') }}">➕ Crear atleta</a>
-      <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">🗓️ Planificador</a>
+<div class="row g-3">
+  <!-- ✅ CREAR ATLETA -->
+  <div class="col-lg-6">
+    <div class="card glass lift">
+      <div class="card-header">
+        <strong>➕ Crear atleta</strong>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('main.admin_nuevo_atleta') }}" class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label">Nombre</label>
+            <input class="form-control" name="nombre" placeholder="Ej: Bichito" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input class="form-control" type="email" name="email" placeholder="bichi@vir.app" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Grupo</label>
+            <input class="form-control" name="grupo" placeholder="Ej: UA Running">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Contraseña</label>
+            <input class="form-control" type="password" name="password" required>
+          </div>
+          <div class="col-12 mt-2">
+            <button class="btn btn-info">
+              <i class="bi bi-person-plus"></i> Crear atleta
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
-  <div class="row g-3">
-
-    <!-- =========================
-         COL IZQ: Rutinas + Ejercicios
-    ========================== -->
-    <div class="col-lg-6">
-
-      <!-- Rutinas -->
-      <div class="card glass p-3 mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0">📌 Rutinas</h5>
-        </div>
-
-        <form method="POST" action="{{ url_for('main.crear_rutina') }}" class="row g-2 mb-3">
+  <!-- ✅ CREAR RUTINA -->
+  <div class="col-lg-6">
+    <div class="card glass lift">
+      <div class="card-header"><strong>📦 Crear rutina</strong></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('main.crear_rutina') }}" class="row g-2">
           <div class="col-md-6">
-            <input name="nombre" class="form-control" placeholder="Nombre rutina" required>
+            <label class="form-label">Nombre</label>
+            <input class="form-control" name="nombre" placeholder="Full body A" required>
           </div>
-          <div class="col-md-3">
-            <input name="tipo" class="form-control" placeholder="Tipo (Fuerza/Run)">
-          </div>
-          <div class="col-md-3">
-            <button class="btn btn-primary w-100">Crear</button>
+          <div class="col-md-6">
+            <label class="form-label">Tipo</label>
+            <input class="form-control" name="tipo" placeholder="Fuerza / Run / Bike">
           </div>
           <div class="col-12">
-            <input name="descripcion" class="form-control" placeholder="Descripción (opcional)">
+            <label class="form-label">Descripción</label>
+            <input class="form-control" name="descripcion" placeholder="Notas/objetivo…">
+          </div>
+          <div class="col-12 mt-2">
+            <button class="btn btn-primary">
+              <i class="bi bi-plus-circle"></i> Crear rutina
+            </button>
           </div>
         </form>
-
-        <div class="table-responsive">
-          <table class="table table-dark table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Rutina</th>
-                <th>Tipo</th>
-                <th class="text-end">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in rutinas %}
-              <tr>
-                <td><strong>{{ r.nombre }}</strong></td>
-                <td class="text-muted">{{ r.tipo or '—' }}</td>
-                <td class="text-end">
-                  <a class="btn btn-sm btn-outline-info"
-                     href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
-                    Builder
-                  </a>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="3" class="text-muted">No hay rutinas aún.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Ejercicios -->
-      <div class="card glass p-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0">🎥 Banco de ejercicios</h5>
-        </div>
-
-        <form method="POST" action="{{ url_for('main.admin_nuevo_ejercicio') }}" enctype="multipart/form-data" class="row g-2 mb-3">
+  <!-- ✅ SUBIR EJERCICIO -->
+  <div class="col-lg-6">
+    <div class="card glass lift">
+      <div class="card-header"><strong>🎥 Subir ejercicio (banco)</strong></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('main.admin_nuevo_ejercicio') }}" enctype="multipart/form-data" class="row g-2">
           <div class="col-md-6">
-            <input name="nombre" class="form-control" placeholder="Nombre del ejercicio" required>
+            <label class="form-label">Nombre</label>
+            <input class="form-control" name="nombre" placeholder="Sentadilla sin peso" required>
           </div>
-          <div class="col-md-3">
-            <input name="categoria" class="form-control" placeholder="Categoría">
-          </div>
-          <div class="col-md-3">
-            <input type="file" name="video" class="form-control" required>
-          </div>
-          <div class="col-12">
-            <input name="descripcion" class="form-control" placeholder="Descripción (opcional)">
+          <div class="col-md-6">
+            <label class="form-label">Categoría</label>
+            <input class="form-control" name="categoria" placeholder="Pierna / Espalda / etc">
           </div>
           <div class="col-12">
-            <button class="btn btn-primary w-100">Subir ejercicio</button>
+            <label class="form-label">Descripción</label>
+            <input class="form-control" name="descripcion" placeholder="Tips técnicos…">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Video</label>
+            <input class="form-control" type="file" name="video" accept="video/*" required>
+          </div>
+          <div class="col-12 mt-2">
+            <button class="btn btn-info">
+              <i class="bi bi-upload"></i> Subir
+            </button>
           </div>
         </form>
-
-        <div class="table-responsive">
-          <table class="table table-dark table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Ejercicio</th>
-                <th class="text-muted">Categoría</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for e in ejercicios %}
-              <tr>
-                <td><strong>{{ e.nombre }}</strong></td>
-                <td class="text-muted">{{ e.categoria or '—' }}</td>
-              </tr>
-              {% else %}
-              <tr><td colspan="2" class="text-muted">No hay ejercicios aún.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
       </div>
     </div>
+  </div>
 
-    <!-- =========================
-         COL DER: Atletas
-    ========================== -->
-    <div class="col-lg-6">
-      <div class="card glass p-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0">👥 Atletas</h5>
-          <div class="text-muted">Total: {{ atletas|length }}</div>
-        </div>
-
-        <div class="table-responsive">
-          <table class="table table-dark table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Grupo</th>
-                <th class="text-end">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for a in atletas %}
-              <tr>
-                <td><strong>{{ a.nombre }}</strong></td>
-                <td class="text-muted">{{ a.email }}</td>
-                <td class="text-muted">{{ a.grupo or '—' }}</td>
-                <td class="text-end">
-                  <a class="btn btn-sm btn-outline-info"
-                     href="{{ url_for('main.perfil_usuario', user_id=a.id) }}">
-                    Ver perfil
-                  </a>
-
-                  <form method="POST"
-                        action="{{ url_for('main.admin_delete_user', user_id=a.id) }}"
-                        style="display:inline"
-                        onsubmit="return confirm('¿Eliminar atleta y su data?');">
-                    <button class="btn btn-sm btn-outline-danger">Eliminar</button>
-                  </form>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="4" class="text-muted">No hay atletas aún.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
+  <!-- ✅ LISTA RUTINAS -->
+  <div class="col-lg-6">
+    <div class="card glass lift">
+      <div class="card-header"><strong>📚 Rutinas</strong></div>
+      <div class="card-body">
+        {% if rutinas %}
+          <div class="rb-grid">
+            {% for r in rutinas %}
+              <div class="rb-card">
+                <div class="rb-card-top">
+                  <div class="rb-title">
+                    <div class="rb-index">{{ r.id }}</div>
+                    <div>
+                      <div class="text-strong">{{ r.nombre }}</div>
+                      <div class="rb-meta">
+                        <span class="chip">{{ r.tipo or "—" }}</span>
+                        <span class="chip">Items: {{ r.items|length if r.items is defined else "—" }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="rb-actions">
+                    <a class="btn btn-sm btn-outline-info" href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
+                      <i class="bi bi-sliders"></i> Builder
+                    </a>
+                  </div>
+                </div>
+                {% if r.descripcion %}
+                  <div class="rb-note mt-2">{{ r.descripcion }}</div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">No hay rutinas todavía.</div>
+        {% endif %}
       </div>
     </div>
+  </div>
 
+  <!-- ✅ LISTA ATLETAS -->
+  <div class="col-12">
+    <div class="card glass lift">
+      <div class="card-header"><strong>👥 Atletas</strong></div>
+      <div class="card-body">
+        {% if atletas %}
+          <div class="table-responsive">
+            <table class="table table-dark table-borderless align-middle mb-0">
+              <thead>
+                <tr class="text-soft">
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Grupo</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in atletas %}
+                  <tr>
+                    <td class="text-strong">{{ a.nombre }}</td>
+                    <td class="text-soft">{{ a.email }}</td>
+                    <td><span class="badge bg-secondary">{{ a.grupo or "—" }}</span></td>
+                    <td class="text-end">
+                      <a class="btn btn-sm btn-outline-info" href="{{ url_for('main.perfil_usuario', user_id=a.id) }}">
+                        <i class="bi bi-person"></i> Ver perfil
+                      </a>
+                      <form method="post" action="{{ url_for('main.admin_delete_user', user_id=a.id) }}" style="display:inline-block"
+                            onsubmit="return confirm('¿Eliminar atleta y sus datos?');">
+                        <button class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state">No hay atletas.</div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

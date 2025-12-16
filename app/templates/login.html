@@ -1,26 +1,30 @@
 {% extends "layout.html" %}
-{% block title %}Ingresar — VR TRAINING{% endblock %}
+{% block title %}Login{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-center align-items-center" style="min-height:80vh;">
-  <div class="card shadow-lg p-4 border-0" style="background:#0a0a0a; border-radius:20px; width:420px; box-shadow:0 0 20px rgba(34,211,238,.15);">
-    <div class="text-center mb-3">
-      <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" alt="VR" style="height:70px; filter:drop-shadow(0 0 10px #22d3ee);">
-      <h2 class="mt-3 fw-bold text-light">VR TRAINING</h2>
-      <p class="text-secondary">Accedé a tu perfil o al panel</p>
-    </div>
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card glass lift p-4">
+      <div class="text-center mb-3">
+        <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" style="height:70px;" alt="VR">
+        <div class="mt-3 text-strong" style="font-size:1.35rem;">VR TRAINING</div>
+        <div class="text-soft">Accedé a tu perfil o al panel</div>
+      </div>
 
-    <form method="POST" action="{{ url_for('main.login') }}">
-      <div class="mb-3">
-        <label class="form-label text-light">Correo</label>
-        <input type="email" class="form-control bg-dark text-light border-secondary" name="email" placeholder="admin@vir.app" required>
-      </div>
-      <div class="mb-4">
-        <label class="form-label text-light">Contraseña</label>
-        <input type="password" class="form-control bg-dark text-light border-secondary" name="password" placeholder="********" required>
-      </div>
-      <button type="submit" class="btn btn-glow w-100 py-2"><i class="bi bi-box-arrow-in-right me-1"></i>Entrar</button>
-    </form>
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">Correo</label>
+          <input class="form-control" name="email" type="email" placeholder="admin@vir.app" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contraseña</label>
+          <input class="form-control" name="password" type="password" required>
+        </div>
+        <button class="btn btn-info w-100">
+          <i class="bi bi-box-arrow-in-right"></i> Entrar
+        </button>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

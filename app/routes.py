@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Tuple, Optional
 
 import os
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
@@ -427,7 +426,7 @@ def api_day_detail():
 
 
 # =============================================================
-# CHECK por ejercicio (fuerza)
+# CHECK por ejercicio
 # =============================================================
 @main_bp.route("/athlete/check_item", methods=["POST"])
 @login_required
@@ -470,7 +469,7 @@ def athlete_check_item():
 
 
 # =============================================================
-# Guardar "lo realizado"
+# Guardar log atleta
 # =============================================================
 @main_bp.route("/athlete/save_log", methods=["POST"])
 @login_required
@@ -629,7 +628,7 @@ def generate_session_script_pro(plan: DiaPlan, rutina: Rutina | None, items: lis
 
 
 # =============================================================
-# DASHBOARD ENTRENADOR
+# DASHBOARD ENTRENADOR (PANEL)
 # =============================================================
 @main_bp.route("/coach/dashboard")
 @login_required
@@ -651,44 +650,37 @@ def dashboard_entrenador():
 
 
 # =============================================================
-# ✅ (FIX) CREAR ATLETA - ESTE ERA EL ENDPOINT QUE TE FALTABA
+# ✅ FIX: CREAR ATLETA (endpoint que te faltaba)
 # =============================================================
-@main_bp.route("/admin/atletas/nuevo", methods=["GET", "POST"], endpoint="admin_nuevo_atleta")
+@main_bp.route("/admin/atletas/nuevo", methods=["POST"])
 @login_required
 def admin_nuevo_atleta():
     if not is_admin():
-        flash("Solo el admin puede crear atletas", "danger")
+        flash("Solo admin", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    if request.method == "POST":
-        nombre = (request.form.get("nombre") or "").strip()
-        email = (request.form.get("email") or "").strip().lower()
-        password = (request.form.get("password") or "").strip()
-        grupo = (request.form.get("grupo") or "").strip()
+    nombre = (request.form.get("nombre") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    grupo = (request.form.get("grupo") or "").strip()
+    password = (request.form.get("password") or "").strip()
 
-        if not nombre or not email or not password:
-            flash("Faltan datos obligatorios", "danger")
-            return redirect(url_for("main.admin_nuevo_atleta"))
-
-        if User.query.filter_by(email=email).first():
-            flash("Ese email ya existe", "warning")
-            return redirect(url_for("main.admin_nuevo_atleta"))
-
-        atleta = User(nombre=nombre, email=email, grupo=grupo)
-
-        # compat con tu modelo: si existe set_password, úsalo; sino hash directo
-        if hasattr(atleta, "set_password"):
-            atleta.set_password(password)
-        else:
-            atleta.password_hash = generate_password_hash(password)
-
-        db.session.add(atleta)
-        db.session.commit()
-
-        flash("✅ Atleta creado correctamente", "success")
+    if not nombre or not email or not password:
+        flash("Faltan datos (nombre/email/password)", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    return render_template("admin_nuevo_atleta.html")
+    if User.query.filter_by(email=email).first():
+        flash("Ese email ya existe", "warning")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    u = User(nombre=nombre, email=email, grupo=grupo)
+    # asumimos que tu modelo tiene set_password()
+    u.set_password(password)
+
+    db.session.add(u)
+    db.session.commit()
+
+    flash("✅ Atleta creado", "success")
+    return redirect(url_for("main.dashboard_entrenador"))
 
 
 # =============================================================

@@ -2,42 +2,46 @@
 {% block title %}Crear atleta — VR Training{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <div>
-      <h2 class="text-light mb-0">➕ Crear nuevo atleta</h2>
-      <div class="text-muted">Esto crea el perfil y credenciales de acceso.</div>
-    </div>
-    <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') }}">← Volver</a>
-  </div>
+<div class="container mt-4" style="max-width:720px;">
 
   <div class="card glass p-3 p-md-4">
-    <form method="POST" class="row g-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+      <div>
+        <h3 class="text-light mb-0">➕ Crear atleta</h3>
+        <div class="text-muted">Este usuario podrá entrar con email + contraseña.</div>
+      </div>
+      <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') }}">← Volver</a>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.admin_nuevo_atleta') }}" class="row g-2 mt-2">
       <div class="col-md-6">
-        <label class="form-label text-light">Nombre</label>
-        <input class="form-control" name="nombre" placeholder="Ej: Bichito" required>
+        <label class="form-label">Nombre</label>
+        <input class="form-control" name="nombre" required>
       </div>
 
       <div class="col-md-6">
-        <label class="form-label text-light">Email</label>
-        <input class="form-control" name="email" placeholder="bichito@vir.app" required>
+        <label class="form-label">Grupo</label>
+        <input class="form-control" name="grupo" placeholder="(opcional)">
       </div>
 
       <div class="col-12">
-        <label class="form-label text-light">Grupo (opcional)</label>
-        <input class="form-control" name="grupo" placeholder="Ej: UA Run / Hyrox / Fuerza">
+        <label class="form-label">Email</label>
+        <input class="form-control" type="email" name="email" required>
       </div>
 
       <div class="col-12">
-        <button class="btn btn-info w-100 fw-bold">Crear atleta</button>
-      </div>
-
-      <div class="col-12">
-        <div class="text-muted" style="font-size:.95rem;">
-          Al crear, te muestro el password inicial en un mensaje (flash). Después lo cambian si querés.
+        <label class="form-label">Contraseña</label>
+        <input class="form-control" type="text" name="password" placeholder="Ej: UA2025!" required>
+        <div class="text-muted mt-1" style="font-size:.9rem;">
+          Tip: pasale al atleta esta contraseña para que pueda entrar.
         </div>
+      </div>
+
+      <div class="col-12 mt-2">
+        <button class="btn btn-info w-100" type="submit">✅ Crear atleta</button>
       </div>
     </form>
   </div>
+
 </div>
 {% endblock %}

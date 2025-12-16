@@ -1,48 +1,187 @@
 {% extends "layout.html" %}
+{% block title %}Perfil — VR Training{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Perfil de {{ atleta.nombre }}</h2>
-    <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-secondary">⬅ Volver al Dashboard</a>
+
+  <!-- ================= HEADER ================= -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div style="width:46px;height:46px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;">
+        <i class="bi bi-person-fill text-info"></i>
+      </div>
+      <div>
+        <h2 class="mb-0 text-strong">{{ user.nombre }}</h2>
+        <div class="text-soft">{{ user.email }}</div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <div class="mini-stat">
+        <div class="mini-title">RACHA</div>
+        <div class="mini-value">🔥 {{ streak }}</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-title">SEMANA</div>
+        <div class="mini-value">✅ {{ week_done }} / {{ week_goal }}</div>
+        <div class="progress mt-2">
+          {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
+          <div class="progress-bar" style="width: {{ pct }}%"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="card p-4 shadow">
-    <form method="POST">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label>Nombre</label>
-          <input type="text" name="nombre" value="{{ atleta.nombre }}" class="form-control">
+  <!-- ================= TABS ================= -->
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <a class="btn btn-sm {% if view=='today' %}btn-info{% else %}btn-outline-light{% endif %}"
+       href="{{ url_for('main.perfil', view='today') }}">Hoy</a>
+
+    <a class="btn btn-sm {% if view=='week' %}btn-info{% else %}btn-outline-light{% endif %}"
+       href="{{ url_for('main.perfil', view='week', center=center.isoformat()) }}">Semana</a>
+
+    <a class="btn btn-sm {% if view=='month' %}btn-info{% else %}btn-outline-light{% endif %}"
+       href="{{ url_for('main.perfil', view='month', center=center.isoformat()) }}">Mes</a>
+
+    <a class="btn btn-sm {% if view=='progress' %}btn-info{% else %}btn-outline-light{% endif %}"
+       href="{{ url_for('main.perfil', view='progress', center=center.isoformat()) }}">Progreso</a>
+  </div>
+
+  <!-- ================= HOY ================= -->
+  {% if view == 'today' %}
+  <div class="card glass p-3 p-md-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <div class="section-title">HOY</div>
+
+        <div class="d-flex align-items-center gap-2 mt-1">
+          <div class="fs-4 fw-bold text-strong">
+            {{ hoy.strftime('%A %d/%m')|upper }}
+          </div>
+          <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span>
         </div>
-        <div class="col-md-6">
-          <label>Email</label>
-          <input type="email" name="email" value="{{ atleta.email }}" class="form-control">
+
+        <div class="text-soft mt-1">
+          Entrá y marcá lo que hiciste
         </div>
       </div>
 
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <label>Grupo</label>
-          <input type="text" name="grupo" value="{{ atleta.grupo or '' }}" class="form-control">
-        </div>
-        <div class="col-md-8">
-          <label>Calendario (URL)</label>
-          <input type="text" name="calendario_url" value="{{ atleta.calendario_url or '' }}" class="form-control">
-        </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-info"
+                onclick="openDay('{{ hoy.isoformat() }}')">
+          ▶ Empezar
+        </button>
+
+        <a class="btn btn-outline-light"
+           href="{{ url_for('main.perfil', view='week', center=hoy.isoformat()) }}">
+          Ver semana
+        </a>
       </div>
-
-      <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
-    </form>
-  </div>
-
-  {% if atleta.calendario_url %}
-  <div class="card mt-4 shadow p-4">
-    <h5>📅 Calendario del Atleta</h5>
-    <iframe src="{{ atleta.calendario_url }}" width="100%" height="600" style="border:0;"></iframe>
-  </div>
-  {% else %}
-  <div class="alert alert-info mt-4">
-    Este atleta aún no tiene un calendario asignado.
+    </div>
   </div>
   {% endif %}
+
+  <!-- ================= SEMANA ================= -->
+  {% if view == 'week' %}
+  <div class="mb-3">
+    <h4 class="text-strong mb-0">Semana</h4>
+    <div class="text-soft">{{ semana_str }}</div>
+  </div>
+
+  <div class="row g-3">
+    {% for f in fechas %}
+      {% set p = planes[f] %}
+      {% set done = (f in done_week) %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card glass p-3 lift">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-bold text-strong">
+              {{ f.strftime('%a %d/%m')|upper }}
+            </div>
+            <span class="badge {% if done %}bg-success{% else %}bg-secondary{% endif %}">
+              {% if done %}HECHO{% else %}{{ p.plan_type }}{% endif %}
+            </span>
+          </div>
+
+          <div class="text-soft">
+            {% if (p.plan_type or '').lower() == 'descanso' %}
+              Descanso / recuperación.
+            {% else %}
+              {{ p.warmup or '—' }}
+            {% endif %}
+          </div>
+
+          <div class="d-grid mt-3">
+            <button class="btn btn-outline-info"
+                    onclick="openDay('{{ f.isoformat() }}')">
+              Ver detalle
+            </button>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ================= MES ================= -->
+  {% if view == 'month' %}
+  <div class="mb-3">
+    <h4 class="text-strong mb-0">Mes</h4>
+    <div class="text-soft">{{ month_label }}</div>
+  </div>
+
+  <div class="card glass p-3">
+    <div class="month-grid">
+      <div class="month-head">L</div><div class="month-head">M</div><div class="month-head">X</div>
+      <div class="month-head">J</div><div class="month-head">V</div><div class="month-head">S</div><div class="month-head">D</div>
+
+      {% for w in month_grid %}
+        {% for d in w %}
+          {% if d %}
+            {% set pm = planes_mes[d] %}
+            {% set done = (d in done_month) %}
+            <div class="month-cell {% if done %}done{% endif %}"
+                 onclick="openDay('{{ d.isoformat() }}')">
+              <div class="daynum">{{ d.day }}</div>
+              <div class="ptype">{{ pm.plan_type }}</div>
+            </div>
+          {% else %}
+            <div class="month-cell empty"></div>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= PROGRESO ================= -->
+  {% if view == 'progress' %}
+  <div class="card glass p-3">
+    <h4 class="text-strong mb-3">Progreso</h4>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="glass p-3">
+          <div class="mini-title">RACHA ACTUAL</div>
+          <div class="fs-2 fw-bold">🔥 {{ streak }}</div>
+          <div class="text-soft">Días consecutivos entrenando</div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="glass p-3">
+          <div class="mini-title">SEMANA</div>
+          <div class="fs-2 fw-bold">✅ {{ week_done }} / {{ week_goal }}</div>
+          <div class="progress mt-2">
+            {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
+            <div class="progress-bar" style="width: {{ pct }}%"></div>
+          </div>
+          <div class="text-soft mt-2">Objetivo vs completado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

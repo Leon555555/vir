@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, date
 from calendar import monthrange
-from typing import Any, Dict, List, Tuple, Optional, Set
+from typing import Any, Dict, List, Tuple, Optional
 
 import os
 from werkzeug.utils import secure_filename
@@ -111,9 +111,9 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
         db.session.commit()
     return planes
 
-def get_strength_done_days(user_id: int, fechas: List[date]) -> Set[date]:
+def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
     """Día fuerza 'done' si todos los items de la rutina del día están hechos."""
-    done_days: Set[date] = set()
+    done_days: set[date] = set()
     plans = DiaPlan.query.filter(DiaPlan.user_id == user_id, DiaPlan.fecha.in_(fechas)).all()
     plans_by_date = {p.fecha: p for p in plans}
 
@@ -130,7 +130,6 @@ def get_strength_done_days(user_id: int, fechas: List[date]) -> Set[date]:
         if not rid_str.isdigit():
             continue
         rid = int(rid_str)
-
         items = RutinaItem.query.filter_by(rutina_id=rid).all()
         if not items:
             continue
@@ -146,7 +145,7 @@ def get_strength_done_days(user_id: int, fechas: List[date]) -> Set[date]:
 
     return done_days
 
-def get_log_done_days(user_id: int, fechas: List[date]) -> Set[date]:
+def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user_id,
         AthleteLog.fecha.in_(fechas),
@@ -210,7 +209,7 @@ def index():
     if current_user.is_authenticated:
         if is_admin():
             return redirect(url_for("main.dashboard_entrenador"))
-        return redirect(url_for("main.perfil_atleta", user_id=current_user.id))
+        return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
 @main_bp.route("/login", methods=["GET", "POST"])
@@ -225,7 +224,7 @@ def login():
             flash(f"Bienvenido {user.nombre}", "success")
             if is_admin():
                 return redirect(url_for("main.dashboard_entrenador"))
-            return redirect(url_for("main.perfil_atleta", user_id=user.id))
+            return redirect(url_for("main.perfil_usuario", user_id=user.id))
 
         flash("Datos incorrectos", "danger")
 
@@ -243,25 +242,26 @@ def logout():
 def perfil_redirect():
     if is_admin():
         return redirect(url_for("main.dashboard_entrenador"))
-    return redirect(url_for("main.perfil_atleta", user_id=current_user.id))
+    return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
 
 # =============================================================
 # PERFIL (ATLETA) - HOY / SEMANA / MES / PROGRESO
 # =============================================================
-@main_bp.route("/athlete/perfil/<int:user_id>")
+@main_bp.route("/perfil/<int:user_id>")
 @login_required
-def perfil_atleta(user_id: int):
+def perfil_usuario(user_id: int):
     user = User.query.get_or_404(user_id)
 
     if (not is_admin()) and current_user.id != user.id:
         flash("Acceso denegado", "danger")
-        return redirect(url_for("main.perfil_atleta", user_id=current_user.id))
+        return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
     view = (request.args.get("view") or "today").strip().lower()  # today/week/month/progress
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     hoy = date.today()
 
+    # HOY plan
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
@@ -311,11 +311,9 @@ def perfil_atleta(user_id: int):
 
     month_label = first_day.strftime("%B %Y").upper()
 
-    # (por si ampliás)
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
-    # checks semana (compat)
-    done_set: Set[Tuple[date, int]] = set()
+    done_set: set[Tuple[date, int]] = set()
     checks = AthleteCheck.query.filter(
         AthleteCheck.user_id == user.id,
         AthleteCheck.fecha.in_(fechas)
@@ -324,7 +322,6 @@ def perfil_atleta(user_id: int):
         if c.done:
             done_set.add((c.fecha, c.rutina_item_id))
 
-    # logs semana (compat)
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha.in_(fechas)
@@ -335,7 +332,7 @@ def perfil_atleta(user_id: int):
     week_goal, week_done = week_goal_and_done(user.id, fechas, planes)
 
     return render_template(
-        "perfil_atleta.html",
+        "perfil.html",
         user=user,
         view=view,
 
@@ -514,6 +511,139 @@ def athlete_save_log():
 
 
 # =============================================================
+# ✅ IA: Guión PRO del día (Punto 6)
+# =============================================================
+@main_bp.route("/ai/session_script", methods=["POST"])
+@login_required
+def ai_session_script():
+    """
+    Genera un guión profesional en texto, usando:
+    - DiaPlan (warmup/main/finisher)
+    - Rutina + RutinaItems (si es fuerza)
+    - AthleteLog (si existe, para incluir lo que ya escribió)
+    No rompe arquitectura, no requiere migraciones.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        user_id = int(data.get("user_id") or 0)
+        fecha = safe_parse_ymd(data.get("fecha", ""), fallback=date.today())
+
+        if not user_id:
+            return jsonify({"ok": False, "error": "Falta user_id"}), 400
+        if (not is_admin()) and current_user.id != user_id:
+            return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+
+        plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
+        if not plan:
+            plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso")
+            db.session.add(plan)
+            db.session.commit()
+
+        log = AthleteLog.query.filter_by(user_id=user_id, fecha=fecha).first()
+
+        rutina = None
+        items: list[RutinaItem] = []
+        if plan.main and isinstance(plan.main, str) and plan.main.startswith("RUTINA:"):
+            rid_str = plan.main.split(":", 1)[1].strip()
+            if rid_str.isdigit():
+                rid = int(rid_str)
+                rutina = Rutina.query.get(rid)
+                if rutina:
+                    items = RutinaItem.query.filter_by(rutina_id=rid).order_by(RutinaItem.id.asc()).all()
+
+        script = generate_session_script_pro(plan=plan, rutina=rutina, items=items, log=log, fecha=fecha)
+        return jsonify({"ok": True, "script": script})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def generate_session_script_pro(plan: DiaPlan, rutina: Rutina | None, items: list[RutinaItem], log: AthleteLog | None, fecha: date) -> str:
+    plan_type = (plan.plan_type or "Descanso").strip()
+    day_label = fecha.strftime("%A %d/%m").upper()
+
+    def clean(s: str) -> str:
+        return (s or "").strip()
+
+    warmup = clean(plan.warmup) or "—"
+    main = clean(plan.main) or "—"
+    finisher = clean(plan.finisher) or "—"
+
+    did_train = bool(getattr(log, "did_train", False)) if log else False
+    main_done = clean(getattr(log, "main_done", "")) if log else ""
+
+    lines: List[str] = []
+    lines.append(f"🏁 GUION DE SESIÓN — {day_label}")
+    lines.append(f"Tipo: {plan_type}")
+    lines.append("")
+    lines.append("🎯 Objetivo del día")
+    if plan_type.lower() == "descanso":
+        lines.append("- Recuperación activa / movilidad suave.")
+    elif plan_type.lower() == "fuerza":
+        lines.append("- Fuerza con técnica limpia, descanso real y control.")
+    else:
+        lines.append("- Cumplir el bloque principal con buenas sensaciones.")
+    lines.append("")
+
+    lines.append("🔥 Activación (Warm-up)")
+    lines.append(f"- {warmup}")
+    lines.append("- Cues: respiración 1–2 min + movilidad (cadera/torácica) + subida progresiva.")
+    lines.append("")
+
+    if rutina and items:
+        lines.append(f"🏋️ Bloque principal — {rutina.nombre}")
+        lines.append("- Reglas: técnica > ego. Si estás cargado, dejá 1–2 reps en reserva.")
+        lines.append("- Descanso: 60–90s accesorios / 2–3 min básicos (si no se especifica).")
+        lines.append("")
+        lines.append("✅ Orden de ejercicios")
+        for idx, it in enumerate(items, start=1):
+            series = (it.series or "").strip()
+            reps = (it.reps or "").strip()
+            descanso = (it.descanso or "").strip()
+            meta = " · ".join([p for p in [
+                (f"{series} series" if series else ""),
+                (f"{reps} reps" if reps else ""),
+                (f"desc {descanso}" if descanso else ""),
+            ] if p]) or "—"
+
+            lines.append(f"{idx}. {it.nombre}")
+            lines.append(f"   - {meta}")
+            lines.append("   - Cue: control, rango completo, postura sólida.")
+        lines.append("")
+        lines.append("🧠 Foco mental")
+        lines.append("- 1 cosa a mejorar hoy: control + postura. Si dudás, bajá carga.")
+        lines.append("")
+
+    else:
+        lines.append("🚀 Bloque principal")
+        if isinstance(main, str) and main.startswith("RUTINA:"):
+            lines.append("- Rutina asignada, pero no pude cargar los ítems (revisar builder/items).")
+        else:
+            lines.append(f"- {main}")
+        lines.append("- Cues: empezá suave, encontrá ritmo, cerrá fuerte los últimos 10–15%.")
+        lines.append("")
+
+    lines.append("🧊 Enfriamiento / Finisher")
+    lines.append(f"- {finisher}")
+    lines.append("- Tip: 2–4 min respiración lenta + estiramientos suaves.")
+    lines.append("")
+
+    lines.append("📝 Qué registrar al final (30s)")
+    lines.append("- RPE (1–10): ____")
+    lines.append("- Energía: baja / media / alta")
+    lines.append("- Molestia: no / leve / sí (dónde)")
+    lines.append("")
+
+    if did_train:
+        lines.append("✅ Marcaste que entrenaste hoy.")
+    if main_done:
+        lines.append("📌 Lo que escribiste en ‘Qué hiciste’:")
+        lines.append(f"> {main_done[:240]}{'...' if len(main_done) > 240 else ''}")
+
+    return "\n".join(lines)
+
+
+# =============================================================
 # DASHBOARD ENTRENADOR (PANEL)
 # =============================================================
 @main_bp.route("/coach/dashboard")
@@ -533,60 +663,6 @@ def dashboard_entrenador():
         ejercicios=ejercicios,
         atletas=atletas,
     )
-
-
-# =============================================================
-# ✅ CREAR ATLETA (faltaba este endpoint)
-# =============================================================
-@main_bp.route("/admin/atletas/nuevo", methods=["GET", "POST"])
-@login_required
-def admin_nuevo_atleta():
-    if not is_admin():
-        flash("Solo el admin puede crear atletas", "danger")
-        return redirect(url_for("main.perfil_redirect"))
-
-    if request.method == "POST":
-        nombre = (request.form.get("nombre") or "").strip()
-        email = (request.form.get("email") or "").strip().lower()
-        grupo = (request.form.get("grupo") or "").strip()
-        password = (request.form.get("password") or "").strip()
-
-        if not nombre or not email or not password:
-            flash("Faltan datos: nombre, email y contraseña son obligatorios", "danger")
-            return redirect(url_for("main.admin_nuevo_atleta"))
-
-        exists = User.query.filter_by(email=email).first()
-        if exists:
-            flash("Ese email ya existe", "warning")
-            return redirect(url_for("main.admin_nuevo_atleta"))
-
-        u = User(nombre=nombre, email=email, grupo=grupo or None)
-
-        # ✅ Soporta ambos estilos: set_password() o password_hash
-        if hasattr(u, "set_password"):
-            u.set_password(password)
-        else:
-            # fallback: si tu modelo usa werkzeug.generate_password_hash internamente, ajustalo
-            try:
-                from werkzeug.security import generate_password_hash
-                u.password_hash = generate_password_hash(password)
-            except Exception:
-                pass
-
-        db.session.add(u)
-        db.session.commit()
-
-        # crea el plan de hoy para evitar pantallas vacías
-        hoy = date.today()
-        plan = DiaPlan.query.filter_by(user_id=u.id, fecha=hoy).first()
-        if not plan:
-            db.session.add(DiaPlan(user_id=u.id, fecha=hoy, plan_type="Descanso"))
-            db.session.commit()
-
-        flash("✅ Atleta creado", "success")
-        return redirect(url_for("main.dashboard_entrenador"))
-
-    return render_template("admin_nuevo_atleta.html")
 
 
 # =============================================================
@@ -613,6 +689,7 @@ def coach_planificador():
 
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     fechas = week_dates(center)
+
     planes = ensure_week_plans(atleta.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 

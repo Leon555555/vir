@@ -1,42 +1,51 @@
 {% extends "layout.html" %}
-{% block title %}Nuevo atleta — VR Training{% endblock %}
+{% block title %}Nuevo atleta{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <div class="card glass p-3 p-md-4 lift">
-    <h3 class="mb-2 text-strong">➕ Crear nuevo atleta</h3>
-    <div class="text-soft mb-4">Se crea el usuario con contraseña para que pueda entrar desde login.</div>
+<div class="container py-4">
 
-    <form method="POST">
-      <div class="row g-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="mb-0">➕ Crear atleta</h2>
+      <div class="text-muted">Alta rápida para empezar a entrenar</div>
+    </div>
+    <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-outline-secondary">
+      Volver
+    </a>
+  </div>
 
-        <div class="col-md-6">
-          <label class="form-label">Nombre</label>
-          <input type="text" name="nombre" class="form-control" required>
-        </div>
+  <div class="card glass p-4">
+    <form method="POST" class="row g-3">
 
-        <div class="col-md-6">
-          <label class="form-label">Email</label>
-          <input type="email" name="email" class="form-control" required>
-        </div>
-
-        <div class="col-md-6">
-          <label class="form-label">Contraseña</label>
-          <input type="password" name="password" class="form-control" required>
-        </div>
-
-        <div class="col-md-6">
-          <label class="form-label">Grupo (opcional)</label>
-          <input type="text" name="grupo" class="form-control">
-        </div>
-
+      <div class="col-md-6">
+        <label class="form-label">Nombre</label>
+        <input name="nombre" class="form-control" required>
       </div>
 
-      <div class="d-flex gap-2 mt-4 flex-wrap">
-        <button type="submit" class="btn btn-info">Crear atleta</button>
-        <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-outline-light">Volver</a>
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input name="email" type="email" class="form-control" required>
       </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Contraseña</label>
+        <input name="password" class="form-control" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Grupo</label>
+        <input name="grupo" class="form-control">
+      </div>
+
+      <div class="col-12 d-flex gap-2 mt-2">
+        <button class="btn btn-primary">Crear atleta</button>
+        <a href="{{ url_for('main.dashboard_entrenador') }}" class="btn btn-outline-secondary">
+          Cancelar
+        </a>
+      </div>
+
     </form>
   </div>
+
 </div>
 {% endblock %}

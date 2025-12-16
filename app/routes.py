@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Tuple, Optional
 
 import os
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
@@ -246,7 +247,7 @@ def perfil_redirect():
 
 
 # =============================================================
-# PERFIL (ATLETA) - HOY / SEMANA / MES / PROGRESO
+# PERFIL (ATLETA)
 # =============================================================
 @main_bp.route("/perfil/<int:user_id>")
 @login_required
@@ -257,24 +258,21 @@ def perfil_usuario(user_id: int):
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-    view = (request.args.get("view") or "today").strip().lower()  # today/week/month/progress
+    view = (request.args.get("view") or "today").strip().lower()
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     hoy = date.today()
 
-    # HOY plan
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
         db.session.add(plan_hoy)
         db.session.commit()
 
-    # Semana
     fechas = week_dates(center)
     planes = ensure_week_plans(user.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
     done_week = get_strength_done_days(user.id, fechas).union(get_log_done_days(user.id, fechas))
 
-    # Mes
     dias_mes = month_dates(center.year, center.month)
     planes_mes_db = DiaPlan.query.filter(
         DiaPlan.user_id == user.id,
@@ -294,7 +292,6 @@ def perfil_usuario(user_id: int):
 
     done_month = get_strength_done_days(user.id, dias_mes).union(get_log_done_days(user.id, dias_mes))
 
-    # Calendario mes (semanas)
     first_day = date(center.year, center.month, 1)
     start = start_of_week(first_day)
     last_day = dias_mes[-1]
@@ -335,26 +332,21 @@ def perfil_usuario(user_id: int):
         "perfil.html",
         user=user,
         view=view,
-
         hoy=hoy,
         plan_hoy=plan_hoy,
-
         center=center,
         fechas=fechas,
         planes=planes,
         semana_str=semana_str,
         done_week=done_week,
-
         dias_mes=dias_mes,
         planes_mes=planes_mes,
         done_month=done_month,
         month_grid=month_grid,
         month_label=month_label,
-
         rutinas=rutinas,
         done_set=done_set,
         log_by_day=log_by_day,
-
         streak=streak,
         week_goal=week_goal,
         week_done=week_done,
@@ -362,7 +354,7 @@ def perfil_usuario(user_id: int):
 
 
 # =============================================================
-# API: detalle del día (modal full-screen atleta)
+# API: detalle del día
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -478,7 +470,7 @@ def athlete_check_item():
 
 
 # =============================================================
-# Guardar "lo realizado" + marcar entreno (did_train)
+# Guardar "lo realizado"
 # =============================================================
 @main_bp.route("/athlete/save_log", methods=["POST"])
 @login_required
@@ -511,18 +503,11 @@ def athlete_save_log():
 
 
 # =============================================================
-# ✅ IA: Guión PRO del día (Punto 6)
+# ✅ IA: Guión PRO del día
 # =============================================================
 @main_bp.route("/ai/session_script", methods=["POST"])
 @login_required
 def ai_session_script():
-    """
-    Genera un guión profesional en texto, usando:
-    - DiaPlan (warmup/main/finisher)
-    - Rutina + RutinaItems (si es fuerza)
-    - AthleteLog (si existe, para incluir lo que ya escribió)
-    No rompe arquitectura, no requiere migraciones.
-    """
     try:
         data = request.get_json(silent=True) or {}
         user_id = int(data.get("user_id") or 0)
@@ -644,7 +629,7 @@ def generate_session_script_pro(plan: DiaPlan, rutina: Rutina | None, items: lis
 
 
 # =============================================================
-# DASHBOARD ENTRENADOR (PANEL)
+# DASHBOARD ENTRENADOR
 # =============================================================
 @main_bp.route("/coach/dashboard")
 @login_required
@@ -663,6 +648,47 @@ def dashboard_entrenador():
         ejercicios=ejercicios,
         atletas=atletas,
     )
+
+
+# =============================================================
+# ✅ (FIX) CREAR ATLETA - ESTE ERA EL ENDPOINT QUE TE FALTABA
+# =============================================================
+@main_bp.route("/admin/atletas/nuevo", methods=["GET", "POST"], endpoint="admin_nuevo_atleta")
+@login_required
+def admin_nuevo_atleta():
+    if not is_admin():
+        flash("Solo el admin puede crear atletas", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    if request.method == "POST":
+        nombre = (request.form.get("nombre") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        password = (request.form.get("password") or "").strip()
+        grupo = (request.form.get("grupo") or "").strip()
+
+        if not nombre or not email or not password:
+            flash("Faltan datos obligatorios", "danger")
+            return redirect(url_for("main.admin_nuevo_atleta"))
+
+        if User.query.filter_by(email=email).first():
+            flash("Ese email ya existe", "warning")
+            return redirect(url_for("main.admin_nuevo_atleta"))
+
+        atleta = User(nombre=nombre, email=email, grupo=grupo)
+
+        # compat con tu modelo: si existe set_password, úsalo; sino hash directo
+        if hasattr(atleta, "set_password"):
+            atleta.set_password(password)
+        else:
+            atleta.password_hash = generate_password_hash(password)
+
+        db.session.add(atleta)
+        db.session.commit()
+
+        flash("✅ Atleta creado correctamente", "success")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    return render_template("admin_nuevo_atleta.html")
 
 
 # =============================================================

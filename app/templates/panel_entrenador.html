@@ -1,143 +1,137 @@
 {% extends "layout.html" %}
-{% block title %}Dashboard Entrenador — VR Training{% endblock %}
+{% block title %}Panel entrenador{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container py-4">
 
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
-      <h2 class="text-light mb-0">🏋️‍♂️ Dashboard Entrenador</h2>
-      <div class="text-soft">Rutinas, banco de ejercicios y atletas.</div>
+      <div class="section-title">COACH</div>
+      <h2 class="mb-0 text-strong">Panel del Entrenador</h2>
+      <div class="text-soft mt-1">Rutinas, banco de ejercicios y gestión de atletas.</div>
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-      <a class="btn btn-info" href="{{ url_for('main.admin_nuevo_atleta') }}">➕ Crear atleta</a>
       <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">📅 Planificador</a>
+      <a class="btn btn-info" href="{{ url_for('main.admin_nuevo_atleta') }}">➕ Crear atleta</a>
     </div>
   </div>
 
   <div class="row g-3">
 
-    <!-- Atletas -->
-    <div class="col-lg-6">
-      <div class="card glass p-3 p-md-4">
+    <!-- ATLETAS -->
+    <div class="col-lg-5">
+      <div class="card glass p-3 lift">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="fw-bold">Atletas</div>
-          <span class="badge bg-secondary">{{ atletas|length }}</span>
+          <div class="section-title">ATLETAS</div>
+          <span class="badge bg-info">{{ atletas|length }}</span>
         </div>
 
         {% if atletas %}
           <div class="d-flex flex-column gap-2">
             {% for a in atletas %}
-              <div class="glass p-3" style="border-radius:16px;">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                  <div>
-                    <div class="fw-bold">{{ a.nombre }}</div>
-                    <div class="text-soft" style="font-size:.92rem;">{{ a.email }}</div>
-                    {% if a.grupo %}
-                      <div class="mt-1"><span class="badge bg-info">{{ a.grupo }}</span></div>
-                    {% endif %}
+              <div class="item-row d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="text-strong">{{ a.nombre }}</div>
+                  <div class="text-soft" style="font-size:.9rem;">
+                    {{ a.email }}{% if a.grupo %} · {{ a.grupo }}{% endif %}
                   </div>
-
-                  <div class="d-flex gap-2 flex-wrap">
-                    <a class="btn btn-sm btn-outline-info"
-                       href="{{ url_for('main.perfil_usuario', user_id=a.id) }}">
-                      Ver perfil
-                    </a>
-
-                    <a class="btn btn-sm btn-outline-light"
-                       href="{{ url_for('main.coach_planificador', user_id=a.id) }}">
-                      Planificar
-                    </a>
-
-                    <form method="POST" action="{{ url_for('main.admin_delete_user', user_id=a.id) }}"
-                          onsubmit="return confirm('¿Eliminar atleta?');">
-                      <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
-                    </form>
-                  </div>
+                </div>
+                <div class="d-flex gap-2">
+                  <a class="btn btn-sm btn-outline-info" href="{{ url_for('main.perfil_usuario', user_id=a.id) }}">
+                    Ver perfil
+                  </a>
+                  <form method="POST" action="{{ url_for('main.admin_delete_user', user_id=a.id) }}"
+                        onsubmit="return confirm('¿Eliminar atleta y TODO su historial?');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+                  </form>
                 </div>
               </div>
             {% endfor %}
           </div>
         {% else %}
-          <div class="empty-state text-soft">Todavía no hay atletas.</div>
+          <div class="empty-state">
+            <div class="text-strong">No hay atletas todavía</div>
+            <div class="text-soft">Creá el primero para arrancar.</div>
+          </div>
         {% endif %}
       </div>
     </div>
 
-    <!-- Rutinas -->
-    <div class="col-lg-6">
-      <div class="card glass p-3 p-md-4">
+    <!-- RUTINAS -->
+    <div class="col-lg-7">
+      <div class="card glass p-3 lift mb-3">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="fw-bold">Rutinas</div>
+          <div class="section-title">RUTINAS</div>
           <span class="badge bg-secondary">{{ rutinas|length }}</span>
         </div>
 
-        <form method="POST" action="{{ url_for('main.crear_rutina') }}" class="row g-2 mb-3">
-          <div class="col-md-6">
+        <form class="row g-2" method="POST" action="{{ url_for('main.crear_rutina') }}">
+          <div class="col-md-4">
             <input class="form-control" name="nombre" placeholder="Nombre rutina" required>
           </div>
           <div class="col-md-3">
-            <input class="form-control" name="tipo" placeholder="Tipo (Fuerza/Run)">
+            <input class="form-control" name="tipo" placeholder="Tipo (Fuerza/Run/etc)">
           </div>
-          <div class="col-md-3 d-grid">
-            <button class="btn btn-info" type="submit">Crear</button>
+          <div class="col-md-3">
+            <input class="form-control" name="descripcion" placeholder="Descripción">
+          </div>
+          <div class="col-md-2 d-grid">
+            <button class="btn btn-primary" type="submit">Crear</button>
+          </div>
+        </form>
+
+        <hr class="my-3">
+
+        {% if rutinas %}
+          <div class="d-flex flex-column gap-2">
+            {% for r in rutinas[:12] %}
+              <div class="item-row d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="text-strong">{{ r.nombre }}</div>
+                  <div class="text-soft" style="font-size:.9rem;">
+                    {% if r.tipo %}{{ r.tipo }}{% else %}—{% endif %}
+                    {% if r.descripcion %} · {{ r.descripcion }}{% endif %}
+                  </div>
+                </div>
+                <a class="btn btn-sm btn-outline-light" href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
+                  Builder
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <div class="text-strong">Todavía no hay rutinas</div>
+            <div class="text-soft">Creá una y armala con el builder.</div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- BANCO EJERCICIOS -->
+      <div class="card glass p-3 lift">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="section-title">BANCO DE EJERCICIOS</div>
+          <span class="badge bg-secondary">{{ ejercicios|length }}</span>
+        </div>
+
+        <form class="row g-2" method="POST" action="{{ url_for('main.admin_nuevo_ejercicio') }}" enctype="multipart/form-data">
+          <div class="col-md-4">
+            <input class="form-control" name="nombre" placeholder="Nombre ejercicio" required>
+          </div>
+          <div class="col-md-3">
+            <input class="form-control" name="categoria" placeholder="Categoría">
+          </div>
+          <div class="col-md-3">
+            <input class="form-control" type="file" name="video" required>
+          </div>
+          <div class="col-md-2 d-grid">
+            <button class="btn btn-info" type="submit">Subir</button>
           </div>
           <div class="col-12">
             <input class="form-control" name="descripcion" placeholder="Descripción (opcional)">
           </div>
         </form>
-
-        {% if rutinas %}
-          <div class="d-flex flex-column gap-2">
-            {% for r in rutinas %}
-              <div class="glass p-3" style="border-radius:16px;">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                  <div>
-                    <div class="fw-bold">{{ r.nombre }}</div>
-                    <div class="text-soft" style="font-size:.92rem;">{{ r.tipo or '—' }}</div>
-                  </div>
-                  <a class="btn btn-sm btn-outline-info"
-                     href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
-                    Builder
-                  </a>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="empty-state text-soft">Todavía no hay rutinas.</div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Banco ejercicios -->
-    <div class="col-12">
-      <div class="card glass p-3 p-md-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="fw-bold">Banco de ejercicios</div>
-          <span class="badge bg-secondary">{{ ejercicios|length }}</span>
-        </div>
-
-        <form method="POST" action="{{ url_for('main.admin_nuevo_ejercicio') }}" enctype="multipart/form-data"
-              class="row g-2">
-          <div class="col-md-3">
-            <input class="form-control" name="nombre" placeholder="Nombre ejercicio" required>
-          </div>
-          <div class="col-md-2">
-            <input class="form-control" name="categoria" placeholder="Categoría">
-          </div>
-          <div class="col-md-3">
-            <input class="form-control" name="descripcion" placeholder="Descripción">
-          </div>
-          <div class="col-md-3">
-            <input class="form-control" type="file" name="video" accept="video/*" required>
-          </div>
-          <div class="col-md-1 d-grid">
-            <button class="btn btn-info" type="submit">Subir</button>
-          </div>
-        </form>
-
       </div>
     </div>
 

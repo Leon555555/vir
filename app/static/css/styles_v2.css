@@ -1,5 +1,5 @@
 /* =========================================================
-   VR TRAINING — STYLES V2 (PRO LEGIBLE + FIX FIXED-TOP)
+   VR TRAINING — STYLES V2 (PRO LEGIBLE)
 ========================================================= */
 
 :root{
@@ -24,12 +24,13 @@
   --shadow: 0 18px 60px rgba(0,0,0,.60);
   --radius: 18px;
 
-  /* ✅ Altura navbar para fixed-top (estable) */
-  --nav-h: 72px;
+  --nav-h:72px;
 }
 
 /* BASE / SAFARI */
-*{ font-family:"Rajdhani", system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+*{
+  font-family:"Rajdhani", system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
 
 html, body{
   height:100%;
@@ -45,13 +46,12 @@ body{
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ✅ CLAVE: si navbar es fixed-top, el main necesita padding-top */
+/* FIX fixed-top */
 .vr-main{
   padding-top: calc(var(--nav-h) + env(safe-area-inset-top));
   padding-bottom: 24px;
 }
 
-/* Fondo */
 .vr-body{
   background:
     radial-gradient(900px 500px at 30% 0%, rgba(34,211,238,.10), transparent 60%),
@@ -61,7 +61,7 @@ body{
   color: var(--text);
 }
 
-/* Textos */
+/* Text */
 h1,h2,h3,h4,h5,h6{ color: var(--text) !important; }
 .text-light{ color: var(--text) !important; }
 .text-muted{ color: var(--muted2) !important; opacity:1 !important; }
@@ -71,7 +71,7 @@ h1,h2,h3,h4,h5,h6{ color: var(--text) !important; }
   background: rgba(0,0,0,.72);
   border-bottom: 1px solid var(--stroke);
   backdrop-filter: blur(12px);
-  min-height: var(--nav-h); /* ✅ mantiene altura */
+  min-height: var(--nav-h);
 }
 
 .vr-brand{
@@ -87,7 +87,7 @@ h1,h2,h3,h4,h5,h6{ color: var(--text) !important; }
 }
 .vr-link:hover{ color: var(--text); }
 
-/* Helpers */
+/* Avatar */
 .vr-avatar{
   width:46px;
   height:46px;
@@ -98,12 +98,8 @@ h1,h2,h3,h4,h5,h6{ color: var(--text) !important; }
   align-items:center;
   justify-content:center;
 }
-.vr-kicker{
-  letter-spacing:.18em;
-  text-transform:uppercase;
-}
 
-/* Glass */
+/* Cards */
 .glass{
   background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
   border: 1px solid rgba(255,255,255,.18);
@@ -111,9 +107,7 @@ h1,h2,h3,h4,h5,h6{ color: var(--text) !important; }
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
 }
-.card.glass{
-  background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.06));
-}
+
 .lift{
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
 }
@@ -132,10 +126,12 @@ textarea{
   color: var(--text) !important;
   border-radius: 14px !important;
 }
+
 .form-control::placeholder,
 textarea::placeholder{
   color: rgba(255,255,255,.45) !important;
 }
+
 .form-control:focus,
 textarea:focus,
 .form-select:focus{
@@ -152,6 +148,7 @@ textarea:focus,
   font-weight:1000 !important;
   border-radius: 14px !important;
 }
+
 .btn-outline-info{
   border-color: rgba(34,211,238,.60) !important;
   color: rgba(34,211,238,.98) !important;
@@ -161,6 +158,7 @@ textarea:focus,
 .btn-outline-info:hover{
   background: rgba(34,211,238,.14) !important;
 }
+
 .btn-outline-light{
   border-color: rgba(255,255,255,.26) !important;
   color: rgba(255,255,255,.94) !important;
@@ -179,6 +177,7 @@ textarea:focus,
   padding: 10px 12px;
   min-width: 150px;
 }
+
 .mini-title{
   letter-spacing: .18em;
   text-transform: uppercase;
@@ -186,11 +185,13 @@ textarea:focus,
   color: var(--muted2);
   font-weight:1000;
 }
+
 .mini-value{
   font-size: 1.05rem;
   font-weight:1000;
   color: var(--text);
 }
+
 .progress{
   background: rgba(255,255,255,.14) !important;
   border-radius: 999px;
@@ -227,13 +228,14 @@ textarea:focus,
   color: rgba(255,255,255,.78) !important;
 }
 
-/* Calendario mensual */
+/* Calendario mes */
 .month-grid{
   display:grid;
   grid-template-columns: repeat(7, minmax(0,1fr));
   gap:10px;
   padding:8px;
 }
+
 .month-head{
   color: var(--muted2);
   font-weight:1000;
@@ -242,6 +244,7 @@ textarea:focus,
   font-size:.78rem;
   padding:6px 8px;
 }
+
 .month-cell{
   position:relative;
   min-height:96px;
@@ -253,17 +256,20 @@ textarea:focus,
   cursor:pointer;
   transition: transform .15s ease, border-color .15s ease, background .15s ease;
 }
+
 .month-cell:hover{
   transform: translateY(-2px);
   border-color: rgba(34,211,238,.50);
   background: rgba(0,0,0,.48);
 }
+
 .month-cell.empty{
   opacity:.35;
   cursor:default;
   border-style:dashed;
   background: rgba(0,0,0,.18);
 }
+
 .month-cell .daynum{
   position:absolute;
   top:10px;
@@ -271,6 +277,7 @@ textarea:focus,
   font-weight:1000;
   color: rgba(255,255,255,.82);
 }
+
 .month-cell .ptype{
   margin-top:26px;
   font-weight:1000;
@@ -282,6 +289,7 @@ textarea:focus,
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
 .month-cell.done{
   border-color: rgba(34,197,94,.58);
   background: radial-gradient(420px 180px at 20% 0%, rgba(34,197,94,.18), transparent 65%),
@@ -296,9 +304,39 @@ textarea:focus,
   color: var(--good);
 }
 
+/* ✅ GRÁFICA */
+.vr-bars{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap:10px;
+  align-items:end;
+  padding: 8px 2px 2px;
+  min-height: 120px;
+}
+
+.vr-bar{
+  position:relative;
+  height:110px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.35);
+  overflow:hidden;
+}
+
+.vr-bar-fill{
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:100%;
+  background: linear-gradient(135deg, var(--cyan), var(--cyan2));
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+  box-shadow: 0 10px 30px rgba(34,211,238,.18);
+}
+
 /* Responsive */
 @media (max-width:768px){
-  :root{ --nav-h: 64px; } /* navbar un poco más baja en móvil */
+  :root{ --nav-h:64px; }
   .month-grid{ gap:8px; padding:4px; }
   .month-cell{ min-height:82px; }
 }

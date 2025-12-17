@@ -52,7 +52,7 @@
     <div class="card glass p-3 p-md-4">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
         <div>
-          <div class="text-muted vr-kicker">HOY</div>
+          <div class="text-muted vr-kicker" style="letter-spacing:.18em;text-transform:uppercase;">HOY</div>
           <div class="d-flex align-items-center gap-2">
             <div class="fs-4 fw-bold">{{ hoy.strftime('%A %d/%m')|upper }}</div>
             <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span>
@@ -137,7 +137,8 @@
     </div>
 
     <div class="card glass p-3 p-md-4">
-      <div class="month-grid">
+      <!-- ✅ SOLO NUMEROS: month-grid--numbers -->
+      <div class="month-grid month-grid--numbers">
         <div class="month-head">L</div><div class="month-head">M</div><div class="month-head">X</div>
         <div class="month-head">J</div><div class="month-head">V</div><div class="month-head">S</div><div class="month-head">D</div>
 
@@ -174,7 +175,6 @@
         </div>
       </div>
 
-      <!-- 📈 Gráfica simple -->
       <div class="glass p-3 mt-2" style="border-radius:18px;">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div class="mini-title">CONSISTENCIA</div>
@@ -186,14 +186,9 @@
 
         <div class="vr-bars">
           {% set safe_goal = week_goal if week_goal>0 else 1 %}
-          {% for i in range(safe_goal) %}
+          {% for i in range(7) %}
             <div class="vr-bar">
-              <div class="vr-bar-fill" style="height: 100%;"></div>
-            </div>
-          {% endfor %}
-          {% for i in range(7-safe_goal) %}
-            <div class="vr-bar">
-              <div class="vr-bar-fill" style="height: 0%;"></div>
+              <div class="vr-bar-fill" style="height: {{ 100 if i < week_done else 0 }}%;"></div>
             </div>
           {% endfor %}
         </div>
@@ -554,7 +549,6 @@ function saveLog(){
   });
 }
 
-/* ✅ GUION */
 async function genSessionScript(){
   const box = document.getElementById("scriptBox");
   box.innerHTML = `<div class="text-muted">Generando guión...</div>`;

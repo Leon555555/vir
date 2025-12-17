@@ -334,9 +334,32 @@ textarea:focus,
   box-shadow: 0 10px 30px rgba(34,211,238,.18);
 }
 
+/* ✅ SOLO NUMEROS EN EL MES (oculta letras) */
+.month-grid--numbers .month-cell .ptype{
+  display: none !important;
+}
+
+.month-grid--numbers .month-cell{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 0 !important;
+}
+
+.month-grid--numbers .month-cell .daynum{
+  position: static !important;
+  font-size: 1.25rem;
+  font-weight: 1000;
+  color: rgba(255,255,255,.92);
+}
+
 /* Responsive */
 @media (max-width:768px){
   :root{ --nav-h:64px; }
   .month-grid{ gap:8px; padding:4px; }
   .month-cell{ min-height:82px; }
+
+  .month-grid--numbers .month-cell .daynum{
+    font-size: 1.15rem;
+  }
 }

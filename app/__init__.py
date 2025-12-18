@@ -14,6 +14,8 @@ def create_app():
 
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "clave-ultra-segura")
 
+    # Si tu DATABASE_URL viene de Render, úsala tal cual.
+    # Recomendado: en Render setear DATABASE_URL con ?sslmode=require
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
         "DATABASE_URL",
         "postgresql://vir_db_user:bRbsLtpZ3I4rag19scmcAfRyXjZVNsUw@dpg-d3vtoc75r7bs73ch4bc0-a/vir_db",
@@ -46,11 +48,30 @@ def create_app():
     def inject_datetime():
         return {"datetime_now": datetime.datetime.utcnow}
 
+    # Blueprints existentes
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
+    # ✅ Blueprint Strava (si existe el archivo). No toca routes.py
+    try:
+        from app.blueprints.strava_bp import strava_bp
+        app.register_blueprint(strava_bp)
+        print("✅ Strava blueprint registrado.")
+    except Exception as e:
+        # No rompemos el arranque si todavía no agregaste los archivos de Strava
+        print(f"ℹ️ Strava blueprint no registrado todavía: {e}")
+
+    # ❗ NO crear tablas en cada arranque en producción.
+    # En Render esto puede tumbar el servicio si la DB está reiniciando o corta SSL.
+    # Usá AUTO_CREATE_DB=1 solo cuando quieras forzar create_all (una vez).
     with app.app_context():
-        db.create_all()
-        print("✅ Tablas verificadas correctamente.")
+        if os.getenv("AUTO_CREATE_DB", "0") == "1":
+            try:
+                db.create_all()
+                print("✅ Tablas verificadas/creadas (AUTO_CREATE_DB=1).")
+            except Exception as e:
+                print(f"⚠️ No se pudo ejecutar create_all: {e}")
+        else:
+            print("ℹ️ AUTO_CREATE_DB=0: no se ejecuta db.create_all() en el arranque.")
 
     return app

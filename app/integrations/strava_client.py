@@ -3,94 +3,112 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Dict, Optional
-from urllib.parse import urlencode
-
 import requests
 
-STRAVA_WEB = "https://www.strava.com"
-STRAVA_API = "https://www.strava.com/api/v3"
+from app.extensions import db
+from app.models_strava import IntegrationAccount
 
 
-class StravaError(Exception):
-    pass
+STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
+STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
+STRAVA_API_BASE = "https://www.strava.com/api/v3"
 
 
-def token_is_expired(expires_at: int, safety_seconds: int = 90) -> bool:
-    return int(time.time()) >= int(expires_at) - safety_seconds
+def _client_id() -> str:
+    return os.getenv("STRAVA_CLIENT_ID", "").strip()
+
+
+def _client_secret() -> str:
+    return os.getenv("STRAVA_CLIENT_SECRET", "").strip()
+
+
+def _redirect_uri() -> str:
+    return os.getenv("STRAVA_REDIRECT_URI", "").strip()
+
+
+def build_authorize_url(state: str) -> str:
+    # scope típico para leer actividades
+    scope = "read,activity:read_all"
+    return (
+        f"{STRAVA_AUTH_URL}"
+        f"?client_id={_client_id()}"
+        f"&response_type=code"
+        f"&redirect_uri={_redirect_uri()}"
+        f"&approval_prompt=auto"
+        f"&scope={scope}"
+        f"&state={state}"
+    )
+
+
+def exchange_code_for_token(code: str) -> dict:
+    payload = {
+        "client_id": _client_id(),
+        "client_secret": _client_secret(),
+        "code": code,
+        "grant_type": "authorization_code",
+    }
+    r = requests.post(STRAVA_TOKEN_URL, data=payload, timeout=30)
+    r.raise_for_status()
+    return r.json()
+
+
+def refresh_access_token(refresh_token: str) -> dict:
+    payload = {
+        "client_id": _client_id(),
+        "client_secret": _client_secret(),
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+    r = requests.post(STRAVA_TOKEN_URL, data=payload, timeout=30)
+    r.raise_for_status()
+    return r.json()
+
+
+def get_valid_access_token(user_id: int) -> str:
+    acc = IntegrationAccount.query.filter_by(user_id=user_id, provider="strava").first()
+    if not acc:
+        raise RuntimeError("El usuario no tiene Strava conectado.")
+
+    now = int(time.time())
+    # refrescar si expira en <= 60s
+    if acc.expires_at <= now + 60:
+        data = refresh_access_token(acc.refresh_token)
+        acc.access_token = data["access_token"]
+        acc.refresh_token = data["refresh_token"]
+        acc.expires_at = int(data["expires_at"])
+        # athlete.id puede venir en algunos responses
+        athlete = data.get("athlete") or {}
+        if athlete.get("id"):
+            acc.external_user_id = str(athlete["id"])
+        db.session.commit()
+
+    return acc.access_token
+
+
+def api_get(path: str, access_token: str, params: dict | None = None) -> dict | list:
+    url = f"{STRAVA_API_BASE}{path}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    r = requests.get(url, headers=headers, params=params or {}, timeout=30)
+    r.raise_for_status()
+    return r.json()
+
+
+def get_strava_client(user_id: int):
+    """
+    Helper simple para que tu código haga:
+    client = get_strava_client(user_id)
+    client.list_activities(...)
+    """
+    return StravaClient(user_id)
 
 
 class StravaClient:
-    def __init__(self, client_id: str, client_secret: str):
-        self.client_id = str(client_id).strip()
-        self.client_secret = str(client_secret).strip()
+    def __init__(self, user_id: int):
+        self.user_id = user_id
 
-    def build_authorize_url(
-        self,
-        redirect_uri: str,
-        state: str,
-        scope: str = "read,activity:read_all",
-        approval_prompt: str = "auto",
-        response_type: str = "code",
-    ) -> str:
-        params = {
-            "client_id": self.client_id,
-            "response_type": response_type,
-            "redirect_uri": redirect_uri,
-            "approval_prompt": approval_prompt,
-            "scope": scope,
-            "state": state,
-        }
-        return f"{STRAVA_WEB}/oauth/authorize?{urlencode(params)}"
+    def access_token(self) -> str:
+        return get_valid_access_token(self.user_id)
 
-    def exchange_code(self, code: str) -> Dict[str, Any]:
-        url = f"{STRAVA_WEB}/oauth/token"
-        resp = requests.post(
-            url,
-            data={
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "code": code,
-                "grant_type": "authorization_code",
-            },
-            timeout=25,
-        )
-        if resp.status_code != 200:
-            raise StravaError(f"Token exchange failed: {resp.status_code} {resp.text}")
-        return resp.json()
-
-    def refresh_access_token(self, refresh_token: str) -> Dict[str, Any]:
-        url = f"{STRAVA_WEB}/oauth/token"
-        resp = requests.post(
-            url,
-            data={
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "grant_type": "refresh_token",
-                "refresh_token": refresh_token,
-            },
-            timeout=25,
-        )
-        if resp.status_code != 200:
-            raise StravaError(f"Refresh failed: {resp.status_code} {resp.text}")
-        return resp.json()
-
-    def get(self, path: str, access_token: str, params: Optional[dict] = None) -> Any:
-        url = f"{STRAVA_API}{path}"
-        resp = requests.get(
-            url,
-            headers={"Authorization": f"Bearer {access_token}"},
-            params=params or {},
-            timeout=25,
-        )
-        if resp.status_code != 200:
-            raise StravaError(f"GET {path} failed: {resp.status_code} {resp.text}")
-        return resp.json()
-
-
-def get_strava_client() -> StravaClient:
-    cid = os.getenv("STRAVA_CLIENT_ID", "").strip()
-    csec = os.getenv("STRAVA_CLIENT_SECRET", "").strip()
-    if not cid or not csec:
-        raise RuntimeError("Missing STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET in env vars.")
-    return StravaClient(cid, csec)
+    def list_activities(self, per_page: int = 30, page: int = 1):
+        token = self.access_token()
+        return api_get("/athlete/activities", token, params={"per_page": per_page, "page": page})

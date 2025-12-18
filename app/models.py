@@ -1,7 +1,7 @@
 # app/models.py
 from __future__ import annotations
 
-from datetime import datetime, date
+from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -18,7 +18,7 @@ class User(UserMixin, db.Model):
 
     grupo = db.Column(db.String(120), nullable=True)
 
-    # ✅ IMPORTANTE: Render te rompía por esto faltante en la DB
+    # ✅ IMPORTANTE
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
 
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -39,10 +39,8 @@ class DiaPlan(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     fecha = db.Column(db.Date, nullable=False, index=True)
 
-    # Fuerza / Run / Bike / Natacion / Descanso
     plan_type = db.Column(db.String(40), nullable=False, default="Descanso")
 
-    # Para deportes resistencia:
     warmup = db.Column(db.Text, nullable=True)
     main = db.Column(db.Text, nullable=True)      # en fuerza guarda "RUTINA:<id>"
     finisher = db.Column(db.Text, nullable=True)
@@ -50,7 +48,6 @@ class DiaPlan(db.Model):
     propuesto_score = db.Column(db.Integer, nullable=True, default=0)
     realizado_score = db.Column(db.Integer, nullable=True, default=0)
 
-    # ✅ bloqueo atleta en calendario
     puede_entrenar = db.Column(db.String(10), nullable=True, default="si")  # "si" / "no"
     comentario_atleta = db.Column(db.Text, nullable=True)
 
@@ -79,7 +76,6 @@ class Ejercicio(db.Model):
     categoria = db.Column(db.String(120), nullable=True)
     descripcion = db.Column(db.Text, nullable=True)
 
-    # Nombre del archivo en /static/videos/
     video_filename = db.Column(db.String(255), nullable=True)
 
 
@@ -96,10 +92,8 @@ class RutinaItem(db.Model):
     reps = db.Column(db.String(50), nullable=True)
     descanso = db.Column(db.String(50), nullable=True)
 
-    # ✅ ojo: en tu template usás it.nota
     nota = db.Column(db.Text, nullable=True)
 
-    # Guardamos ruta relativa: "videos/archivo.mp4"
     video_url = db.Column(db.String(255), nullable=True)
 
 

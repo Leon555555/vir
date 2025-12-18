@@ -1,54 +1,73 @@
 # app/models_strava.py
+from __future__ import annotations
+
 from datetime import datetime
 from app.extensions import db
 
+# ============================================================
+# STRAVA INTEGRATION MODELS
+# ============================================================
 
 class IntegrationAccount(db.Model):
+    """
+    Guarda tokens Strava por usuario.
+    OJO: tu tabla de usuarios en app/models.py es __tablename__ = "user"
+    así que el FK correcto es "user.id" (NO "users.id").
+    """
     __tablename__ = "integration_accounts"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    # ✅ FK correcto según tu models.py
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
 
-    provider = db.Column(db.String(50), nullable=False)  # "strava"
+    provider = db.Column(db.String(50), nullable=False, default="strava")  # por si luego sumás Garmin, etc
+    athlete_id = db.Column(db.BigInteger, nullable=True, index=True)
 
-    access_token = db.Column(db.String(255), nullable=False)
-    refresh_token = db.Column(db.String(255), nullable=False)
-    expires_at = db.Column(db.Integer, nullable=False)
-    scope = db.Column(db.String(255))
+    access_token = db.Column(db.Text, nullable=True)
+    refresh_token = db.Column(db.Text, nullable=True)
+    expires_at = db.Column(db.BigInteger, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    scope = db.Column(db.String(255), nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        db.UniqueConstraint("user_id", "provider", name="uq_user_provider"),
+        db.UniqueConstraint("user_id", "provider", name="uq_integration_user_provider"),
     )
 
 
 class ExternalActivity(db.Model):
+    """
+    Cachea actividades traídas desde Strava, para no re-consultar siempre.
+    """
     __tablename__ = "external_activities"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    provider = db.Column(db.String(50), nullable=False)  # "strava"
-    provider_activity_id = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    provider = db.Column(db.String(50), nullable=False, default="strava")
 
-    name = db.Column(db.String(255))
-    sport_type = db.Column(db.String(50))
-    start_date = db.Column(db.DateTime)
+    external_id = db.Column(db.BigInteger, nullable=False, index=True)  # id actividad en Strava
+    name = db.Column(db.String(255), nullable=True)
 
-    elapsed_time = db.Column(db.Integer)
-    moving_time = db.Column(db.Integer)
-    distance = db.Column(db.Float)
-    total_elevation_gain = db.Column(db.Float)
-    average_heartrate = db.Column(db.Float)
+    sport_type = db.Column(db.String(80), nullable=True)
+    start_date = db.Column(db.DateTime, nullable=True)
 
-    raw_json = db.Column(db.JSON)
+    distance_m = db.Column(db.Float, nullable=True)
+    moving_time_s = db.Column(db.Integer, nullable=True)
+    elapsed_time_s = db.Column(db.Integer, nullable=True)
+    total_elevation_gain_m = db.Column(db.Float, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    raw_json = db.Column(db.JSON, nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        db.UniqueConstraint(
-            "provider", "provider_activity_id", name="uq_provider_activity"
-        ),
+        db.UniqueConstraint("provider", "external_id", name="uq_external_activity_provider_externalid"),
     )
+
+
+print("✅ models_strava importado (modelos Strava registrados).")

@@ -8,6 +8,15 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, migrate, login_manager
 from app.models import User
 
+# ✅ IMPORTANTE: registrar modelos Strava (si existe el archivo).
+# Esto hace que SQLAlchemy "vea" IntegrationAccount / ExternalActivity
+# y que create_all los cree cuando AUTO_CREATE_DB=1.
+try:
+    import app.models_strava  # noqa: F401
+    print("✅ models_strava importado (modelos Strava registrados).")
+except Exception as e:
+    print(f"ℹ️ models_strava no importado todavía: {e}")
+
 
 def create_app():
     app = Flask(__name__)

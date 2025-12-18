@@ -137,7 +137,6 @@
     </div>
 
     <div class="card glass p-3 p-md-4">
-      <!-- ✅ SOLO NUMEROS: month-grid--numbers -->
       <div class="month-grid month-grid--numbers">
         <div class="month-head">L</div><div class="month-head">M</div><div class="month-head">X</div>
         <div class="month-head">J</div><div class="month-head">V</div><div class="month-head">S</div><div class="month-head">D</div>
@@ -163,18 +162,12 @@
   <!-- PROGRESS -->
   {% if view == 'progress' %}
     <div class="card glass p-3 p-md-4">
-      <div class="d-flex align-items-end justify-content-between flex-wrap gap-2 mb-2">
-        <div>
-          <h4 class="text-light mb-0">Tus progresos</h4>
-          <div class="text-muted">Semana actual · Objetivo vs completado</div>
-        </div>
-
-        <div class="mini-stat" style="min-width:180px;">
-          <div class="mini-title">SEMANA</div>
-          <div class="mini-value">✅ {{ week_done }} / {{ week_goal }}</div>
-        </div>
+      <div class="mb-2">
+        <h4 class="text-light mb-0">Tus progresos</h4>
+        <div class="text-muted">Semana actual · Objetivo vs completado</div>
       </div>
 
+      <!-- 📈 Consistencia (solo la gráfica) -->
       <div class="glass p-3 mt-2" style="border-radius:18px;">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div class="mini-title">CONSISTENCIA</div>
@@ -185,7 +178,6 @@
         </div>
 
         <div class="vr-bars">
-          {% set safe_goal = week_goal if week_goal>0 else 1 %}
           {% for i in range(7) %}
             <div class="vr-bar">
               <div class="vr-bar-fill" style="height: {{ 100 if i < week_done else 0 }}%;"></div>
@@ -196,28 +188,6 @@
         <div class="d-flex justify-content-between mt-2">
           <span class="text-muted">L</span><span class="text-muted">M</span><span class="text-muted">X</span>
           <span class="text-muted">J</span><span class="text-muted">V</span><span class="text-muted">S</span><span class="text-muted">D</span>
-        </div>
-      </div>
-
-      <div class="row g-3 mt-3">
-        <div class="col-md-6">
-          <div class="glass p-3" style="border-radius:16px;">
-            <div class="mini-title">RACHA ACTUAL</div>
-            <div class="fs-2 fw-bold">🔥 {{ streak }}</div>
-            <div class="text-muted">Días consecutivos entrenando.</div>
-          </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="glass p-3" style="border-radius:16px;">
-            <div class="mini-title">SEMANA</div>
-            <div class="fs-2 fw-bold">✅ {{ week_done }} / {{ week_goal }}</div>
-            <div class="progress mt-2">
-              {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
-              <div class="progress-bar" style="width: {{ pct }}%"></div>
-            </div>
-            <div class="text-muted mt-2">Objetivo vs completado.</div>
-          </div>
         </div>
       </div>
     </div>

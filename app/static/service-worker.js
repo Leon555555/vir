@@ -1,19 +1,13 @@
-/* VR Training – Service Worker
-   Seguro para Flask (Render)
-   Cachea SOLO assets estáticos
-*/
-
 const CACHE_NAME = "vr-training-static-v1";
 
 const STATIC_ASSETS = [
   "/static/css/styles_v2.css",
   "/static/icons/icon-192.png",
   "/static/icons/icon-512.png",
-  "/static/logo_blanco_vr_training.png",
-  "/static/manifest.webmanifest"
+  "/static/manifest.webmanifest",
+  "/static/logo_negro_vr_training.png"
 ];
 
-// Detecta navegación HTML
 function isNavigation(request) {
   return (
     request.mode === "navigate" ||
@@ -21,7 +15,6 @@ function isNavigation(request) {
   );
 }
 
-// Detecta asset estático
 function isStatic(url) {
   return url.pathname.startsWith("/static/");
 }
@@ -51,13 +44,13 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin !== self.location.origin) return;
 
-  // HTML → siempre red
+  // HTML / rutas dinámicas -> siempre red
   if (isNavigation(req)) {
     event.respondWith(fetch(req));
     return;
   }
 
-  // Assets → cache first
+  // estáticos -> cache first
   if (isStatic(url)) {
     event.respondWith(
       caches.match(req).then((cached) => {

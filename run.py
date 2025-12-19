@@ -27,10 +27,7 @@ def sql_exec(sql: str):
 
 
 def bootstrap_tables_if_needed():
-    """
-    Crea tablas SOLO cuando AUTO_CREATE_DB=1.
-    No borra datos, solo crea lo que falte.
-    """
+    # SOLO para la primera vez o cuando agregás tablas nuevas
     if os.getenv("AUTO_CREATE_DB", "0") == "1":
         try:
             db.create_all()
@@ -42,18 +39,17 @@ def bootstrap_tables_if_needed():
 
 
 def fix_schema():
-    # columns users
+    # users columns
     if table_exists("users"):
         sql_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;")
         sql_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT NOW();")
 
-    # FK dia_plan -> users con limpieza de huérfanos
+    # dia_plan FK (limpia huérfanos antes)
     if table_exists("dia_plan"):
         sql_exec("""
             DELETE FROM dia_plan dp
             WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = dp.user_id);
         """)
-
         sql_exec("ALTER TABLE dia_plan DROP CONSTRAINT IF EXISTS dia_plan_user_id_fkey;")
         sql_exec("""
             ALTER TABLE dia_plan
@@ -62,7 +58,7 @@ def fix_schema():
             ON DELETE CASCADE;
         """)
 
-    # athlete_logs FK solo si existe tabla
+    # athlete_logs FK
     if table_exists("athlete_logs"):
         sql_exec("ALTER TABLE athlete_logs DROP CONSTRAINT IF EXISTS athlete_logs_user_id_fkey;")
         sql_exec("""
@@ -72,7 +68,7 @@ def fix_schema():
             ON DELETE CASCADE;
         """)
 
-    # athlete_checks FK solo si existe tabla
+    # athlete_checks FK
     if table_exists("athlete_checks"):
         sql_exec("ALTER TABLE athlete_checks DROP CONSTRAINT IF EXISTS athlete_checks_user_id_fkey;")
         sql_exec("""
@@ -81,6 +77,22 @@ def fix_schema():
             FOREIGN KEY (user_id) REFERENCES users(id)
             ON DELETE CASCADE;
         """)
+
+    # -------------------------
+    # STRAVA: columnas faltantes
+    # -------------------------
+    if table_exists("integration_accounts"):
+        sql_exec("ALTER TABLE integration_accounts ADD COLUMN IF NOT EXISTS external_user_id VARCHAR(80);")
+
+    if table_exists("external_activities"):
+        # create_all NO agrega columnas si ya existe la tabla
+        sql_exec("ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS start_date TIMESTAMP;")
+        sql_exec("ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS distance_m DOUBLE PRECISION;")
+        sql_exec("ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS moving_time_s INTEGER;")
+        sql_exec("ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS elapsed_time_s INTEGER;")
+        sql_exec("ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS raw_json JSON;")
+        sql_exec("ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();")
+        sql_exec("ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();")
 
 
 def ensure_admin():

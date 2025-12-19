@@ -8,9 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, migrate, login_manager
 from app.models import User
 
-# ✅ IMPORTANTE: registrar modelos Strava (si existe el archivo).
-# Esto hace que SQLAlchemy "vea" IntegrationAccount / ExternalActivity
-# y que create_all los cree cuando AUTO_CREATE_DB=1.
+# ✅ Importar modelos Strava para que SQLAlchemy los "vea"
 try:
     import app.models_strava  # noqa: F401
     print("✅ models_strava importado (modelos Strava registrados).")
@@ -23,11 +21,9 @@ def create_app():
 
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "clave-ultra-segura")
 
-    # Si tu DATABASE_URL viene de Render, úsala tal cual.
-    # Recomendado: en Render setear DATABASE_URL con ?sslmode=require
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
         "DATABASE_URL",
-        "postgresql://vir_db_user:bRbsLtpZ3I4rag19scmcAfRyXjZVNsUw@dpg-d3vtoc75r7bs73ch4bc0-a/vir_db",
+        "postgresql://USER:PASS@HOST:5432/DBNAME"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -43,7 +39,6 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # ✅ un solo LoginManager (el de extensions.py)
     login_manager.init_app(app)
 
     @login_manager.user_loader
@@ -57,22 +52,17 @@ def create_app():
     def inject_datetime():
         return {"datetime_now": datetime.datetime.utcnow}
 
-    # Blueprints existentes
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
-    # ✅ Blueprint Strava (si existe el archivo). No toca routes.py
     try:
         from app.blueprints.strava_bp import strava_bp
         app.register_blueprint(strava_bp)
         print("✅ Strava blueprint registrado.")
     except Exception as e:
-        # No rompemos el arranque si todavía no agregaste los archivos de Strava
         print(f"ℹ️ Strava blueprint no registrado todavía: {e}")
 
-    # ❗ NO crear tablas en cada arranque en producción.
-    # En Render esto puede tumbar el servicio si la DB está reiniciando o corta SSL.
-    # Usá AUTO_CREATE_DB=1 solo cuando quieras forzar create_all (una vez).
+    # ✅ Dejamos create_all opcional (si preferís usarlo solo en run.py, dejalo en 0 siempre)
     with app.app_context():
         if os.getenv("AUTO_CREATE_DB", "0") == "1":
             try:

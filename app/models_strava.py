@@ -10,11 +10,10 @@ class IntegrationAccount(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # ✅ OJO: FK a users.id (plural)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
 
     provider = db.Column(db.String(50), nullable=False, index=True)  # "strava"
-    external_user_id = db.Column(db.String(80), nullable=True, index=True)  # ✅ faltaba en DB antes
+    external_user_id = db.Column(db.String(80), nullable=True, index=True)
 
     access_token = db.Column(db.Text, nullable=False)
     refresh_token = db.Column(db.Text, nullable=True)
@@ -34,15 +33,13 @@ class ExternalActivity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
-
     provider = db.Column(db.String(50), nullable=False, index=True)  # "strava"
 
-    # ✅ este es el que te faltaba y te rompía filter_by(provider_activity_id=...)
     provider_activity_id = db.Column(db.String(80), nullable=False, index=True)
 
     name = db.Column(db.String(255), nullable=True)
-
     start_date = db.Column(db.DateTime, nullable=True)
+
     distance_m = db.Column(db.Float, nullable=True)
     moving_time_s = db.Column(db.Integer, nullable=True)
     elapsed_time_s = db.Column(db.Integer, nullable=True)
@@ -55,6 +52,3 @@ class ExternalActivity(db.Model):
     __table_args__ = (
         db.UniqueConstraint("user_id", "provider", "provider_activity_id", name="uq_external_activity"),
     )
-
-
-print("✅ models_strava importado (modelos Strava registrados).")

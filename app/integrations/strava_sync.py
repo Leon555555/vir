@@ -1,7 +1,6 @@
 # app/integrations/strava_sync.py
 from __future__ import annotations
 
-import time
 import requests
 from datetime import datetime
 
@@ -9,8 +8,19 @@ from app.extensions import db
 from app.models_strava import IntegrationAccount, ExternalActivity
 from app.integrations.strava_client import refresh_access_token, is_expired
 
-
 STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities"
+
+
+def _parse_start_date(v) -> datetime | None:
+    if not v:
+        return None
+    # Strava suele venir como "2025-12-19T10:20:30Z"
+    try:
+        if isinstance(v, str) and v.endswith("Z"):
+            v = v.replace("Z", "+00:00")
+        return datetime.fromisoformat(v) if isinstance(v, str) else None
+    except Exception:
+        return None
 
 
 def _ensure_valid_token(acc: IntegrationAccount) -> IntegrationAccount:
@@ -57,7 +67,6 @@ def sync_latest_activities(user_id: int, per_page: int = 30) -> int:
             provider="strava",
             provider_activity_id=activity_id
         ).first()
-
         if exists:
             continue
 
@@ -66,13 +75,13 @@ def sync_latest_activities(user_id: int, per_page: int = 30) -> int:
             provider="strava",
             provider_activity_id=activity_id,
             name=a.get("name"),
-            type=a.get("type"),
-            start_date=a.get("start_date"),
+            start_date=_parse_start_date(a.get("start_date")),
             distance_m=a.get("distance"),
             moving_time_s=a.get("moving_time"),
             elapsed_time_s=a.get("elapsed_time"),
-            raw=a,
+            raw_json=a,
             created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
         )
         db.session.add(row)
         inserted += 1

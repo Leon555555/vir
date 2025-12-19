@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from sqlalchemy.dialects.postgresql import JSONB
 from app.extensions import db
 
 
@@ -11,21 +10,21 @@ class IntegrationAccount(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # OJO: tu tabla users se llama "user"
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    # ✅ OJO: FK a users.id (plural)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
 
     provider = db.Column(db.String(50), nullable=False, index=True)  # "strava"
-    external_user_id = db.Column(db.String(64), nullable=True)       # athlete.id de Strava
+    external_user_id = db.Column(db.String(80), nullable=True, index=True)  # ✅ faltaba en DB antes
 
     access_token = db.Column(db.Text, nullable=False)
-    refresh_token = db.Column(db.Text, nullable=False)
-    expires_at = db.Column(db.Integer, nullable=False)
+    refresh_token = db.Column(db.Text, nullable=True)
+    expires_at = db.Column(db.Integer, nullable=True)  # epoch seconds
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        db.UniqueConstraint("user_id", "provider", name="uq_user_provider"),
+        db.UniqueConstraint("user_id", "provider", name="uq_integration_user_provider"),
     )
 
 
@@ -34,25 +33,27 @@ class ExternalActivity(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+
     provider = db.Column(db.String(50), nullable=False, index=True)  # "strava"
 
-    provider_activity_id = db.Column(db.String(64), nullable=False, index=True)
+    # ✅ este es el que te faltaba y te rompía filter_by(provider_activity_id=...)
+    provider_activity_id = db.Column(db.String(80), nullable=False, index=True)
 
     name = db.Column(db.String(255), nullable=True)
-    type = db.Column(db.String(80), nullable=True)
-    start_date = db.Column(db.String(64), nullable=True)
 
+    start_date = db.Column(db.DateTime, nullable=True)
     distance_m = db.Column(db.Float, nullable=True)
     moving_time_s = db.Column(db.Integer, nullable=True)
     elapsed_time_s = db.Column(db.Integer, nullable=True)
 
-    raw = db.Column(JSONB, nullable=True)
+    raw_json = db.Column(db.JSON, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        db.UniqueConstraint("user_id", "provider", "provider_activity_id", name="uq_ext_act"),
+        db.UniqueConstraint("user_id", "provider", "provider_activity_id", name="uq_external_activity"),
     )
 
 

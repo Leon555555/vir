@@ -11,38 +11,41 @@ from app.models import User
 
 app = create_app()
 
+def safe_exec(sql: str):
+    try:
+        db.session.execute(text(sql))
+        db.session.commit()
+        print(f"✅ SQL OK: {sql}")
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ SQL FAIL: {sql}\n⚠️ {e}")
+
 def patch_schema():
     """
-    ✅ Parcha la DB en producción si faltan columnas.
-    No rompe el arranque si algo falla.
+    ✅ Parchea esquema en producción (sin migraciones)
+    - users: is_admin, fecha_creacion
+    - integration_accounts: external_user_id
+    - external_activities: provider_activity_id
     """
-    stmts = [
-        # Fix principal (tu error actual)
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;",
+    # USERS
+    safe_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;")
+    safe_exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT NOW();")
 
-        # Fix Strava (para que no vuelva a romper luego)
-        "ALTER TABLE integration_accounts ADD COLUMN IF NOT EXISTS external_user_id VARCHAR(80);",
-        "ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS provider_activity_id VARCHAR(80);",
-    ]
-
-    for s in stmts:
-        try:
-            db.session.execute(text(s))
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ No se pudo ejecutar: {s}\n⚠️ {e}")
+    # STRAVA
+    safe_exec("ALTER TABLE integration_accounts ADD COLUMN IF NOT EXISTS external_user_id VARCHAR(80);")
+    safe_exec("ALTER TABLE external_activities ADD COLUMN IF NOT EXISTS provider_activity_id VARCHAR(80);")
 
 with app.app_context():
     # 1) ✅ arregla columnas faltantes
     patch_schema()
 
-    # 2) ✅ bootstrap admin SIN romper si hay problemas
+    # 2) ✅ crea/asegura admin sin romper el arranque
     try:
         admin_email = os.environ.get("ADMIN_EMAIL", "admin@vir.app").strip().lower()
         admin_pass = os.environ.get("ADMIN_PASSWORD", "admin123")
 
         admin = User.query.filter_by(email=admin_email).first()
+
         if not admin:
             admin = User(nombre="Admin", email=admin_email, grupo="admin")
             admin.set_password(admin_pass)
@@ -51,18 +54,11 @@ with app.app_context():
             db.session.commit()
             print("✅ Admin creado")
         else:
-            # aseguramos flag
             if getattr(admin, "is_admin", False) is False:
                 admin.is_admin = True
                 db.session.commit()
             print("✅ Admin ya existe")
 
-    except ProgrammingError as e:
-        db.session.rollback()
-        print("⚠️ ProgrammingError en bootstrap admin (no crítico).")
-        print(e)
-
     except Exception as e:
         db.session.rollback()
-        print("⚠️ Error en bootstrap admin (no crítico).")
-        print(e)
+        print("⚠️ Error creando/verificando admin (no crítico):", e)

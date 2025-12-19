@@ -6,6 +6,7 @@ from calendar import monthrange
 from typing import Any, Dict, List, Tuple, Optional
 
 import os
+import time
 from werkzeug.utils import secure_filename
 
 from flask import (
@@ -23,6 +24,61 @@ from app.models import (
 main_bp = Blueprint("main", __name__)
 
 # =============================================================
+# MEDIA / VIDEOS
+# =============================================================
+ALLOWED_VIDEO_EXT = {".mp4", ".mov", ".webm", ".m4v"}
+
+def ensure_videos_dir() -> str:
+    folder = os.path.join(current_app.static_folder, "videos")
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+def save_video_to_static(file_storage) -> str:
+    """
+    Guarda el archivo en /static/videos con nombre seguro + timestamp.
+    Devuelve SOLO el filename (ej: 'sentadilla_1734.mp4')
+    """
+    filename = secure_filename(file_storage.filename or "")
+    if not filename:
+        raise ValueError("Nombre de archivo no válido")
+
+    name, ext = os.path.splitext(filename)
+    ext = (ext or "").lower()
+    if ext not in ALLOWED_VIDEO_EXT:
+        raise ValueError(f"Formato no permitido ({ext}). Usá: {', '.join(sorted(ALLOWED_VIDEO_EXT))}")
+
+    safe = f"{name.strip()}_{int(time.time())}{ext}"
+    out_path = os.path.join(ensure_videos_dir(), safe)
+    file_storage.save(out_path)
+    return safe
+
+def normalize_item_video_url(v: str | None) -> str:
+    """
+    Queremos guardar/usar siempre 'videos/<filename>'.
+    Si viene '/static/videos/x.mp4' lo normaliza.
+    Si viene 'x.mp4' lo convierte a 'videos/x.mp4'.
+    """
+    if not v:
+        return ""
+    s = str(v).strip()
+    if s.startswith("/static/"):
+        s = s.replace("/static/", "", 1)
+    if not s:
+        return ""
+    if "/" not in s:
+        s = f"videos/{s}"
+    return s
+
+def build_video_src(video_url: str | None) -> str:
+    """
+    Devuelve URL lista para <video src="...">, usando url_for(static).
+    """
+    rel = normalize_item_video_url(video_url)
+    if not rel:
+        return ""
+    return url_for("static", filename=rel)
+
+# =============================================================
 # FECHAS / UTILIDADES
 # =============================================================
 def start_of_week(d: date) -> date:
@@ -38,6 +94,8 @@ def month_dates(year: int, month: int) -> List[date]:
     return [date(year, month, d) for d in range(1, last + 1)]
 
 def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
+    if not s:
+        return fallback or date.today()
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
     except Exception:
@@ -71,10 +129,11 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
     }
 
 def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
+    # p.fecha es date en tu proyecto (por cómo lo usás en queries)
     return {
         "id": p.id,
         "user_id": p.user_id,
-        "fecha": p.fecha.strftime("%Y-%m-%d"),
+        "fecha": p.fecha.strftime("%Y-%m-%d") if hasattr(p.fecha, "strftime") else str(p.fecha),
         "plan_type": (p.plan_type or "Descanso"),
         "warmup": p.warmup or "",
         "main": p.main or "",
@@ -216,7 +275,6 @@ def login():
             login_user(user)
             flash(f"Bienvenido {user.nombre}", "success")
 
-            # respeta ?next=...
             nxt = request.args.get("next")
             if nxt:
                 return redirect(nxt)
@@ -260,7 +318,7 @@ def perfil_usuario(user_id: int):
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     hoy = date.today()
 
-    # ✅ asegura plan de hoy
+    # asegura plan de hoy
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
@@ -309,7 +367,6 @@ def perfil_usuario(user_id: int):
         month_grid.append(w)
 
     month_label = first_day.strftime("%B %Y").upper()
-
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
     # checks de la semana (para modal)
@@ -357,7 +414,7 @@ def perfil_usuario(user_id: int):
 
 
 # =============================================================
-# API: detalle del día
+# API: detalle del día  ✅ (ESTA ES /api/day_detail)
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -405,6 +462,8 @@ def api_day_detail():
                     .order_by(RutinaItem.id.asc()).all()
                 )
                 payload["rutina"] = serialize_rutina(r)
+
+                # ✅ IMPORTANTE: normalizamos video_url y devolvemos video_src listo
                 payload["items"] = [
                     {
                         "id": it.id,
@@ -412,7 +471,8 @@ def api_day_detail():
                         "series": it.series or "",
                         "reps": it.reps or "",
                         "descanso": it.descanso or "",
-                        "video_url": it.video_url or "",
+                        "video_url": normalize_item_video_url(it.video_url),
+                        "video_src": build_video_src(it.video_url),
                         "nota": it.nota or "",
                     }
                     for it in items
@@ -454,15 +514,18 @@ def athlete_check_item():
 
         if existing:
             existing.done = done
-            existing.updated_at = datetime.utcnow()
+            if hasattr(existing, "updated_at"):
+                existing.updated_at = datetime.utcnow()
         else:
-            db.session.add(AthleteCheck(
+            row = AthleteCheck(
                 user_id=user_id,
                 fecha=fecha,
                 rutina_item_id=item.id,
-                done=done,
-                updated_at=datetime.utcnow()
-            ))
+                done=done
+            )
+            if hasattr(row, "updated_at"):
+                row.updated_at = datetime.utcnow()
+            db.session.add(row)
 
         db.session.commit()
         return jsonify({"ok": True})
@@ -495,7 +558,8 @@ def athlete_save_log():
         log.warmup_done = (data.get("warmup_done") or "").strip()
         log.main_done = (data.get("main_done") or "").strip()
         log.finisher_done = (data.get("finisher_done") or "").strip()
-        log.updated_at = datetime.utcnow()
+        if hasattr(log, "updated_at"):
+            log.updated_at = datetime.utcnow()
 
         db.session.commit()
         return jsonify({"ok": True})
@@ -793,7 +857,7 @@ def crear_rutina():
 
 
 # =============================================================
-# SUBIR EJERCICIO (BANCO)
+# SUBIR EJERCICIO (BANCO) ✅ corregido: no pisa archivos
 # =============================================================
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
@@ -807,24 +871,25 @@ def admin_nuevo_ejercicio():
     descripcion = (request.form.get("descripcion") or "").strip()
     file = request.files.get("video")
 
-    if not nombre or not file:
-        flash("Falta el nombre o el vídeo del ejercicio", "danger")
+    if not nombre:
+        flash("Falta el nombre del ejercicio", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    filename = secure_filename(file.filename)
-    if not filename:
-        flash("Nombre de archivo no válido", "danger")
+    if not file or not file.filename:
+        flash("Falta el vídeo del ejercicio", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    upload_folder = os.path.join(current_app.static_folder, "videos")
-    os.makedirs(upload_folder, exist_ok=True)
-    file.save(os.path.join(upload_folder, filename))
+    try:
+        filename = save_video_to_static(file)
+    except Exception as e:
+        flash(f"Error subiendo video: {e}", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
 
     ejercicio = Ejercicio(
         nombre=nombre,
         categoria=categoria,
         descripcion=descripcion,
-        video_filename=filename
+        video_filename=filename  # ✅ en tu modelo ya lo usás así
     )
     db.session.add(ejercicio)
     db.session.commit()
@@ -891,6 +956,9 @@ def rutina_add_item(rutina_id: int):
 
     ejercicio = Ejercicio.query.get_or_404(ejercicio_id)
 
+    # ✅ tu Ejercicio guarda filename, y RutinaItem guarda 'videos/<filename>'
+    vurl = f"videos/{ejercicio.video_filename}" if getattr(ejercicio, "video_filename", None) else ""
+
     item = RutinaItem(
         rutina_id=rutina.id,
         ejercicio_id=ejercicio.id,
@@ -899,7 +967,7 @@ def rutina_add_item(rutina_id: int):
         reps=(request.form.get("reps") or "").strip(),
         descanso=(request.form.get("descanso") or "").strip(),
         nota=(request.form.get("nota") or "").strip(),
-        video_url=f"videos/{ejercicio.video_filename}" if ejercicio.video_filename else ""
+        video_url=vurl
     )
     db.session.add(item)
     db.session.commit()

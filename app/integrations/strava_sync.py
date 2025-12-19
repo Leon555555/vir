@@ -1,55 +1,81 @@
 # app/integrations/strava_sync.py
 from __future__ import annotations
 
+import time
+import requests
 from datetime import datetime
+
 from app.extensions import db
-from app.models_strava import ExternalActivity
-from app.integrations.strava_client import get_strava_client
+from app.models_strava import IntegrationAccount, ExternalActivity
+from app.integrations.strava_client import refresh_access_token, is_expired
 
 
-def _parse_dt(s: str | None):
-    if not s:
-        return None
-    # Strava suele dar: "2025-12-18T16:08:00Z"
-    try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00"))
-    except Exception:
-        return None
+STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities"
+
+
+def _ensure_valid_token(acc: IntegrationAccount) -> IntegrationAccount:
+    if not acc.refresh_token:
+        raise RuntimeError("No hay refresh_token guardado.")
+
+    if acc.expires_at and not is_expired(acc.expires_at):
+        return acc
+
+    data = refresh_access_token(acc.refresh_token)
+
+    acc.access_token = data.get("access_token")
+    acc.refresh_token = data.get("refresh_token") or acc.refresh_token
+    acc.expires_at = int(data.get("expires_at") or 0)
+    acc.updated_at = datetime.utcnow()
+
+    db.session.commit()
+    return acc
 
 
 def sync_latest_activities(user_id: int, per_page: int = 30) -> int:
-    client = get_strava_client(user_id)
-    activities = client.list_activities(per_page=per_page, page=1)
+    acc = IntegrationAccount.query.filter_by(user_id=user_id, provider="strava").first()
+    if not acc:
+        raise RuntimeError("Este usuario no tiene Strava vinculado.")
 
-    saved = 0
+    acc = _ensure_valid_token(acc)
+
+    headers = {"Authorization": f"Bearer {acc.access_token}"}
+    params = {"per_page": per_page, "page": 1}
+
+    r = requests.get(STRAVA_ACTIVITIES_URL, headers=headers, params=params, timeout=20)
+    r.raise_for_status()
+    activities = r.json() or []
+
+    inserted = 0
 
     for a in activities:
         activity_id = str(a.get("id"))
         if not activity_id:
             continue
 
-        row = ExternalActivity.query.filter_by(
+        exists = ExternalActivity.query.filter_by(
             user_id=user_id,
             provider="strava",
             provider_activity_id=activity_id
         ).first()
 
-        if not row:
-            row = ExternalActivity(
-                user_id=user_id,
-                provider="strava",
-                provider_activity_id=activity_id
-            )
-            db.session.add(row)
-            saved += 1
+        if exists:
+            continue
 
-        row.name = a.get("name")
-        row.sport_type = a.get("sport_type") or a.get("type")
-        row.distance_m = a.get("distance")
-        row.moving_time_s = a.get("moving_time")
-        row.elapsed_time_s = a.get("elapsed_time")
-        row.start_date_utc = _parse_dt(a.get("start_date"))
-        row.raw_json = a
+        row = ExternalActivity(
+            user_id=user_id,
+            provider="strava",
+            provider_activity_id=activity_id,
+            name=a.get("name"),
+            type=a.get("type"),
+            start_date=a.get("start_date"),
+            distance_m=a.get("distance"),
+            moving_time_s=a.get("moving_time"),
+            elapsed_time_s=a.get("elapsed_time"),
+            raw=a,
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(row)
+        inserted += 1
 
     db.session.commit()
-    return saved
+    return inserted

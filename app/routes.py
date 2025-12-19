@@ -20,6 +20,9 @@ from app.models import (
     AthleteCheck, AthleteLog
 )
 
+# ✅ STRAVA (Opción A)
+from app.models_strava import IntegrationAccount
+
 main_bp = Blueprint("main", __name__)
 
 
@@ -327,6 +330,12 @@ def perfil_usuario(user_id: int):
     streak = compute_streak(user.id)
     week_goal, week_done = week_goal_and_done(user.id, fechas, planes)
 
+    # ✅ STRAVA (Opción A): detectar si está vinculado
+    strava_account = IntegrationAccount.query.filter_by(
+        user_id=user.id,
+        provider="strava"
+    ).first()
+
     return render_template(
         "perfil.html",
         user=user,
@@ -349,6 +358,8 @@ def perfil_usuario(user_id: int):
         streak=streak,
         week_goal=week_goal,
         week_done=week_done,
+        # ✅ NUEVO
+        strava_account=strava_account,
     )
 
 
@@ -650,7 +661,7 @@ def dashboard_entrenador():
 
 
 # =============================================================
-# ✅ FIX: CREAR ATLETA (endpoint que te faltaba)
+# ✅ FIX: CREAR ATLETA
 # =============================================================
 @main_bp.route("/admin/atletas/nuevo", methods=["POST"])
 @login_required
@@ -673,7 +684,6 @@ def admin_nuevo_atleta():
         return redirect(url_for("main.dashboard_entrenador"))
 
     u = User(nombre=nombre, email=email, grupo=grupo)
-    # asumimos que tu modelo tiene set_password()
     u.set_password(password)
 
     db.session.add(u)

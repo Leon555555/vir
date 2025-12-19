@@ -10,9 +10,22 @@
       <div class="vr-avatar">
         <i class="bi bi-person-fill text-info"></i>
       </div>
+
       <div>
         <h2 class="text-light mb-0">{{ user.nombre }}</h2>
         <div class="text-muted">{{ user.email }}</div>
+
+        <!-- ✅ STRAVA (OPCIÓN A) -->
+        <div class="mt-2">
+          {% if strava_account %}
+            <span class="badge bg-success">🟠 Strava conectado</span>
+          {% else %}
+            <a href="{{ url_for('strava.connect') }}"
+               class="btn btn-sm btn-outline-warning">
+              🔗 Conectar con Strava
+            </a>
+          {% endif %}
+        </div>
       </div>
     </div>
 
@@ -167,7 +180,6 @@
         <div class="text-muted">Semana actual · Objetivo vs completado</div>
       </div>
 
-      <!-- 📈 Consistencia (solo la gráfica) -->
       <div class="glass p-3 mt-2" style="border-radius:18px;">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div class="mini-title">CONSISTENCIA</div>
@@ -545,7 +557,7 @@ function escapeHtml(s){
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
     .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
+    .replaceAll('"',"quot;")
     .replaceAll("'","&#039;");
 }
 </script>

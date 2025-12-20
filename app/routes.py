@@ -6,6 +6,8 @@ from calendar import monthrange
 from typing import Any, Dict, List, Tuple, Optional
 
 import os
+import time
+from werkzeug.utils import secure_filename
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
@@ -22,23 +24,69 @@ from app.models import (
 main_bp = Blueprint("main", __name__)
 
 # =============================================================
-# VIDEO HELPERS (Opción A: videos en repo /static/videos)
+# MEDIA / VIDEOS (FREE SAFE MODE)
 # =============================================================
-ALLOWED_VIDEO_EXT = {".mp4", ".webm", ".m4v", ".mov"}
+ALLOWED_VIDEO_EXT = {".mp4", ".mov", ".webm", ".m4v"}
+
+def videos_dir() -> str:
+    """
+    Carpeta canonical de videos estáticos:
+    app/static/videos
+    """
+    folder = os.path.join(current_app.static_folder, "videos")
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+def list_repo_videos() -> List[str]:
+    """
+    Lista archivos disponibles en app/static/videos (los que van en el repo).
+    """
+    folder = videos_dir()
+    out: List[str] = []
+    try:
+        for fn in os.listdir(folder):
+            p = os.path.join(folder, fn)
+            if not os.path.isfile(p):
+                continue
+            ext = os.path.splitext(fn)[1].lower()
+            if ext in ALLOWED_VIDEO_EXT:
+                out.append(fn)
+    except Exception:
+        return []
+    out.sort(key=lambda s: s.lower())
+    return out
+
+def save_video_to_static(file_storage) -> str:
+    """
+    OJO: en Render gratis NO es persistente (se pierde).
+    Lo dejamos por si lo usás localmente.
+    Devuelve filename guardado.
+    """
+    filename = secure_filename(file_storage.filename or "")
+    if not filename:
+        raise ValueError("Nombre de archivo no válido")
+
+    name, ext = os.path.splitext(filename)
+    ext = (ext or "").lower()
+    if ext not in ALLOWED_VIDEO_EXT:
+        raise ValueError(f"Formato no permitido ({ext}). Usá: {', '.join(sorted(ALLOWED_VIDEO_EXT))}")
+
+    safe = f"{name.strip()}_{int(time.time())}{ext}"
+    out_path = os.path.join(videos_dir(), safe)
+    file_storage.save(out_path)
+    return safe
 
 def normalize_item_video_url(v: str | None) -> str:
     """
-    Guardamos/Usamos siempre 'videos/<filename>'.
-    Admite: '/static/videos/x.mp4' o 'videos/x.mp4' o 'x.mp4'
+    Queremos guardar/usar siempre 'videos/<filename>'.
     """
     if not v:
         return ""
     s = str(v).strip()
-    if not s:
-        return ""
     if s.startswith("/static/"):
         s = s.replace("/static/", "", 1)
-    # si viene "x.mp4" lo pasamos a "videos/x.mp4"
+    if not s:
+        return ""
     if "/" not in s:
         s = f"videos/{s}"
     return s
@@ -48,28 +96,6 @@ def build_video_src(video_url: str | None) -> str:
     if not rel:
         return ""
     return url_for("static", filename=rel)
-
-def guess_mime_from_filename(filename: str) -> str:
-    ext = os.path.splitext(filename.lower())[1]
-    if ext == ".mp4" or ext == ".m4v":
-        return "video/mp4"
-    if ext == ".webm":
-        return "video/webm"
-    if ext == ".mov":
-        # puede funcionar o no según codec, pero esto ayuda
-        return "video/quicktime"
-    return "video/mp4"
-
-def static_video_exists(video_rel: str) -> bool:
-    """
-    Verifica si existe en disco dentro de /static/videos.
-    En Render solo existirá si está en tu repo (Opción A).
-    """
-    rel = normalize_item_video_url(video_rel)
-    if not rel:
-        return False
-    abs_path = os.path.join(current_app.static_folder, rel)
-    return os.path.isfile(abs_path)
 
 # =============================================================
 # FECHAS / UTILIDADES
@@ -562,11 +588,15 @@ def dashboard_entrenador():
     ejercicios = Ejercicio.query.order_by(Ejercicio.id.desc()).all()
     atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.desc()).all()
 
+    # ✅ lista de videos reales del repo
+    available_videos = list_repo_videos()
+
     return render_template(
         "panel_entrenador.html",
         rutinas=rutinas,
         ejercicios=ejercicios,
         atletas=atletas,
+        available_videos=available_videos,
     )
 
 # =============================================================
@@ -602,7 +632,7 @@ def admin_nuevo_atleta():
     return redirect(url_for("main.dashboard_entrenador"))
 
 # =============================================================
-# PLANIFICADOR (SEMANA) - entrenador
+# PLANIFICADOR (SEMANA)
 # =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
@@ -706,11 +736,16 @@ def crear_rutina():
     return redirect(url_for("main.dashboard_entrenador"))
 
 # =============================================================
-# CREAR EJERCICIO (BANCO) - Opción A: referenciar filename existente
+# CREAR EJERCICIO (BANCO) - FREE MODE
 # =============================================================
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
 def admin_nuevo_ejercicio():
+    """
+    ✅ MODO GRATIS:
+    - En producción (Render), NO dependas de subir archivos al server.
+    - Elegí un archivo existente en app/static/videos (commiteado).
+    """
     if not is_admin():
         flash("Solo el admin puede crear ejercicios", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
@@ -718,30 +753,36 @@ def admin_nuevo_ejercicio():
     nombre = (request.form.get("nombre") or "").strip()
     categoria = (request.form.get("categoria") or "").strip()
     descripcion = (request.form.get("descripcion") or "").strip()
-    video_filename = (request.form.get("video_filename") or "").strip()
+
+    # 1) opción A: seleccionar un video existente (recomendado)
+    selected = (request.form.get("video_existing") or "").strip()
+
+    # 2) opción local: upload (NO recomendado para Render gratis)
+    file = request.files.get("video")
 
     if not nombre:
         flash("Falta el nombre del ejercicio", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    if not video_filename:
-        flash("Falta el nombre del archivo de video (ej: saltar_cuerda.mp4)", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+    video_filename = ""
 
-    # validación simple
-    ext = os.path.splitext(video_filename.lower())[1]
-    if ext not in ALLOWED_VIDEO_EXT:
-        flash(f"Formato no permitido ({ext}). Usá mp4/webm/m4v/mov", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+    if selected:
+        # validar que exista realmente en static/videos
+        if selected not in list_repo_videos():
+            flash("Ese archivo no existe en /static/videos (subilo al repo primero).", "danger")
+            return redirect(url_for("main.dashboard_entrenador"))
+        video_filename = selected
 
-    # debe existir en static/videos dentro del repo
-    rel = f"videos/{video_filename}"
-    if not static_video_exists(rel):
-        flash(
-            f"El video '{video_filename}' NO existe en /static/videos/ en el servidor. "
-            f"Subilo al repo (static/videos/) y redeploy.",
-            "danger"
-        )
+    elif file and file.filename:
+        # upload (solo útil local / temporal)
+        try:
+            video_filename = save_video_to_static(file)
+            flash("⚠️ Video subido al server (en Render gratis se puede perder). Ideal: usar 'Seleccionar video existente'.", "warning")
+        except Exception as e:
+            flash(f"Error subiendo video: {e}", "danger")
+            return redirect(url_for("main.dashboard_entrenador"))
+    else:
+        flash("Falta video: seleccioná uno existente o subí uno (local).", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
     ejercicio = Ejercicio(
@@ -753,7 +794,7 @@ def admin_nuevo_ejercicio():
     db.session.add(ejercicio)
     db.session.commit()
 
-    flash("✅ Ejercicio creado (video por repo)", "success")
+    flash("✅ Ejercicio creado en el banco", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
 # =============================================================
@@ -782,7 +823,7 @@ def admin_delete_user(user_id: int):
     return redirect(url_for("main.dashboard_entrenador"))
 
 # =============================================================
-# CRUD rutinas (builder) + peso + orden
+# CRUD rutinas (builder) + orden
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/builder")
 @login_required
@@ -814,6 +855,8 @@ def rutina_add_item(rutina_id: int):
         return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
     ejercicio = Ejercicio.query.get_or_404(ejercicio_id)
+
+    # ✅ SIEMPRE apuntar al video del banco (videos/<filename>)
     vurl = f"videos/{ejercicio.video_filename}" if getattr(ejercicio, "video_filename", None) else ""
 
     max_pos = db.session.query(db.func.max(RutinaItem.posicion)).filter_by(rutina_id=rutina.id).scalar()
@@ -828,7 +871,7 @@ def rutina_add_item(rutina_id: int):
         peso=(request.form.get("peso") or "").strip(),
         descanso=(request.form.get("descanso") or "").strip(),
         nota=(request.form.get("nota") or "").strip(),
-        video_url=normalize_item_video_url(vurl),
+        video_url=vurl,
         posicion=next_pos
     )
     db.session.add(item)

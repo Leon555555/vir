@@ -88,8 +88,7 @@ class AthleteCheck(db.Model):
 
 
 # -------------------------------------------------------------
-# Estas clases las dejo “placeholder” porque ya las tenés en tu proyecto.
-# Si ya existen en tu models actual, NO dupliques.
+# Rutinas / Ejercicios / Items
 # -------------------------------------------------------------
 class Rutina(db.Model):
     __tablename__ = "rutinas"
@@ -117,8 +116,17 @@ class RutinaItem(db.Model):
     ejercicio_id = db.Column(db.Integer, nullable=True)
 
     nombre = db.Column(db.String(120), nullable=False)
+
+    # strings porque usas cosas como: "30\"", "1'", "8-10", etc.
     series = db.Column(db.String(40), nullable=True)
     reps = db.Column(db.String(40), nullable=True)
+
+    # ✅ NUEVO
+    peso = db.Column(db.String(40), nullable=True)
+
     descanso = db.Column(db.String(40), nullable=True)
     nota = db.Column(db.String(255), nullable=True)
     video_url = db.Column(db.String(255), nullable=True)
+
+    # ✅ NUEVO: orden persistente
+    posicion = db.Column(db.Integer, nullable=False, default=0, index=True)

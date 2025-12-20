@@ -34,7 +34,7 @@
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div>
             <h5 class="mb-0 text-strong">Ejercicios de la rutina</h5>
-            <div class="text-soft">Pensado para rutinas grandes (20+). Videos en modal para que cargue rápido.</div>
+            <div class="text-soft">Arrastrá para ordenar. Edición compacta para rutinas largas.</div>
           </div>
 
           <div class="d-flex gap-2 align-items-center">
@@ -45,19 +45,21 @@
         <div class="card-body">
 
           {% if items %}
-            <div class="rb-grid">
+            <div id="rutinaList" class="rb-list">
               {% for item in items %}
-                <div class="rb-card">
-                  <div class="rb-card-top">
-                    <div class="rb-title">
-                      <div class="rb-index">{{ loop.index }}</div>
-                      <div class="rb-name">
-                        <div class="text-strong">{{ item.nombre }}</div>
-                        <div class="rb-meta">
-                          <span class="chip">Series: <b>{{ item.series or '—' }}</b></span>
-                          <span class="chip">Reps: <b>{{ item.reps or '—' }}</b></span>
-                          <span class="chip">Desc: <b>{{ item.descanso or '—' }}</b></span>
-                        </div>
+                <div class="rb-item" data-item-id="{{ item.id }}">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div class="rb-title">
+                        <span class="rb-handle">⠿ Orden</span>
+                        <span class="ms-2">#{{ loop.index }} · {{ item.nombre }}</span>
+                      </div>
+
+                      <div class="rb-meta mt-1">
+                        <span class="chip">Series: <b>{{ item.series or '—' }}</b></span>
+                        <span class="chip">Repeticiones: <b>{{ item.reps or '—' }}</b></span>
+                        <span class="chip">Peso: <b>{{ item.peso or '—' }}</b></span>
+                        <span class="chip">Descanso: <b>{{ item.descanso or '—' }}</b></span>
                       </div>
                     </div>
 
@@ -83,36 +85,43 @@
                   </div>
 
                   {% if item.nota %}
-                    <div class="rb-note">{{ item.nota }}</div>
+                    <div class="rb-note mt-2">{{ item.nota }}</div>
                   {% endif %}
 
                   <!-- edición compacta -->
                   <form method="post"
                         action="{{ url_for('main.rutina_update_item', rutina_id=rutina.id, item_id=item.id) }}"
-                        class="rb-edit">
+                        class="rb-edit mt-3">
 
-                    <div class="row g-2">
-                      <div class="col-4">
-                        <label class="form-label form-label-sm">Series</label>
-                        <input type="text" name="series" value="{{ item.series or '' }}" class="form-control form-control-sm">
-                      </div>
-                      <div class="col-4">
-                        <label class="form-label form-label-sm">Reps</label>
-                        <input type="text" name="reps" value="{{ item.reps or '' }}" class="form-control form-control-sm">
-                      </div>
-                      <div class="col-4">
-                        <label class="form-label form-label-sm">Descanso</label>
-                        <input type="text" name="descanso" value="{{ item.descanso or '' }}" class="form-control form-control-sm">
+                    <div class="rb-grid">
+                      <div class="rb-field">
+                        <label>Series</label>
+                        <input type="text" name="series" value="{{ item.series or '' }}">
                       </div>
 
-                      <div class="col-12">
-                        <label class="form-label form-label-sm">Nota</label>
-                        <textarea name="nota" rows="2" class="form-control form-control-sm" placeholder="Cue, técnica, tempo, RPE...">{{ item.nota or '' }}</textarea>
+                      <div class="rb-field">
+                        <label>Repeticiones</label>
+                        <input type="text" name="reps" value="{{ item.reps or '' }}">
                       </div>
 
-                      <div class="col-12 d-grid mt-1">
-                        <button type="submit" class="btn btn-sm btn-primary">Guardar cambios</button>
+                      <div class="rb-field">
+                        <label>Peso</label>
+                        <input type="text" name="peso" value="{{ item.peso or '' }}" placeholder="kg / manc / RPE">
                       </div>
+
+                      <div class="rb-field">
+                        <label>Descanso</label>
+                        <input type="text" name="descanso" value="{{ item.descanso or '' }}">
+                      </div>
+                    </div>
+
+                    <div class="rb-note mt-2">
+                      <label class="d-block mb-1" style="font-size:12px;opacity:.85;">Nota</label>
+                      <textarea name="nota" rows="2" class="w-100" placeholder="Cue, técnica, tempo, RPE...">{{ item.nota or '' }}</textarea>
+                    </div>
+
+                    <div class="rb-save d-grid">
+                      <button type="submit" class="btn btn-sm btn-primary">Guardar cambios</button>
                     </div>
                   </form>
                 </div>
@@ -178,15 +187,19 @@
                         class="row g-2 mt-2">
                     <input type="hidden" name="ejercicio_id" value="{{ ej.id }}">
 
-                    <div class="col-4">
+                    <div class="col-3">
                       <input type="text" name="series" placeholder="Series" class="form-control form-control-sm">
                     </div>
-                    <div class="col-4">
+                    <div class="col-3">
                       <input type="text" name="reps" placeholder="Reps" class="form-control form-control-sm">
                     </div>
-                    <div class="col-4">
+                    <div class="col-3">
+                      <input type="text" name="peso" placeholder="Peso" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-3">
                       <input type="text" name="descanso" placeholder="Desc" class="form-control form-control-sm">
                     </div>
+
                     <div class="col-12">
                       <textarea name="nota" rows="2" placeholder="Nota (opcional)" class="form-control form-control-sm"></textarea>
                     </div>
@@ -208,7 +221,7 @@
   </div>
 </div>
 
-<!-- MODAL VIDEO (1 SOLO VIDEO PARA TODO) -->
+<!-- MODAL VIDEO -->
 <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content glass">
@@ -220,9 +233,6 @@
         <video id="videoPlayer" class="w-100" controls preload="metadata" playsinline>
           <source id="videoSource" src="" type="video/mp4">
         </video>
-        <div class="text-soft mt-2">
-          Tip: subí los videos a <b>static/videos</b> como venís haciendo. Esto no cambia tu arquitectura.
-        </div>
       </div>
     </div>
   </div>
@@ -230,6 +240,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- SortableJS (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
 <script>
 function filterBank(){
   const q = (document.getElementById("bankSearch").value || "").toLowerCase().trim();
@@ -257,12 +270,45 @@ function openVideo(btn){
   const modal = new bootstrap.Modal(modalEl);
   modal.show();
 
-  // cuando cierra, frenamos y limpiamos src para no consumir RAM
   modalEl.addEventListener("hidden.bs.modal", () => {
     try { player.pause(); } catch(e){}
     source.src = "";
     player.load();
   }, { once: true });
 }
+
+async function saveOrder(){
+  const list = document.getElementById("rutinaList");
+  if (!list) return;
+
+  const order = Array.from(list.querySelectorAll(".rb-item"))
+    .map(el => parseInt(el.getAttribute("data-item-id")));
+
+  try{
+    const res = await fetch("{{ url_for('main.rutina_reorder', rutina_id=rutina.id) }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order })
+    });
+    const data = await res.json();
+    if (!data.ok){
+      alert("Error guardando orden: " + (data.error || "—"));
+    }
+  }catch(e){
+    alert("Error guardando orden (network).");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const list = document.getElementById("rutinaList");
+  if (!list) return;
+
+  new Sortable(list, {
+    handle: ".rb-handle",
+    animation: 150,
+    ghostClass: "rb-ghost",
+    onEnd: () => saveOrder()
+  });
+});
 </script>
 {% endblock %}

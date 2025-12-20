@@ -129,7 +129,6 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
     }
 
 def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
-    # p.fecha es date en tu proyecto (por cómo lo usás en queries)
     return {
         "id": p.id,
         "user_id": p.user_id,
@@ -318,20 +317,17 @@ def perfil_usuario(user_id: int):
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     hoy = date.today()
 
-    # asegura plan de hoy
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
         db.session.add(plan_hoy)
         db.session.commit()
 
-    # semana
     fechas = week_dates(center)
     planes = ensure_week_plans(user.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
     done_week = get_strength_done_days(user.id, fechas).union(get_log_done_days(user.id, fechas))
 
-    # mes
     dias_mes = month_dates(center.year, center.month)
     planes_mes_db = DiaPlan.query.filter(
         DiaPlan.user_id == user.id,
@@ -351,7 +347,6 @@ def perfil_usuario(user_id: int):
 
     done_month = get_strength_done_days(user.id, dias_mes).union(get_log_done_days(user.id, dias_mes))
 
-    # grid mes
     first_day = date(center.year, center.month, 1)
     start = start_of_week(first_day)
     last_day = dias_mes[-1]
@@ -369,7 +364,6 @@ def perfil_usuario(user_id: int):
     month_label = first_day.strftime("%B %Y").upper()
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
-    # checks de la semana (para modal)
     done_set: set[Tuple[date, int]] = set()
     checks = AthleteCheck.query.filter(
         AthleteCheck.user_id == user.id,
@@ -459,17 +453,17 @@ def api_day_detail():
             if r:
                 items = (
                     RutinaItem.query.filter_by(rutina_id=rid)
-                    .order_by(RutinaItem.id.asc()).all()
+                    .order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc()).all()
                 )
                 payload["rutina"] = serialize_rutina(r)
 
-                # ✅ IMPORTANTE: normalizamos video_url y devolvemos video_src listo
                 payload["items"] = [
                     {
                         "id": it.id,
                         "nombre": it.nombre,
                         "series": it.series or "",
                         "reps": it.reps or "",
+                        "peso": getattr(it, "peso", "") or "",
                         "descanso": it.descanso or "",
                         "video_url": normalize_item_video_url(it.video_url),
                         "video_src": build_video_src(it.video_url),
@@ -601,7 +595,10 @@ def ai_session_script():
                 rid = int(rid_str)
                 rutina = Rutina.query.get(rid)
                 if rutina:
-                    items = RutinaItem.query.filter_by(rutina_id=rid).order_by(RutinaItem.id.asc()).all()
+                    items = (
+                        RutinaItem.query.filter_by(rutina_id=rid)
+                        .order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc()).all()
+                    )
 
         script = generate_session_script_pro(plan=plan, rutina=rutina, items=items, log=log, fecha=fecha)
         return jsonify({"ok": True, "script": script})
@@ -651,10 +648,12 @@ def generate_session_script_pro(plan: DiaPlan, rutina: Rutina | None, items: lis
         for idx, it in enumerate(items, start=1):
             series = (it.series or "").strip()
             reps = (it.reps or "").strip()
+            peso = (getattr(it, "peso", "") or "").strip()
             descanso = (it.descanso or "").strip()
             meta = " · ".join([p for p in [
                 (f"{series} series" if series else ""),
                 (f"{reps} reps" if reps else ""),
+                (f"peso {peso}" if peso else ""),
                 (f"desc {descanso}" if descanso else ""),
             ] if p]) or "—"
 
@@ -857,7 +856,7 @@ def crear_rutina():
 
 
 # =============================================================
-# SUBIR EJERCICIO (BANCO) ✅ corregido: no pisa archivos
+# SUBIR EJERCICIO (BANCO)
 # =============================================================
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
@@ -889,7 +888,7 @@ def admin_nuevo_ejercicio():
         nombre=nombre,
         categoria=categoria,
         descripcion=descripcion,
-        video_filename=filename  # ✅ en tu modelo ya lo usás así
+        video_filename=filename
     )
     db.session.add(ejercicio)
     db.session.commit()
@@ -925,7 +924,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# CRUD rutinas (builder)
+# CRUD rutinas (builder) ✅ + peso ✅ + orden ✅
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/builder")
 @login_required
@@ -935,9 +934,12 @@ def rutina_builder(rutina_id: int):
         return redirect(url_for("main.perfil_redirect"))
 
     rutina = Rutina.query.get_or_404(rutina_id)
-    items = RutinaItem.query.filter_by(rutina_id=rutina.id).order_by(RutinaItem.id).all()
+    items = (
+        RutinaItem.query.filter_by(rutina_id=rutina.id)
+        .order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc())
+        .all()
+    )
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
-
     return render_template("rutina_builder.html", rutina=rutina, items=items, ejercicios=ejercicios)
 
 
@@ -955,9 +957,10 @@ def rutina_add_item(rutina_id: int):
         return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
     ejercicio = Ejercicio.query.get_or_404(ejercicio_id)
-
-    # ✅ tu Ejercicio guarda filename, y RutinaItem guarda 'videos/<filename>'
     vurl = f"videos/{ejercicio.video_filename}" if getattr(ejercicio, "video_filename", None) else ""
+
+    max_pos = db.session.query(db.func.max(RutinaItem.posicion)).filter_by(rutina_id=rutina.id).scalar()
+    next_pos = int(max_pos) + 1 if max_pos is not None else 0
 
     item = RutinaItem(
         rutina_id=rutina.id,
@@ -965,9 +968,11 @@ def rutina_add_item(rutina_id: int):
         nombre=ejercicio.nombre,
         series=(request.form.get("series") or "").strip(),
         reps=(request.form.get("reps") or "").strip(),
+        peso=(request.form.get("peso") or "").strip(),
         descanso=(request.form.get("descanso") or "").strip(),
         nota=(request.form.get("nota") or "").strip(),
-        video_url=vurl
+        video_url=vurl,
+        posicion=next_pos
     )
     db.session.add(item)
     db.session.commit()
@@ -990,6 +995,7 @@ def rutina_update_item(rutina_id: int, item_id: int):
 
     item.series = (request.form.get("series") or "").strip()
     item.reps = (request.form.get("reps") or "").strip()
+    item.peso = (request.form.get("peso") or "").strip()
     item.descanso = (request.form.get("descanso") or "").strip()
     item.nota = (request.form.get("nota") or "").strip()
 
@@ -1011,6 +1017,38 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 
     flash("🗑️ Item eliminado", "info")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
+
+
+# ✅ NUEVO: reordenar ejercicios (drag & drop)
+@main_bp.route("/rutinas/<int:rutina_id>/reorder", methods=["POST"])
+@login_required
+def rutina_reorder(rutina_id: int):
+    if not is_admin():
+        return jsonify({"ok": False, "error": "Solo admin"}), 403
+
+    data = request.get_json(silent=True) or {}
+    order = data.get("order") or []
+
+    if not isinstance(order, list) or not order:
+        return jsonify({"ok": False, "error": "order inválido"}), 400
+
+    items = RutinaItem.query.filter(
+        RutinaItem.rutina_id == rutina_id,
+        RutinaItem.id.in_(order)
+    ).all()
+    by_id = {it.id: it for it in items}
+
+    for idx, item_id in enumerate(order):
+        try:
+            iid = int(item_id)
+        except Exception:
+            continue
+        it = by_id.get(iid)
+        if it:
+            it.posicion = idx
+
+    db.session.commit()
+    return jsonify({"ok": True})
 
 
 # =============================================================

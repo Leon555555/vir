@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    flash, request, jsonify, current_app, send_from_directory, abort, make_response
+    flash, request, jsonify, current_app
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
@@ -54,50 +54,31 @@ def save_video_to_static(file_storage) -> str:
 
 def normalize_item_video_url(v: str | None) -> str:
     """
-    Guardamos/normalizamos a 'videos/<filename>'.
+    Guardamos/mostramos siempre 'videos/<filename>'.
     """
     if not v:
         return ""
     s = str(v).strip()
-    if s.startswith("/static/"):
-        s = s.replace("/static/", "", 1)
     if not s:
         return ""
+    if s.startswith("/static/"):
+        s = s.replace("/static/", "", 1)
+    # si viene 'videos/x.mp4' lo dejamos
+    if s.startswith("videos/"):
+        return s
+    # si viene 'x.mp4' lo convertimos
     if "/" not in s:
-        s = f"videos/{s}"
+        return f"videos/{s}"
     return s
 
 def build_video_src(video_url: str | None) -> str:
     """
-    En vez de servir video con /static/... lo servimos con /media/...
-    para evitar cache PWA y asegurar headers correctos.
+    URL lista para <video src="..."> usando url_for(static).
     """
     rel = normalize_item_video_url(video_url)
     if not rel:
         return ""
-    # rel será "videos/archivo.mp4"
-    return url_for("main.media", filename=rel)
-
-@main_bp.route("/media/<path:filename>")
-def media(filename: str):
-    """
-    Sirve archivos desde /static (en especial /static/videos/*) con headers
-    que ayudan a que los videos carguen bien (y que no queden cacheados por PWA).
-    """
-    static_root = current_app.static_folder
-    full = os.path.join(static_root, filename)
-
-    if not os.path.isfile(full):
-        abort(404)
-
-    resp = make_response(send_from_directory(static_root, filename))
-    # Evitar que service-worker / navegador cachee videos viejos
-    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    resp.headers["Pragma"] = "no-cache"
-    # Ayuda a streaming / algunos players
-    resp.headers["Accept-Ranges"] = "bytes"
-    return resp
-
+    return url_for("static", filename=rel)
 
 # =============================================================
 # FECHAS / UTILIDADES
@@ -136,7 +117,6 @@ def is_admin() -> bool:
 def inject_is_admin():
     return {"is_admin": is_admin, "admin_ok": is_admin()}
 
-
 # =============================================================
 # SERIALIZADORES
 # =============================================================
@@ -164,9 +144,8 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
         "comentario_atleta": (getattr(p, "comentario_atleta", None) or ""),
     }
 
-
 # =============================================================
-# HELPERS PERFIL
+# HELPERS PERFIL (PROGRESO / RACHAS)
 # =============================================================
 def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     planes_db = DiaPlan.query.filter(
@@ -272,7 +251,6 @@ def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaP
     done_days = get_strength_done_days(user_id, fechas).union(get_log_done_days(user_id, fechas))
     return goal, len(done_days)
 
-
 # =============================================================
 # HOME / LOGIN
 # =============================================================
@@ -320,7 +298,6 @@ def perfil_redirect():
     if is_admin():
         return redirect(url_for("main.dashboard_entrenador"))
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
-
 
 # =============================================================
 # PERFIL (ATLETA)
@@ -427,7 +404,6 @@ def perfil_usuario(user_id: int):
         week_done=week_done,
     )
 
-
 # =============================================================
 # API: detalle del día
 # =============================================================
@@ -503,7 +479,6 @@ def api_day_detail():
 
     return jsonify(payload)
 
-
 # =============================================================
 # CHECK por ejercicio
 # =============================================================
@@ -549,7 +524,6 @@ def athlete_check_item():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 # =============================================================
 # Guardar log atleta
 # =============================================================
@@ -583,7 +557,6 @@ def athlete_save_log():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 # =============================================================
 # DASHBOARD ENTRENADOR
 # =============================================================
@@ -604,7 +577,6 @@ def dashboard_entrenador():
         ejercicios=ejercicios,
         atletas=atletas,
     )
-
 
 # =============================================================
 # CREAR ATLETA
@@ -638,9 +610,8 @@ def admin_nuevo_atleta():
     flash("✅ Atleta creado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
-
 # =============================================================
-# PLANIFICADOR (SEMANA)
+# PLANIFICADOR (SEMANA) - entrenador
 # =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
@@ -677,7 +648,6 @@ def coach_planificador():
         semana_str=semana_str,
         center=center,
     )
-
 
 # =============================================================
 # GUARDAR DÍA (PLANIFICADOR)
@@ -719,7 +689,6 @@ def save_day():
     flash("✅ Día guardado", "success")
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
-
 # =============================================================
 # CREAR RUTINA
 # =============================================================
@@ -745,7 +714,6 @@ def crear_rutina():
     flash("✅ Rutina creada", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
-
 # =============================================================
 # SUBIR EJERCICIO (BANCO)
 # =============================================================
@@ -766,7 +734,7 @@ def admin_nuevo_ejercicio():
         return redirect(url_for("main.dashboard_entrenador"))
 
     if not file or not file.filename:
-        flash("Falta el vídeo del ejercicio", videos="danger")
+        flash("Falta el vídeo del ejercicio", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
     try:
@@ -786,7 +754,6 @@ def admin_nuevo_ejercicio():
 
     flash("✅ Ejercicio subido", "success")
     return redirect(url_for("main.dashboard_entrenador"))
-
 
 # =============================================================
 # ELIMINAR ATLETA
@@ -813,9 +780,8 @@ def admin_delete_user(user_id: int):
     flash("✅ Atleta eliminado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
-
 # =============================================================
-# BUILDER RUTINAS
+# CRUD rutinas (builder)
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/builder")
 @login_required
@@ -831,8 +797,40 @@ def rutina_builder(rutina_id: int):
         .all()
     )
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
-    return render_template("rutina_builder.html", rutina=rutina, items=items, ejercicios=ejercicios)
 
+    # ✅ pasamos video_src listo para usar (evita rutas rotas)
+    items_view: List[Dict[str, Any]] = []
+    for it in items:
+        items_view.append({
+            "id": it.id,
+            "nombre": it.nombre,
+            "series": it.series,
+            "reps": it.reps,
+            "peso": getattr(it, "peso", ""),
+            "descanso": it.descanso,
+            "nota": it.nota,
+            "video_src": build_video_src(it.video_url),
+            "has_video": bool(build_video_src(it.video_url)),
+        })
+
+    ejercicios_view: List[Dict[str, Any]] = []
+    for ej in ejercicios:
+        vsrc = url_for("static", filename=f"videos/{ej.video_filename}") if getattr(ej, "video_filename", None) else ""
+        ejercicios_view.append({
+            "id": ej.id,
+            "nombre": ej.nombre,
+            "categoria": ej.categoria,
+            "descripcion": ej.descripcion,
+            "video_src": vsrc,
+            "has_video": bool(vsrc),
+        })
+
+    return render_template(
+        "rutina_builder.html",
+        rutina=rutina,
+        items=items_view,
+        ejercicios=ejercicios_view
+    )
 
 @main_bp.route("/rutinas/<int:rutina_id>/add_item", methods=["POST"])
 @login_required
@@ -871,7 +869,6 @@ def rutina_add_item(rutina_id: int):
     flash("✅ Ejercicio añadido", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
-
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
 def rutina_update_item(rutina_id: int, item_id: int):
@@ -894,7 +891,6 @@ def rutina_update_item(rutina_id: int, item_id: int):
     flash("✅ Cambios guardados", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
-
 @main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
 @login_required
 def rutina_delete_item(rutina_id: int, item_id: int):
@@ -909,45 +905,35 @@ def rutina_delete_item(rutina_id: int, item_id: int):
     flash("🗑️ Item eliminado", "info")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
-
 @main_bp.route("/rutinas/<int:rutina_id>/reorder", methods=["POST"])
 @login_required
 def rutina_reorder(rutina_id: int):
-    """
-    Reorder robusto: devuelve error si algo falla (para debug real).
-    """
     if not is_admin():
         return jsonify({"ok": False, "error": "Solo admin"}), 403
 
     data = request.get_json(silent=True) or {}
-    order = data.get("order")
+    order = data.get("order") or []
 
     if not isinstance(order, list) or not order:
         return jsonify({"ok": False, "error": "order inválido"}), 400
 
-    # asegurar ints
-    try:
-        order_ids = [int(x) for x in order]
-    except Exception:
-        return jsonify({"ok": False, "error": "order debe ser lista de ids numéricos"}), 400
-
     items = RutinaItem.query.filter(
         RutinaItem.rutina_id == rutina_id,
-        RutinaItem.id.in_(order_ids)
+        RutinaItem.id.in_(order)
     ).all()
     by_id = {it.id: it for it in items}
 
-    # si faltan ids, avisar
-    missing = [iid for iid in order_ids if iid not in by_id]
-    if missing:
-        return jsonify({"ok": False, "error": f"IDs no encontrados en rutina: {missing}"}), 400
-
-    for idx, iid in enumerate(order_ids):
-        by_id[iid].posicion = idx
+    for idx, item_id in enumerate(order):
+        try:
+            iid = int(item_id)
+        except Exception:
+            continue
+        it = by_id.get(iid)
+        if it:
+            it.posicion = idx
 
     db.session.commit()
-    return jsonify({"ok": True, "count": len(order_ids)})
-
+    return jsonify({"ok": True})
 
 # =============================================================
 # HEALTHCHECK

@@ -277,3 +277,6 @@ body.vr-body{
 .vr-body .bg-light{
   background: transparent !important;
 }
+.rb-handle { cursor: grab; user-select: none; -webkit-user-select: none; }
+.rb-item { touch-action: none; }
+.rb-ghost { opacity: .45; }

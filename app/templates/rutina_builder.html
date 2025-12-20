@@ -36,14 +36,12 @@
             <h5 class="mb-0 text-strong">Ejercicios de la rutina</h5>
             <div class="text-soft">Arrastrá para ordenar. Edición compacta para rutinas largas.</div>
           </div>
-
           <div class="d-flex gap-2 align-items-center">
             <span class="badge bg-secondary">Total: {{ items|length }}</span>
           </div>
         </div>
 
         <div class="card-body">
-
           {% if items %}
             <div id="rutinaList" class="rb-list">
               {% for item in items %}
@@ -51,7 +49,7 @@
                   <div class="d-flex justify-content-between align-items-start gap-2">
                     <div>
                       <div class="rb-title">
-                        <span class="rb-handle" title="Arrastrar para ordenar">⠿ Orden</span>
+                        <span class="rb-handle">⠿ Orden</span>
                         <span class="ms-2">#{{ loop.index }} · {{ item.nombre }}</span>
                       </div>
 
@@ -64,12 +62,11 @@
                     </div>
 
                     <div class="rb-actions">
-                      {% if item.video_url %}
+                      {% if item.has_video %}
                         <button type="button"
-                                class="btn btn-sm btn-outline-info"
-                                data-video="{{ url_for('main.media', filename=item.video_url) }}"
-                                data-title="{{ item.nombre|e }}"
-                                onclick="openVideo(this)">
+                                class="btn btn-sm btn-outline-info js-open-video"
+                                data-video="{{ item.video_src }}"
+                                data-title="{{ item.nombre|e }}">
                           ▶ Ver video
                         </button>
                       {% else %}
@@ -88,7 +85,6 @@
                     <div class="rb-note mt-2">{{ item.nota }}</div>
                   {% endif %}
 
-                  <!-- edición compacta -->
                   <form method="post"
                         action="{{ url_for('main.rutina_update_item', rutina_id=rutina.id, item_id=item.id) }}"
                         class="rb-edit mt-3">
@@ -127,14 +123,12 @@
                 </div>
               {% endfor %}
             </div>
-
           {% else %}
             <div class="empty-state">
               <div class="text-strong">Esta rutina todavía no tiene ejercicios.</div>
               <div class="text-soft">Usá el banco de la derecha para añadir.</div>
             </div>
           {% endif %}
-
         </div>
       </div>
     </div>
@@ -148,10 +142,8 @@
         </div>
 
         <div class="card-body">
-
           <div class="rb-bank-tools mb-3">
-            <input id="bankSearch" class="form-control" placeholder="Buscar ejercicio (nombre o categoría)..."
-                   oninput="filterBank()">
+            <input id="bankSearch" class="form-control" placeholder="Buscar ejercicio (nombre o categoría)...">
           </div>
 
           <div id="bankList" class="rb-bank-list">
@@ -170,12 +162,11 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                      {% if ej.video_filename %}
+                      {% if ej.has_video %}
                         <button type="button"
-                                class="btn btn-sm btn-outline-info"
-                                data-video="{{ url_for('main.media', filename='videos/' ~ ej.video_filename) }}"
-                                data-title="{{ ej.nombre|e }}"
-                                onclick="openVideo(this)">
+                                class="btn btn-sm btn-outline-info js-open-video"
+                                data-video="{{ ej.video_src }}"
+                                data-title="{{ ej.nombre|e }}">
                           ▶ Ver
                         </button>
                       {% endif %}
@@ -230,10 +221,8 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <video id="videoPlayer" class="w-100" controls preload="metadata" playsinline>
-          <source id="videoSource" src="">
-        </video>
-        <div id="videoErr" class="text-soft mt-2" style="display:none;"></div>
+        <!-- ✅ src directo al video (lo seteamos por JS) -->
+        <video id="videoPlayer" class="w-100" controls preload="metadata" playsinline></video>
       </div>
     </div>
   </div>
@@ -241,112 +230,106 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- SortableJS (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-function filterBank(){
-  const q = (document.getElementById("bankSearch").value || "").toLowerCase().trim();
-  const items = document.querySelectorAll("#bankList .rb-bank-item");
-  items.forEach(el=>{
-    const name = el.getAttribute("data-name") || "";
-    const cat  = el.getAttribute("data-cat") || "";
-    const ok = !q || name.includes(q) || cat.includes(q);
-    el.style.display = ok ? "" : "none";
-  });
-}
+(function(){
 
-function guessMime(url){
-  const u = (url || "").toLowerCase();
-  if (u.endsWith(".webm")) return "video/webm";
-  if (u.endsWith(".mov"))  return "video/quicktime";
-  if (u.endsWith(".m4v"))  return "video/mp4";
-  return "video/mp4";
-}
-
-function openVideo(btn){
-  const url = btn.getAttribute("data-video");
-  const title = btn.getAttribute("data-title") || "Video";
-
-  const modalEl = document.getElementById("videoModal");
-  const titleEl = document.getElementById("videoTitle");
-  const player  = document.getElementById("videoPlayer");
-  const source  = document.getElementById("videoSource");
-  const errBox  = document.getElementById("videoErr");
-
-  titleEl.textContent = title;
-  errBox.style.display = "none";
-  errBox.textContent = "";
-
-  source.src = url;
-  source.type = guessMime(url);
-
-  // Debug rápido si no carga
-  player.onerror = function(){
-    errBox.style.display = "";
-    errBox.textContent = "No se pudo cargar el video. (Revisá /media/... en Network y que el archivo exista).";
-  };
-
-  player.load();
-
-  const modal = new bootstrap.Modal(modalEl);
-  modal.show();
-
-  modalEl.addEventListener("hidden.bs.modal", () => {
-    try { player.pause(); } catch(e){}
-    source.removeAttribute("src");
-    source.removeAttribute("type");
-    player.load();
-  }, { once: true });
-}
-
-async function saveOrder(){
-  const list = document.getElementById("rutinaList");
-  if (!list) return;
-
-  // ⚠️ filtra ids inválidos (NaN)
-  const order = Array.from(list.querySelectorAll(".rb-item"))
-    .map(el => parseInt(el.getAttribute("data-item-id"), 10))
-    .filter(n => Number.isFinite(n));
-
-  if (!order.length){
-    alert("❌ No pude leer los IDs para reordenar.");
-    return;
+  function filterBank(){
+    const q = (document.getElementById("bankSearch").value || "").toLowerCase().trim();
+    const items = document.querySelectorAll("#bankList .rb-bank-item");
+    items.forEach(el=>{
+      const name = el.getAttribute("data-name") || "";
+      const cat  = el.getAttribute("data-cat") || "";
+      const ok = !q || name.includes(q) || cat.includes(q);
+      el.style.display = ok ? "" : "none";
+    });
   }
 
-  try{
-    const res = await fetch("{{ url_for('main.rutina_reorder', rutina_id=rutina.id) }}", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order })
+  async function saveOrder(){
+    const list = document.getElementById("rutinaList");
+    if (!list) return;
+
+    const order = Array.from(list.querySelectorAll(".rb-item"))
+      .map(el => parseInt(el.getAttribute("data-item-id")));
+
+    try{
+      const res = await fetch("{{ url_for('main.rutina_reorder', rutina_id=rutina.id) }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order })
+      });
+      const data = await res.json();
+      if (!data.ok){
+        alert("Error guardando orden: " + (data.error || "—"));
+      }
+    }catch(e){
+      alert("Error guardando orden (network).");
+    }
+  }
+
+  function openVideo(url, title){
+    const modalEl = document.getElementById("videoModal");
+    const titleEl = document.getElementById("videoTitle");
+    const player  = document.getElementById("videoPlayer");
+
+    // debug visible
+    console.log("OPEN VIDEO =>", url);
+
+    titleEl.textContent = title || "Video";
+
+    // reset
+    try { player.pause(); } catch(e){}
+    player.removeAttribute("src");
+    player.load();
+
+    // set src directo (robusto)
+    player.src = url;
+    player.load();
+
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    modalEl.addEventListener("hidden.bs.modal", () => {
+      try { player.pause(); } catch(e){}
+      player.removeAttribute("src");
+      player.load();
+    }, { once: true });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+
+    // buscador banco
+    const bankSearch = document.getElementById("bankSearch");
+    if (bankSearch) bankSearch.addEventListener("input", filterBank);
+
+    // ✅ delegación de click para videos (NO onclick inline)
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".js-open-video");
+      if (!btn) return;
+      e.preventDefault();
+      const url = btn.getAttribute("data-video") || "";
+      const title = btn.getAttribute("data-title") || "Video";
+      if (!url){
+        alert("Este ejercicio no tiene video_src.");
+        return;
+      }
+      openVideo(url, title);
     });
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok){
-      alert("❌ Error guardando orden: " + (data.error || res.statusText || "—"));
-      console.error("reorder error:", data);
+    // ✅ sortable
+    const list = document.getElementById("rutinaList");
+    if (list){
+      new Sortable(list, {
+        handle: ".rb-handle",
+        animation: 150,
+        ghostClass: "rb-ghost",
+        forceFallback: true,
+        onEnd: () => saveOrder()
+      });
     }
-  }catch(e){
-    alert("❌ Error guardando orden (network). Mirá consola.");
-    console.error(e);
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const list = document.getElementById("rutinaList");
-  if (!list) return;
-
-  if (typeof Sortable === "undefined"){
-    console.warn("SortableJS no está cargado");
-    return;
-  }
-
-  new Sortable(list, {
-    handle: ".rb-handle",
-    animation: 150,
-    ghostClass: "rb-ghost",
-    onEnd: () => saveOrder()
   });
-});
+
+})();
 </script>
 {% endblock %}

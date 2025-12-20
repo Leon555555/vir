@@ -1,14 +1,14 @@
-const CACHE_VERSION = "v2"; // <- subí esto cada vez que quieras forzar limpieza
-const CACHE_NAME = `vr-training-static-${CACHE_VERSION}`;
+const CACHE_NAME = "vr-training-static-v2";
 
 const STATIC_ASSETS = [
   "/static/css/styles_v2.css",
   "/static/icons/icon-192.png",
-  "/static/icons/icon-512.png",
   "/static/manifest.webmanifest",
   "/static/logo_negro_vr_training.png",
+  "/static/logo_blanco_vr_training.png"
 ];
 
+// Detecta navegación (HTML)
 function isNavigation(request) {
   return (
     request.mode === "navigate" ||
@@ -16,12 +16,25 @@ function isNavigation(request) {
   );
 }
 
-function isStatic(url) {
-  return url.pathname.startsWith("/static/");
+// Detecta si es video o si el navegador pide Range (muy común en <video>)
+function isVideoRequest(request) {
+  const url = new URL(request.url);
+  const path = url.pathname.toLowerCase();
+  const range = request.headers.get("range");
+  const dest = request.destination;
+
+  return (
+    dest === "video" ||
+    !!range ||
+    path.endsWith(".mp4") ||
+    path.endsWith(".webm") ||
+    path.endsWith(".mov") ||
+    path.endsWith(".m4v")
+  );
 }
 
-function isVideo(url) {
-  return url.pathname.startsWith("/static/videos/");
+function isStatic(url) {
+  return url.pathname.startsWith("/static/");
 }
 
 self.addEventListener("install", (event) => {
@@ -42,37 +55,48 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
+  const request = event.request;
+  const url = new URL(request.url);
 
-  if (url.origin !== self.location.origin) return;
-
-  // HTML / rutas dinámicas -> siempre red
-  if (isNavigation(req)) {
-    event.respondWith(fetch(req));
+  // ✅ 1) JAMÁS tocar videos / Range. Siempre ir a red directo.
+  if (isVideoRequest(request)) {
+    event.respondWith(fetch(request));
     return;
   }
 
-  // ✅ Videos -> siempre red (NO cache)
-  if (isVideo(url)) {
-    event.respondWith(fetch(req));
+  // ✅ 2) Navegación: network-first (si cae, cache)
+  if (isNavigation(request)) {
+    event.respondWith(
+      (async () => {
+        try {
+          const network = await fetch(request);
+          return network;
+        } catch (e) {
+          const cached = await caches.match(request);
+          return cached || Response.error();
+        }
+      })()
+    );
     return;
   }
 
-  // Estáticos -> cache first
+  // ✅ 3) Static: cache-first
   if (isStatic(url)) {
     event.respondWith(
-      caches.match(req).then((cached) => {
-        if (cached) return cached;
-        return fetch(req).then((res) => {
-          // Si falla o no es OK, devolvés tal cual sin guardar
-          if (!res || res.status !== 200) return res;
-
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-          return res;
-        });
-      })
+      caches.match(request).then((cached) => cached || fetch(request))
     );
+    return;
   }
+
+  // ✅ 4) Default: network-first
+  event.respondWith(
+    (async () => {
+      try {
+        return await fetch(request);
+      } catch (e) {
+        const cached = await caches.match(request);
+        return cached || Response.error();
+      }
+    })()
+  );
 });

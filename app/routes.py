@@ -11,7 +11,8 @@ from werkzeug.utils import secure_filename
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    flash, request, jsonify, current_app
+    flash, request, jsonify, current_app,
+    send_from_directory, abort
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
@@ -24,14 +25,16 @@ from app.models import (
 main_bp = Blueprint("main", __name__)
 
 # =============================================================
-# MEDIA / VIDEOS
+# MEDIA / VIDEOS  ✅ (FIX 0:00 con Range)
 # =============================================================
 ALLOWED_VIDEO_EXT = {".mp4", ".mov", ".webm", ".m4v"}
+
 
 def ensure_videos_dir() -> str:
     folder = os.path.join(current_app.static_folder, "videos")
     os.makedirs(folder, exist_ok=True)
     return folder
+
 
 def save_video_to_static(file_storage) -> str:
     """
@@ -52,6 +55,7 @@ def save_video_to_static(file_storage) -> str:
     file_storage.save(out_path)
     return safe
 
+
 def normalize_item_video_url(v: str | None) -> str:
     """
     Queremos guardar/usar siempre 'videos/<filename>'.
@@ -69,14 +73,47 @@ def normalize_item_video_url(v: str | None) -> str:
         s = f"videos/{s}"
     return s
 
+
+@main_bp.route("/media/<path:filename>")
+def media(filename: str):
+    """
+    ✅ Sirve videos desde /static/videos pero por Flask con conditional=True
+    para soportar Range Requests (soluciona 0:00).
+    """
+    # Solo permitimos servir desde la carpeta videos
+    # y solo extensiones permitidas (seguridad)
+    name = filename.strip()
+    _, ext = os.path.splitext(name)
+    ext = (ext or "").lower()
+    if ext and ext not in ALLOWED_VIDEO_EXT:
+        abort(404)
+
+    videos_dir = ensure_videos_dir()
+    full = os.path.join(videos_dir, name)
+    if not os.path.isfile(full):
+        abort(404)
+
+    return send_from_directory(videos_dir, name, conditional=True)
+
+
 def build_video_src(video_url: str | None) -> str:
     """
-    Devuelve URL lista para <video src="...">, usando url_for(static).
+    Devuelve URL lista para <video src="...">.
+    ✅ Ahora usa /media/<filename> para permitir Range.
     """
-    rel = normalize_item_video_url(video_url)
+    rel = normalize_item_video_url(video_url)  # ej: videos/xxx.mp4
     if not rel:
         return ""
-    return url_for("static", filename=rel)
+
+    # rel = "videos/<filename>"
+    # sacamos el prefijo y servimos por /media/<filename>
+    if rel.startswith("videos/"):
+        filename = rel.split("/", 1)[1]
+    else:
+        filename = rel
+
+    return url_for("main.media", filename=filename)
+
 
 # =============================================================
 # FECHAS / UTILIDADES
@@ -84,14 +121,17 @@ def build_video_src(video_url: str | None) -> str:
 def start_of_week(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
+
 def week_dates(center: date | None = None) -> List[date]:
     base = center or date.today()
     start = start_of_week(base)
     return [start + timedelta(days=i) for i in range(7)]
 
+
 def month_dates(year: int, month: int) -> List[date]:
     _, last = monthrange(year, month)
     return [date(year, month, d) for d in range(1, last + 1)]
+
 
 def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
     if not s:
@@ -104,12 +144,14 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
         except Exception:
             return fallback or date.today()
 
+
 def is_admin() -> bool:
     return bool(
         current_user.is_authenticated and (
             getattr(current_user, "is_admin", False) or current_user.email == "admin@vir.app"
         )
     )
+
 
 @main_bp.app_context_processor
 def inject_is_admin():
@@ -127,6 +169,7 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
         "descripcion": getattr(r, "descripcion", "") or "",
         "created_by": getattr(r, "created_by", None),
     }
+
 
 def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
     return {
@@ -165,6 +208,7 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
         db.session.commit()
     return planes
 
+
 def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
     done_days: set[date] = set()
     plans = DiaPlan.query.filter(DiaPlan.user_id == user_id, DiaPlan.fecha.in_(fechas)).all()
@@ -199,6 +243,7 @@ def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
 
     return done_days
 
+
 def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user_id,
@@ -206,6 +251,7 @@ def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
         AthleteLog.did_train == True
     ).all()
     return {l.fecha for l in logs}
+
 
 def compute_streak(user_id: int) -> int:
     today = date.today()
@@ -239,6 +285,7 @@ def compute_streak(user_id: int) -> int:
 
     return streak
 
+
 def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaPlan]) -> Tuple[int, int]:
     goal = 0
     for f in fechas:
@@ -263,6 +310,7 @@ def index():
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
+
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -286,12 +334,14 @@ def login():
 
     return render_template("login.html")
 
+
 @main_bp.route("/logout")
 @login_required
 def logout():
     logout_user()
     flash("Sesión cerrada", "info")
     return redirect(url_for("main.login"))
+
 
 @main_bp.route("/perfil")
 @login_required
@@ -466,7 +516,7 @@ def api_day_detail():
                         "peso": getattr(it, "peso", "") or "",
                         "descanso": it.descanso or "",
                         "video_url": normalize_item_video_url(it.video_url),
-                        "video_src": build_video_src(it.video_url),
+                        "video_src": build_video_src(it.video_url),  # ✅ ahora /media/
                         "nota": it.nota or "",
                     }
                     for it in items
@@ -561,136 +611,6 @@ def athlete_save_log():
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
-
-
-# =============================================================
-# IA: Guión PRO del día
-# =============================================================
-@main_bp.route("/ai/session_script", methods=["POST"])
-@login_required
-def ai_session_script():
-    try:
-        data = request.get_json(silent=True) or {}
-        user_id = int(data.get("user_id") or 0)
-        fecha = safe_parse_ymd(data.get("fecha", ""), fallback=date.today())
-
-        if not user_id:
-            return jsonify({"ok": False, "error": "Falta user_id"}), 400
-        if (not is_admin()) and current_user.id != user_id:
-            return jsonify({"ok": False, "error": "Acceso denegado"}), 403
-
-        plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
-        if not plan:
-            plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso")
-            db.session.add(plan)
-            db.session.commit()
-
-        log = AthleteLog.query.filter_by(user_id=user_id, fecha=fecha).first()
-
-        rutina = None
-        items: list[RutinaItem] = []
-        if plan.main and isinstance(plan.main, str) and plan.main.startswith("RUTINA:"):
-            rid_str = plan.main.split(":", 1)[1].strip()
-            if rid_str.isdigit():
-                rid = int(rid_str)
-                rutina = Rutina.query.get(rid)
-                if rutina:
-                    items = (
-                        RutinaItem.query.filter_by(rutina_id=rid)
-                        .order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc()).all()
-                    )
-
-        script = generate_session_script_pro(plan=plan, rutina=rutina, items=items, log=log, fecha=fecha)
-        return jsonify({"ok": True, "script": script})
-
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
-def generate_session_script_pro(plan: DiaPlan, rutina: Rutina | None, items: list[RutinaItem], log: AthleteLog | None, fecha: date) -> str:
-    plan_type = (plan.plan_type or "Descanso").strip()
-    day_label = fecha.strftime("%A %d/%m").upper()
-
-    def clean(s: str) -> str:
-        return (s or "").strip()
-
-    warmup = clean(plan.warmup) or "—"
-    main = clean(plan.main) or "—"
-    finisher = clean(plan.finisher) or "—"
-
-    did_train = bool(getattr(log, "did_train", False)) if log else False
-    main_done = clean(getattr(log, "main_done", "")) if log else ""
-
-    lines: List[str] = []
-    lines.append(f"🏁 GUION DE SESIÓN — {day_label}")
-    lines.append(f"Tipo: {plan_type}")
-    lines.append("")
-    lines.append("🎯 Objetivo del día")
-    if plan_type.lower() == "descanso":
-        lines.append("- Recuperación activa / movilidad suave.")
-    elif plan_type.lower() == "fuerza":
-        lines.append("- Fuerza con técnica limpia, descanso real y control.")
-    else:
-        lines.append("- Cumplir el bloque principal con buenas sensaciones.")
-    lines.append("")
-
-    lines.append("🔥 Activación (Warm-up)")
-    lines.append(f"- {warmup}")
-    lines.append("- Cues: respiración 1–2 min + movilidad (cadera/torácica) + subida progresiva.")
-    lines.append("")
-
-    if rutina and items:
-        lines.append(f"🏋️ Bloque principal — {rutina.nombre}")
-        lines.append("- Reglas: técnica > ego. Si estás cargado, dejá 1–2 reps en reserva.")
-        lines.append("- Descanso: 60–90s accesorios / 2–3 min básicos (si no se especifica).")
-        lines.append("")
-        lines.append("✅ Orden de ejercicios")
-        for idx, it in enumerate(items, start=1):
-            series = (it.series or "").strip()
-            reps = (it.reps or "").strip()
-            peso = (getattr(it, "peso", "") or "").strip()
-            descanso = (it.descanso or "").strip()
-            meta = " · ".join([p for p in [
-                (f"{series} series" if series else ""),
-                (f"{reps} reps" if reps else ""),
-                (f"peso {peso}" if peso else ""),
-                (f"desc {descanso}" if descanso else ""),
-            ] if p]) or "—"
-
-            lines.append(f"{idx}. {it.nombre}")
-            lines.append(f"   - {meta}")
-            lines.append("   - Cue: control, rango completo, postura sólida.")
-        lines.append("")
-        lines.append("🧠 Foco mental")
-        lines.append("- 1 cosa a mejorar hoy: control + postura. Si dudás, bajá carga.")
-        lines.append("")
-    else:
-        lines.append("🚀 Bloque principal")
-        if isinstance(main, str) and main.startswith("RUTINA:"):
-            lines.append("- Rutina asignada, pero no pude cargar los ítems (revisar builder/items).")
-        else:
-            lines.append(f"- {main}")
-        lines.append("- Cues: empezá suave, encontrá ritmo, cerrá fuerte los últimos 10–15%.")
-        lines.append("")
-
-    lines.append("🧊 Enfriamiento / Finisher")
-    lines.append(f"- {finisher}")
-    lines.append("- Tip: 2–4 min respiración lenta + estiramientos suaves.")
-    lines.append("")
-
-    lines.append("📝 Qué registrar al final (30s)")
-    lines.append("- RPE (1–10): ____")
-    lines.append("- Energía: baja / media / alta")
-    lines.append("- Molestia: no / leve / sí (dónde)")
-    lines.append("")
-
-    if did_train:
-        lines.append("✅ Marcaste que entrenaste hoy.")
-    if main_done:
-        lines.append("📌 Lo que escribiste en ‘Qué hiciste’:")
-        lines.append(f"> {main_done[:240]}{'...' if len(main_done) > 240 else ''}")
-
-    return "\n".join(lines)
 
 
 # =============================================================
@@ -971,7 +891,7 @@ def rutina_add_item(rutina_id: int):
         peso=(request.form.get("peso") or "").strip(),
         descanso=(request.form.get("descanso") or "").strip(),
         nota=(request.form.get("nota") or "").strip(),
-        video_url=vurl,
+        video_url=vurl,              # se guarda como "videos/<file>"
         posicion=next_pos
     )
     db.session.add(item)

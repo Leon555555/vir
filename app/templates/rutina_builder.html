@@ -51,7 +51,7 @@
                   <div class="d-flex justify-content-between align-items-start gap-2">
                     <div>
                       <div class="rb-title">
-                        <span class="rb-handle">⠿ Orden</span>
+                        <span class="rb-handle" title="Arrastrar para ordenar">⠿ Orden</span>
                         <span class="ms-2">#{{ loop.index }} · {{ item.nombre }}</span>
                       </div>
 
@@ -67,7 +67,7 @@
                       {% if item.video_url %}
                         <button type="button"
                                 class="btn btn-sm btn-outline-info"
-                                data-video="{{ url_for('static', filename=item.video_url) }}"
+                                data-video="{{ url_for('main.media', filename=item.video_url) }}"
                                 data-title="{{ item.nombre|e }}"
                                 onclick="openVideo(this)">
                           ▶ Ver video
@@ -173,7 +173,7 @@
                       {% if ej.video_filename %}
                         <button type="button"
                                 class="btn btn-sm btn-outline-info"
-                                data-video="{{ url_for('static', filename='videos/' ~ ej.video_filename) }}"
+                                data-video="{{ url_for('main.media', filename='videos/' ~ ej.video_filename) }}"
                                 data-title="{{ ej.nombre|e }}"
                                 onclick="openVideo(this)">
                           ▶ Ver
@@ -231,8 +231,9 @@
       </div>
       <div class="modal-body">
         <video id="videoPlayer" class="w-100" controls preload="metadata" playsinline>
-          <source id="videoSource" src="" type="video/mp4">
+          <source id="videoSource" src="">
         </video>
+        <div id="videoErr" class="text-soft mt-2" style="display:none;"></div>
       </div>
     </div>
   </div>
@@ -255,16 +256,37 @@ function filterBank(){
   });
 }
 
+function guessMime(url){
+  const u = (url || "").toLowerCase();
+  if (u.endsWith(".webm")) return "video/webm";
+  if (u.endsWith(".mov"))  return "video/quicktime";
+  if (u.endsWith(".m4v"))  return "video/mp4";
+  return "video/mp4";
+}
+
 function openVideo(btn){
   const url = btn.getAttribute("data-video");
   const title = btn.getAttribute("data-title") || "Video";
+
   const modalEl = document.getElementById("videoModal");
   const titleEl = document.getElementById("videoTitle");
   const player  = document.getElementById("videoPlayer");
   const source  = document.getElementById("videoSource");
+  const errBox  = document.getElementById("videoErr");
 
   titleEl.textContent = title;
+  errBox.style.display = "none";
+  errBox.textContent = "";
+
   source.src = url;
+  source.type = guessMime(url);
+
+  // Debug rápido si no carga
+  player.onerror = function(){
+    errBox.style.display = "";
+    errBox.textContent = "No se pudo cargar el video. (Revisá /media/... en Network y que el archivo exista).";
+  };
+
   player.load();
 
   const modal = new bootstrap.Modal(modalEl);
@@ -272,7 +294,8 @@ function openVideo(btn){
 
   modalEl.addEventListener("hidden.bs.modal", () => {
     try { player.pause(); } catch(e){}
-    source.src = "";
+    source.removeAttribute("src");
+    source.removeAttribute("type");
     player.load();
   }, { once: true });
 }
@@ -281,8 +304,15 @@ async function saveOrder(){
   const list = document.getElementById("rutinaList");
   if (!list) return;
 
+  // ⚠️ filtra ids inválidos (NaN)
   const order = Array.from(list.querySelectorAll(".rb-item"))
-    .map(el => parseInt(el.getAttribute("data-item-id")));
+    .map(el => parseInt(el.getAttribute("data-item-id"), 10))
+    .filter(n => Number.isFinite(n));
+
+  if (!order.length){
+    alert("❌ No pude leer los IDs para reordenar.");
+    return;
+  }
 
   try{
     const res = await fetch("{{ url_for('main.rutina_reorder', rutina_id=rutina.id) }}", {
@@ -290,18 +320,26 @@ async function saveOrder(){
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order })
     });
-    const data = await res.json();
-    if (!data.ok){
-      alert("Error guardando orden: " + (data.error || "—"));
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok){
+      alert("❌ Error guardando orden: " + (data.error || res.statusText || "—"));
+      console.error("reorder error:", data);
     }
   }catch(e){
-    alert("Error guardando orden (network).");
+    alert("❌ Error guardando orden (network). Mirá consola.");
+    console.error(e);
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   const list = document.getElementById("rutinaList");
   if (!list) return;
+
+  if (typeof Sortable === "undefined"){
+    console.warn("SortableJS no está cargado");
+    return;
+  }
 
   new Sortable(list, {
     handle: ".rb-handle",

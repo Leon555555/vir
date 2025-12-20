@@ -11,8 +11,7 @@ from werkzeug.utils import secure_filename
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    flash, request, jsonify, current_app,
-    send_from_directory, abort
+    flash, request, jsonify, current_app, send_from_directory, abort, make_response
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
@@ -25,16 +24,14 @@ from app.models import (
 main_bp = Blueprint("main", __name__)
 
 # =============================================================
-# MEDIA / VIDEOS  ✅ (FIX 0:00 con Range)
+# MEDIA / VIDEOS
 # =============================================================
 ALLOWED_VIDEO_EXT = {".mp4", ".mov", ".webm", ".m4v"}
-
 
 def ensure_videos_dir() -> str:
     folder = os.path.join(current_app.static_folder, "videos")
     os.makedirs(folder, exist_ok=True)
     return folder
-
 
 def save_video_to_static(file_storage) -> str:
     """
@@ -55,12 +52,9 @@ def save_video_to_static(file_storage) -> str:
     file_storage.save(out_path)
     return safe
 
-
 def normalize_item_video_url(v: str | None) -> str:
     """
-    Queremos guardar/usar siempre 'videos/<filename>'.
-    Si viene '/static/videos/x.mp4' lo normaliza.
-    Si viene 'x.mp4' lo convierte a 'videos/x.mp4'.
+    Guardamos/normalizamos a 'videos/<filename>'.
     """
     if not v:
         return ""
@@ -73,46 +67,36 @@ def normalize_item_video_url(v: str | None) -> str:
         s = f"videos/{s}"
     return s
 
+def build_video_src(video_url: str | None) -> str:
+    """
+    En vez de servir video con /static/... lo servimos con /media/...
+    para evitar cache PWA y asegurar headers correctos.
+    """
+    rel = normalize_item_video_url(video_url)
+    if not rel:
+        return ""
+    # rel será "videos/archivo.mp4"
+    return url_for("main.media", filename=rel)
 
 @main_bp.route("/media/<path:filename>")
 def media(filename: str):
     """
-    ✅ Sirve videos desde /static/videos pero por Flask con conditional=True
-    para soportar Range Requests (soluciona 0:00).
+    Sirve archivos desde /static (en especial /static/videos/*) con headers
+    que ayudan a que los videos carguen bien (y que no queden cacheados por PWA).
     """
-    # Solo permitimos servir desde la carpeta videos
-    # y solo extensiones permitidas (seguridad)
-    name = filename.strip()
-    _, ext = os.path.splitext(name)
-    ext = (ext or "").lower()
-    if ext and ext not in ALLOWED_VIDEO_EXT:
-        abort(404)
+    static_root = current_app.static_folder
+    full = os.path.join(static_root, filename)
 
-    videos_dir = ensure_videos_dir()
-    full = os.path.join(videos_dir, name)
     if not os.path.isfile(full):
         abort(404)
 
-    return send_from_directory(videos_dir, name, conditional=True)
-
-
-def build_video_src(video_url: str | None) -> str:
-    """
-    Devuelve URL lista para <video src="...">.
-    ✅ Ahora usa /media/<filename> para permitir Range.
-    """
-    rel = normalize_item_video_url(video_url)  # ej: videos/xxx.mp4
-    if not rel:
-        return ""
-
-    # rel = "videos/<filename>"
-    # sacamos el prefijo y servimos por /media/<filename>
-    if rel.startswith("videos/"):
-        filename = rel.split("/", 1)[1]
-    else:
-        filename = rel
-
-    return url_for("main.media", filename=filename)
+    resp = make_response(send_from_directory(static_root, filename))
+    # Evitar que service-worker / navegador cachee videos viejos
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    # Ayuda a streaming / algunos players
+    resp.headers["Accept-Ranges"] = "bytes"
+    return resp
 
 
 # =============================================================
@@ -121,17 +105,14 @@ def build_video_src(video_url: str | None) -> str:
 def start_of_week(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
-
 def week_dates(center: date | None = None) -> List[date]:
     base = center or date.today()
     start = start_of_week(base)
     return [start + timedelta(days=i) for i in range(7)]
 
-
 def month_dates(year: int, month: int) -> List[date]:
     _, last = monthrange(year, month)
     return [date(year, month, d) for d in range(1, last + 1)]
-
 
 def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
     if not s:
@@ -144,14 +125,12 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
         except Exception:
             return fallback or date.today()
 
-
 def is_admin() -> bool:
     return bool(
         current_user.is_authenticated and (
             getattr(current_user, "is_admin", False) or current_user.email == "admin@vir.app"
         )
     )
-
 
 @main_bp.app_context_processor
 def inject_is_admin():
@@ -170,7 +149,6 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
         "created_by": getattr(r, "created_by", None),
     }
 
-
 def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
     return {
         "id": p.id,
@@ -188,7 +166,7 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
 
 
 # =============================================================
-# HELPERS PERFIL (PROGRESO / RACHAS)
+# HELPERS PERFIL
 # =============================================================
 def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     planes_db = DiaPlan.query.filter(
@@ -207,7 +185,6 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     if changed:
         db.session.commit()
     return planes
-
 
 def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
     done_days: set[date] = set()
@@ -243,7 +220,6 @@ def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
 
     return done_days
 
-
 def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user_id,
@@ -251,7 +227,6 @@ def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
         AthleteLog.did_train == True
     ).all()
     return {l.fecha for l in logs}
-
 
 def compute_streak(user_id: int) -> int:
     today = date.today()
@@ -285,7 +260,6 @@ def compute_streak(user_id: int) -> int:
 
     return streak
 
-
 def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaPlan]) -> Tuple[int, int]:
     goal = 0
     for f in fechas:
@@ -310,7 +284,6 @@ def index():
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
-
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -334,14 +307,12 @@ def login():
 
     return render_template("login.html")
 
-
 @main_bp.route("/logout")
 @login_required
 def logout():
     logout_user()
     flash("Sesión cerrada", "info")
     return redirect(url_for("main.login"))
-
 
 @main_bp.route("/perfil")
 @login_required
@@ -458,7 +429,7 @@ def perfil_usuario(user_id: int):
 
 
 # =============================================================
-# API: detalle del día  ✅ (ESTA ES /api/day_detail)
+# API: detalle del día
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -516,7 +487,7 @@ def api_day_detail():
                         "peso": getattr(it, "peso", "") or "",
                         "descanso": it.descanso or "",
                         "video_url": normalize_item_video_url(it.video_url),
-                        "video_src": build_video_src(it.video_url),  # ✅ ahora /media/
+                        "video_src": build_video_src(it.video_url),
                         "nota": it.nota or "",
                     }
                     for it in items
@@ -669,7 +640,7 @@ def admin_nuevo_atleta():
 
 
 # =============================================================
-# PLANIFICADOR (SEMANA) - entrenador
+# PLANIFICADOR (SEMANA)
 # =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
@@ -795,7 +766,7 @@ def admin_nuevo_ejercicio():
         return redirect(url_for("main.dashboard_entrenador"))
 
     if not file or not file.filename:
-        flash("Falta el vídeo del ejercicio", "danger")
+        flash("Falta el vídeo del ejercicio", videos="danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
     try:
@@ -844,7 +815,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# CRUD rutinas (builder) ✅ + peso ✅ + orden ✅
+# BUILDER RUTINAS
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/builder")
 @login_required
@@ -891,7 +862,7 @@ def rutina_add_item(rutina_id: int):
         peso=(request.form.get("peso") or "").strip(),
         descanso=(request.form.get("descanso") or "").strip(),
         nota=(request.form.get("nota") or "").strip(),
-        video_url=vurl,              # se guarda como "videos/<file>"
+        video_url=vurl,
         posicion=next_pos
     )
     db.session.add(item)
@@ -939,36 +910,43 @@ def rutina_delete_item(rutina_id: int, item_id: int):
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
 
-# ✅ NUEVO: reordenar ejercicios (drag & drop)
 @main_bp.route("/rutinas/<int:rutina_id>/reorder", methods=["POST"])
 @login_required
 def rutina_reorder(rutina_id: int):
+    """
+    Reorder robusto: devuelve error si algo falla (para debug real).
+    """
     if not is_admin():
         return jsonify({"ok": False, "error": "Solo admin"}), 403
 
     data = request.get_json(silent=True) or {}
-    order = data.get("order") or []
+    order = data.get("order")
 
     if not isinstance(order, list) or not order:
         return jsonify({"ok": False, "error": "order inválido"}), 400
 
+    # asegurar ints
+    try:
+        order_ids = [int(x) for x in order]
+    except Exception:
+        return jsonify({"ok": False, "error": "order debe ser lista de ids numéricos"}), 400
+
     items = RutinaItem.query.filter(
         RutinaItem.rutina_id == rutina_id,
-        RutinaItem.id.in_(order)
+        RutinaItem.id.in_(order_ids)
     ).all()
     by_id = {it.id: it for it in items}
 
-    for idx, item_id in enumerate(order):
-        try:
-            iid = int(item_id)
-        except Exception:
-            continue
-        it = by_id.get(iid)
-        if it:
-            it.posicion = idx
+    # si faltan ids, avisar
+    missing = [iid for iid in order_ids if iid not in by_id]
+    if missing:
+        return jsonify({"ok": False, "error": f"IDs no encontrados en rutina: {missing}"}), 400
+
+    for idx, iid in enumerate(order_ids):
+        by_id[iid].posicion = idx
 
     db.session.commit()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "count": len(order_ids)})
 
 
 # =============================================================

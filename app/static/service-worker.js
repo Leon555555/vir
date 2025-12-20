@@ -1,41 +1,14 @@
-const CACHE_NAME = "vr-training-static-v2";
+// static/service-worker.js
 
+const CACHE_NAME = "vr-training-static-v1";
 const STATIC_ASSETS = [
+  "/",
   "/static/css/styles_v2.css",
-  "/static/icons/icon-192.png",
   "/static/manifest.webmanifest",
   "/static/logo_negro_vr_training.png",
-  "/static/logo_blanco_vr_training.png"
+  "/static/logo_blanco_vr_training.png",
+  "/static/icons/icon-192.png"
 ];
-
-// Detecta navegación (HTML)
-function isNavigation(request) {
-  return (
-    request.mode === "navigate" ||
-    (request.headers.get("accept") || "").includes("text/html")
-  );
-}
-
-// Detecta si es video o si el navegador pide Range (muy común en <video>)
-function isVideoRequest(request) {
-  const url = new URL(request.url);
-  const path = url.pathname.toLowerCase();
-  const range = request.headers.get("range");
-  const dest = request.destination;
-
-  return (
-    dest === "video" ||
-    !!range ||
-    path.endsWith(".mp4") ||
-    path.endsWith(".webm") ||
-    path.endsWith(".mov") ||
-    path.endsWith(".m4v")
-  );
-}
-
-function isStatic(url) {
-  return url.pathname.startsWith("/static/");
-}
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -54,49 +27,34 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// ✅ NO cachear videos ni /media/
+function isVideo(requestUrl) {
+  return requestUrl.pathname.startsWith("/static/videos/") || requestUrl.pathname.startsWith("/media/");
+}
+
 self.addEventListener("fetch", (event) => {
-  const request = event.request;
-  const url = new URL(request.url);
+  const url = new URL(event.request.url);
 
-  // ✅ 1) JAMÁS tocar videos / Range. Siempre ir a red directo.
-  if (isVideoRequest(request)) {
-    event.respondWith(fetch(request));
+  // videos: siempre network
+  if (isVideo(url)) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
-  // ✅ 2) Navegación: network-first (si cae, cache)
-  if (isNavigation(request)) {
+  // HTML navegación: network-first
+  if (event.request.mode === "navigate") {
+    event.respondWith(fetch(event.request).catch(() => caches.match("/")));
+    return;
+  }
+
+  // static: cache-first
+  if (url.pathname.startsWith("/static/")) {
     event.respondWith(
-      (async () => {
-        try {
-          const network = await fetch(request);
-          return network;
-        } catch (e) {
-          const cached = await caches.match(request);
-          return cached || Response.error();
-        }
-      })()
+      caches.match(event.request).then((cached) => cached || fetch(event.request))
     );
     return;
   }
 
-  // ✅ 3) Static: cache-first
-  if (isStatic(url)) {
-    event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request))
-    );
-    return;
-  }
-
-  // ✅ 4) Default: network-first
-  event.respondWith(
-    (async () => {
-      try {
-        return await fetch(request);
-      } catch (e) {
-        const cached = await caches.match(request);
-        return cached || Response.error();
-      }
-    })()
-  );
+  // default
+  event.respondWith(fetch(event.request));
 });

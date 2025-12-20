@@ -1,110 +1,279 @@
-/* =========================================================
-   ROUTINE BUILDER (compact + reorder)
-========================================================= */
+/* ============================================================
+   VR TRAINING – styles_v2.css (DARK PRO)
+   Basado en tu layout:
+   - body.vr-body
+   - nav.vr-navbar
+   - main.vr-main
+   - links vr-link / brand vr-brand
+   ============================================================ */
 
-.rb-list{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+:root{
+  --bg: radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
+  --panel: rgba(255,255,255,.06);
+  --panel2: rgba(255,255,255,.08);
+  --border: rgba(255,255,255,.12);
+
+  --text: #fff;
+  --muted: rgba(255,255,255,.65);
+
+  --cyan: #22d3ee;
+  --blue: #3b82f6;
+  --danger: #ef4444;
+  --success: #22c55e;
+
+  --r: 14px;
+  --r2: 10px;
 }
 
-.rb-item{
-  padding: 10px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.16);
-  background: rgba(0,0,0,.32);
-  box-shadow: 0 14px 36px rgba(0,0,0,.55);
+/* ------------------------------------------------------------
+   BASE
+------------------------------------------------------------ */
+body.vr-body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Rajdhani","Segoe UI",system-ui,sans-serif;
+  min-height: 100vh;
 }
 
-.rb-title{
-  font-size: 15px;
-  font-weight: 1000;
-  letter-spacing: .02em;
+/* separador por navbar fixed-top */
+.vr-main{
+  padding-top: 86px;
+  padding-bottom: 36px;
 }
 
-.rb-meta .chip{
-  display:inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.06);
-  font-size: 12px;
-  margin-right: 6px;
-  margin-top: 6px;
+/* ------------------------------------------------------------
+   NAVBAR
+------------------------------------------------------------ */
+.vr-navbar{
+  background: rgba(0,0,0,.75) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
 }
 
-.rb-actions{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
+.vr-brand{
+  letter-spacing: .8px;
+  font-weight: 700;
+  color: var(--text);
 }
 
-.rb-note{
-  font-size: 12px;
-  opacity: .9;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.12);
+.vr-link{
+  color: var(--text);
+  opacity: .92;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.vr-link:hover{
+  color: var(--cyan);
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------
+   ALERTAS
+------------------------------------------------------------ */
+.vr-alert{
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,.45);
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------
+   “DARKIFY” Bootstrap sin romper arquitectura
+   (solo dentro de body.vr-body)
+------------------------------------------------------------ */
+.vr-body .card,
+.vr-body .list-group-item,
+.vr-body .dropdown-menu,
+.vr-body .modal-content{
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+
+.vr-body .card-header{
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.vr-body .text-muted{
+  color: var(--muted) !important;
+}
+
+.vr-body hr{
+  border-color: var(--border);
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------
+   FORMS
+------------------------------------------------------------ */
+.vr-body input,
+.vr-body select,
+.vr-body textarea{
+  background: rgba(0,0,0,.35) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--r2) !important;
+}
+
+.vr-body input::placeholder,
+.vr-body textarea::placeholder{
+  color: rgba(255,255,255,.45) !important;
+}
+
+.vr-body input:focus,
+.vr-body select:focus,
+.vr-body textarea:focus{
+  outline: none !important;
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 2px rgba(34,211,238,.28) !important;
+  background: rgba(0,0,0,.45) !important;
+}
+
+/* labels */
+.vr-body label{
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------
+   BOTONES
+------------------------------------------------------------ */
+.vr-body .btn{
+  border-radius: var(--r2);
+  font-weight: 700;
+}
+
+.vr-body .btn-primary{
+  background: var(--blue) !important;
+  border-color: var(--blue) !important;
+}
+
+.vr-body .btn-primary:hover{
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+.vr-body .btn-info,
+.vr-body .btn-cyan{
+  background: var(--cyan) !important;
+  border-color: var(--cyan) !important;
+  color: #001018 !important;
+}
+
+.vr-body .btn-danger{
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+.vr-body .btn-success{
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+}
+
+/* ------------------------------------------------------------
+   TABLAS (tu tabla de atletas)
+------------------------------------------------------------ */
+.vr-body table{
+  color: var(--text);
+}
+
+.vr-body thead{
+  background: rgba(255,255,255,.08);
+}
+
+.vr-body thead th{
+  color: var(--text);
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.vr-body tbody td{
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+}
+
+.vr-body tbody tr:hover{
   background: rgba(255,255,255,.04);
 }
 
-.rb-grid{
-  display:grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
-  gap:8px;
+/* ------------------------------------------------------------
+   BUILDER – EJERCICIOS EN GRIS (como te gusta)
+   (esto aplica a tu HTML actual sin cambiarlo)
+------------------------------------------------------------ */
+
+/* Caja grande de cada item de rutina */
+.vr-body .rutina-item,
+.vr-body .builder-item,
+.vr-body .exercise-item{
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: var(--r);
+  padding: 14px;
+  margin-bottom: 14px;
 }
 
-@media (max-width: 1200px){
-  .rb-grid{ grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+/* bloques internos del item (los paneles grises del builder) */
+.vr-body .rutina-item .bg-light,
+.vr-body .builder-item .bg-light{
+  background: rgba(255,255,255,.10) !important;
+  border-radius: var(--r);
 }
 
-.rb-field label{
-  font-size: 12px;
-  opacity:.85;
-  margin-bottom: 4px;
-  display:block;
-}
-
-.rb-field input{
-  width:100%;
-  height: 34px;
-  padding: 6px 10px;
-  border-radius: 14px;
-  background: rgba(0,0,0,.55);
-  border: 1px solid rgba(255,255,255,.20);
-  color: rgba(255,255,255,.96);
-}
-
-.rb-note textarea{
-  width:100%;
-  min-height: 56px;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: rgba(0,0,0,.55);
-  border: 1px solid rgba(255,255,255,.20);
-  color: rgba(255,255,255,.96);
-}
-
-.rb-save{
-  margin-top: 10px;
-}
-
-/* handle drag */
-.rb-handle{
-  cursor: grab;
-  user-select:none;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  font-size: 12px;
-  padding: 4px 10px;
+/* badges dentro del builder */
+.vr-body .badge{
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.14);
+  color: var(--text);
   border-radius: 999px;
-  border: 1px dashed rgba(255,255,255,.24);
-  background: rgba(255,255,255,.06);
 }
-.rb-handle:active{ cursor:grabbing; }
 
-.rb-ghost{
-  opacity:.5;
+/* headers dentro del builder */
+.vr-body .rutina-item-header,
+.vr-body .builder-header{
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------
+   “TOTAL / PILLS / CHIPS”
+------------------------------------------------------------ */
+.vr-body .pill,
+.vr-body .chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.08);
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------
+   MODAL (video en builder)
+------------------------------------------------------------ */
+.vr-body .modal-content{
+  background: #0b0b0b !important;
+}
+
+/* ------------------------------------------------------------
+   LINKS GENERALES
+------------------------------------------------------------ */
+.vr-body a{
+  color: var(--cyan);
+}
+.vr-body a:hover{
+  color: var(--blue);
+}
+
+/* ------------------------------------------------------------
+   UTIL: si algo te queda muy blanco, esto lo apaga
+------------------------------------------------------------ */
+.vr-body .bg-white,
+.vr-body .bg-body,
+.vr-body .bg-light{
+  background: transparent !important;
 }

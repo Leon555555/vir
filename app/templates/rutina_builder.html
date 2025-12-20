@@ -62,11 +62,12 @@
                     </div>
 
                     <div class="rb-actions">
-                      {% if item.has_video %}
+                      {% if item.video_url %}
                         <button type="button"
-                                class="btn btn-sm btn-outline-info js-open-video"
-                                data-video="{{ item.video_src }}"
-                                data-title="{{ item.nombre|e }}">
+                                class="btn btn-sm btn-outline-info"
+                                data-video="{{ url_for('static', filename=item.video_url) }}"
+                                data-title="{{ item.nombre|e }}"
+                                onclick="openVideo(this)">
                           ▶ Ver video
                         </button>
                       {% else %}
@@ -143,7 +144,8 @@
 
         <div class="card-body">
           <div class="rb-bank-tools mb-3">
-            <input id="bankSearch" class="form-control" placeholder="Buscar ejercicio (nombre o categoría)...">
+            <input id="bankSearch" class="form-control" placeholder="Buscar ejercicio (nombre o categoría)..."
+                   oninput="filterBank()">
           </div>
 
           <div id="bankList" class="rb-bank-list">
@@ -162,11 +164,12 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                      {% if ej.has_video %}
+                      {% if ej.video_filename %}
                         <button type="button"
-                                class="btn btn-sm btn-outline-info js-open-video"
-                                data-video="{{ ej.video_src }}"
-                                data-title="{{ ej.nombre|e }}">
+                                class="btn btn-sm btn-outline-info"
+                                data-video="{{ url_for('static', filename='videos/' ~ ej.video_filename) }}"
+                                data-title="{{ ej.nombre|e }}"
+                                onclick="openVideo(this)">
                           ▶ Ver
                         </button>
                       {% endif %}
@@ -204,7 +207,6 @@
               <div class="text-soft">No hay ejercicios en el banco todavía.</div>
             {% endif %}
           </div>
-
         </div>
       </div>
     </div>
@@ -221,8 +223,8 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <!-- ✅ src directo al video (lo seteamos por JS) -->
-        <video id="videoPlayer" class="w-100" controls preload="metadata" playsinline></video>
+        <!-- OJO: src directo en <video> (más compatible que <source> fijo mp4) -->
+        <video id="videoPlayer" class="w-100" controls playsinline preload="metadata"></video>
       </div>
     </div>
   </div>
@@ -233,103 +235,76 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-(function(){
+function filterBank(){
+  const q = (document.getElementById("bankSearch").value || "").toLowerCase().trim();
+  const items = document.querySelectorAll("#bankList .rb-bank-item");
+  items.forEach(el=>{
+    const name = el.getAttribute("data-name") || "";
+    const cat  = el.getAttribute("data-cat") || "";
+    const ok = !q || name.includes(q) || cat.includes(q);
+    el.style.display = ok ? "" : "none";
+  });
+}
 
-  function filterBank(){
-    const q = (document.getElementById("bankSearch").value || "").toLowerCase().trim();
-    const items = document.querySelectorAll("#bankList .rb-bank-item");
-    items.forEach(el=>{
-      const name = el.getAttribute("data-name") || "";
-      const cat  = el.getAttribute("data-cat") || "";
-      const ok = !q || name.includes(q) || cat.includes(q);
-      el.style.display = ok ? "" : "none";
-    });
-  }
+function openVideo(btn){
+  const url = btn.getAttribute("data-video");
+  const title = btn.getAttribute("data-title") || "Video";
+  const modalEl = document.getElementById("videoModal");
+  const titleEl = document.getElementById("videoTitle");
+  const player  = document.getElementById("videoPlayer");
 
-  async function saveOrder(){
-    const list = document.getElementById("rutinaList");
-    if (!list) return;
+  titleEl.textContent = title;
 
-    const order = Array.from(list.querySelectorAll(".rb-item"))
-      .map(el => parseInt(el.getAttribute("data-item-id")));
+  // Reset “duro” para evitar cache raro / 0:00 pegado
+  try { player.pause(); } catch(e){}
+  player.removeAttribute("src");
+  player.load();
 
-    try{
-      const res = await fetch("{{ url_for('main.rutina_reorder', rutina_id=rutina.id) }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order })
-      });
-      const data = await res.json();
-      if (!data.ok){
-        alert("Error guardando orden: " + (data.error || "—"));
-      }
-    }catch(e){
-      alert("Error guardando orden (network).");
-    }
-  }
+  player.src = url;
+  player.load();
 
-  function openVideo(url, title){
-    const modalEl = document.getElementById("videoModal");
-    const titleEl = document.getElementById("videoTitle");
-    const player  = document.getElementById("videoPlayer");
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
 
-    // debug visible
-    console.log("OPEN VIDEO =>", url);
-
-    titleEl.textContent = title || "Video";
-
-    // reset
+  modalEl.addEventListener("hidden.bs.modal", () => {
     try { player.pause(); } catch(e){}
     player.removeAttribute("src");
     player.load();
+  }, { once: true });
+}
 
-    // set src directo (robusto)
-    player.src = url;
-    player.load();
+async function saveOrder(){
+  const list = document.getElementById("rutinaList");
+  if (!list) return;
 
-    const modal = new bootstrap.Modal(modalEl);
-    modal.show();
+  const order = Array.from(list.querySelectorAll(".rb-item"))
+    .map(el => parseInt(el.getAttribute("data-item-id")));
 
-    modalEl.addEventListener("hidden.bs.modal", () => {
-      try { player.pause(); } catch(e){}
-      player.removeAttribute("src");
-      player.load();
-    }, { once: true });
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-
-    // buscador banco
-    const bankSearch = document.getElementById("bankSearch");
-    if (bankSearch) bankSearch.addEventListener("input", filterBank);
-
-    // ✅ delegación de click para videos (NO onclick inline)
-    document.addEventListener("click", (e) => {
-      const btn = e.target.closest(".js-open-video");
-      if (!btn) return;
-      e.preventDefault();
-      const url = btn.getAttribute("data-video") || "";
-      const title = btn.getAttribute("data-title") || "Video";
-      if (!url){
-        alert("Este ejercicio no tiene video_src.");
-        return;
-      }
-      openVideo(url, title);
+  try{
+    const res = await fetch("{{ url_for('main.rutina_reorder', rutina_id=rutina.id) }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order })
     });
-
-    // ✅ sortable
-    const list = document.getElementById("rutinaList");
-    if (list){
-      new Sortable(list, {
-        handle: ".rb-handle",
-        animation: 150,
-        ghostClass: "rb-ghost",
-        forceFallback: true,
-        onEnd: () => saveOrder()
-      });
+    const data = await res.json();
+    if (!data.ok){
+      alert("Error guardando orden: " + (data.error || "—"));
     }
-  });
+  }catch(e){
+    alert("Error guardando orden (network).");
+  }
+}
 
-})();
+document.addEventListener("DOMContentLoaded", () => {
+  const list = document.getElementById("rutinaList");
+  if (!list) return;
+
+  new Sortable(list, {
+    handle: ".rb-handle",
+    animation: 150,
+    ghostClass: "rb-ghost",
+    onEnd: () => saveOrder()
+  });
+});
 </script>
 {% endblock %}

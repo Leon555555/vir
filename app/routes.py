@@ -6,8 +6,6 @@ from calendar import monthrange
 from typing import Any, Dict, List, Tuple, Optional
 
 import os
-import time
-from werkzeug.utils import secure_filename
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
@@ -24,37 +22,14 @@ from app.models import (
 main_bp = Blueprint("main", __name__)
 
 # =============================================================
-# MEDIA / VIDEOS
+# VIDEO HELPERS (Opción A: videos en repo /static/videos)
 # =============================================================
-ALLOWED_VIDEO_EXT = {".mp4", ".mov", ".webm", ".m4v"}
-
-def ensure_videos_dir() -> str:
-    folder = os.path.join(current_app.static_folder, "videos")
-    os.makedirs(folder, exist_ok=True)
-    return folder
-
-def save_video_to_static(file_storage) -> str:
-    """
-    Guarda el archivo en /static/videos con nombre seguro + timestamp.
-    Devuelve SOLO el filename (ej: 'sentadilla_1734.mp4')
-    """
-    filename = secure_filename(file_storage.filename or "")
-    if not filename:
-        raise ValueError("Nombre de archivo no válido")
-
-    name, ext = os.path.splitext(filename)
-    ext = (ext or "").lower()
-    if ext not in ALLOWED_VIDEO_EXT:
-        raise ValueError(f"Formato no permitido ({ext}). Usá: {', '.join(sorted(ALLOWED_VIDEO_EXT))}")
-
-    safe = f"{name.strip()}_{int(time.time())}{ext}"
-    out_path = os.path.join(ensure_videos_dir(), safe)
-    file_storage.save(out_path)
-    return safe
+ALLOWED_VIDEO_EXT = {".mp4", ".webm", ".m4v", ".mov"}
 
 def normalize_item_video_url(v: str | None) -> str:
     """
-    Guardamos/mostramos siempre 'videos/<filename>'.
+    Guardamos/Usamos siempre 'videos/<filename>'.
+    Admite: '/static/videos/x.mp4' o 'videos/x.mp4' o 'x.mp4'
     """
     if not v:
         return ""
@@ -63,22 +38,38 @@ def normalize_item_video_url(v: str | None) -> str:
         return ""
     if s.startswith("/static/"):
         s = s.replace("/static/", "", 1)
-    # si viene 'videos/x.mp4' lo dejamos
-    if s.startswith("videos/"):
-        return s
-    # si viene 'x.mp4' lo convertimos
+    # si viene "x.mp4" lo pasamos a "videos/x.mp4"
     if "/" not in s:
-        return f"videos/{s}"
+        s = f"videos/{s}"
     return s
 
 def build_video_src(video_url: str | None) -> str:
-    """
-    URL lista para <video src="..."> usando url_for(static).
-    """
     rel = normalize_item_video_url(video_url)
     if not rel:
         return ""
     return url_for("static", filename=rel)
+
+def guess_mime_from_filename(filename: str) -> str:
+    ext = os.path.splitext(filename.lower())[1]
+    if ext == ".mp4" or ext == ".m4v":
+        return "video/mp4"
+    if ext == ".webm":
+        return "video/webm"
+    if ext == ".mov":
+        # puede funcionar o no según codec, pero esto ayuda
+        return "video/quicktime"
+    return "video/mp4"
+
+def static_video_exists(video_rel: str) -> bool:
+    """
+    Verifica si existe en disco dentro de /static/videos.
+    En Render solo existirá si está en tu repo (Opción A).
+    """
+    rel = normalize_item_video_url(video_rel)
+    if not rel:
+        return False
+    abs_path = os.path.join(current_app.static_folder, rel)
+    return os.path.isfile(abs_path)
 
 # =============================================================
 # FECHAS / UTILIDADES
@@ -715,7 +706,7 @@ def crear_rutina():
     return redirect(url_for("main.dashboard_entrenador"))
 
 # =============================================================
-# SUBIR EJERCICIO (BANCO)
+# CREAR EJERCICIO (BANCO) - Opción A: referenciar filename existente
 # =============================================================
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
@@ -727,32 +718,42 @@ def admin_nuevo_ejercicio():
     nombre = (request.form.get("nombre") or "").strip()
     categoria = (request.form.get("categoria") or "").strip()
     descripcion = (request.form.get("descripcion") or "").strip()
-    file = request.files.get("video")
+    video_filename = (request.form.get("video_filename") or "").strip()
 
     if not nombre:
         flash("Falta el nombre del ejercicio", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    if not file or not file.filename:
-        flash("Falta el vídeo del ejercicio", "danger")
+    if not video_filename:
+        flash("Falta el nombre del archivo de video (ej: saltar_cuerda.mp4)", "danger")
         return redirect(url_for("main.dashboard_entrenador"))
 
-    try:
-        filename = save_video_to_static(file)
-    except Exception as e:
-        flash(f"Error subiendo video: {e}", "danger")
+    # validación simple
+    ext = os.path.splitext(video_filename.lower())[1]
+    if ext not in ALLOWED_VIDEO_EXT:
+        flash(f"Formato no permitido ({ext}). Usá mp4/webm/m4v/mov", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    # debe existir en static/videos dentro del repo
+    rel = f"videos/{video_filename}"
+    if not static_video_exists(rel):
+        flash(
+            f"El video '{video_filename}' NO existe en /static/videos/ en el servidor. "
+            f"Subilo al repo (static/videos/) y redeploy.",
+            "danger"
+        )
         return redirect(url_for("main.dashboard_entrenador"))
 
     ejercicio = Ejercicio(
         nombre=nombre,
         categoria=categoria,
         descripcion=descripcion,
-        video_filename=filename
+        video_filename=video_filename
     )
     db.session.add(ejercicio)
     db.session.commit()
 
-    flash("✅ Ejercicio subido", "success")
+    flash("✅ Ejercicio creado (video por repo)", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
 # =============================================================
@@ -781,7 +782,7 @@ def admin_delete_user(user_id: int):
     return redirect(url_for("main.dashboard_entrenador"))
 
 # =============================================================
-# CRUD rutinas (builder)
+# CRUD rutinas (builder) + peso + orden
 # =============================================================
 @main_bp.route("/rutinas/<int:rutina_id>/builder")
 @login_required
@@ -797,40 +798,7 @@ def rutina_builder(rutina_id: int):
         .all()
     )
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
-
-    # ✅ pasamos video_src listo para usar (evita rutas rotas)
-    items_view: List[Dict[str, Any]] = []
-    for it in items:
-        items_view.append({
-            "id": it.id,
-            "nombre": it.nombre,
-            "series": it.series,
-            "reps": it.reps,
-            "peso": getattr(it, "peso", ""),
-            "descanso": it.descanso,
-            "nota": it.nota,
-            "video_src": build_video_src(it.video_url),
-            "has_video": bool(build_video_src(it.video_url)),
-        })
-
-    ejercicios_view: List[Dict[str, Any]] = []
-    for ej in ejercicios:
-        vsrc = url_for("static", filename=f"videos/{ej.video_filename}") if getattr(ej, "video_filename", None) else ""
-        ejercicios_view.append({
-            "id": ej.id,
-            "nombre": ej.nombre,
-            "categoria": ej.categoria,
-            "descripcion": ej.descripcion,
-            "video_src": vsrc,
-            "has_video": bool(vsrc),
-        })
-
-    return render_template(
-        "rutina_builder.html",
-        rutina=rutina,
-        items=items_view,
-        ejercicios=ejercicios_view
-    )
+    return render_template("rutina_builder.html", rutina=rutina, items=items, ejercicios=ejercicios)
 
 @main_bp.route("/rutinas/<int:rutina_id>/add_item", methods=["POST"])
 @login_required
@@ -860,7 +828,7 @@ def rutina_add_item(rutina_id: int):
         peso=(request.form.get("peso") or "").strip(),
         descanso=(request.form.get("descanso") or "").strip(),
         nota=(request.form.get("nota") or "").strip(),
-        video_url=vurl,
+        video_url=normalize_item_video_url(vurl),
         posicion=next_pos
     )
     db.session.add(item)

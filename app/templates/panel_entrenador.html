@@ -76,12 +76,13 @@
     </div>
   </div>
 
-  <!-- ✅ SUBIR EJERCICIO -->
+  <!-- ✅ CREAR EJERCICIO (BANCO) — Opción A GRATIS -->
   <div class="col-lg-6">
     <div class="card glass lift">
-      <div class="card-header"><strong>🎥 Subir ejercicio (banco)</strong></div>
+      <div class="card-header"><strong>🎥 Crear ejercicio (banco)</strong></div>
       <div class="card-body">
-        <form method="post" action="{{ url_for('main.admin_nuevo_ejercicio') }}" enctype="multipart/form-data" class="row g-2">
+        <!-- OJO: sin enctype ni file upload -->
+        <form method="post" action="{{ url_for('main.admin_nuevo_ejercicio') }}" class="row g-2">
           <div class="col-md-6">
             <label class="form-label">Nombre</label>
             <input class="form-control" name="nombre" placeholder="Sentadilla sin peso" required>
@@ -90,17 +91,23 @@
             <label class="form-label">Categoría</label>
             <input class="form-control" name="categoria" placeholder="Pierna / Espalda / etc">
           </div>
+
           <div class="col-12">
             <label class="form-label">Descripción</label>
             <input class="form-control" name="descripcion" placeholder="Tips técnicos…">
           </div>
+
           <div class="col-12">
-            <label class="form-label">Video</label>
-            <input class="form-control" type="file" name="video" accept="video/*" required>
+            <label class="form-label">Video filename (debe existir en static/videos/)</label>
+            <input class="form-control" name="video_filename" placeholder="Ej: saltar_cuerda.mp4" required>
+            <div class="text-soft mt-1" style="font-size:.9rem;">
+              📌 Subí el archivo al repo en <b>static/videos/</b> y hacé redeploy. Recomendado: <b>.mp4</b>.
+            </div>
           </div>
+
           <div class="col-12 mt-2">
             <button class="btn btn-info">
-              <i class="bi bi-upload"></i> Subir
+              <i class="bi bi-plus-circle"></i> Crear ejercicio
             </button>
           </div>
         </form>

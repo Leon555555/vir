@@ -1,203 +1,252 @@
 {% extends "layout.html" %}
-{% block title %}Dashboard Entrenador — VR Training{% endblock %}
+{% block title %}Planificador — VR Training{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
 
-  <h2 class="text-light mb-1">📅 Planificador — {{ atleta.nombre if atleta else "—" }}</h2>
-  {% if atleta %}
-    <div class="text-muted mb-3">Semana: {{ semana_str }}</div>
-  {% endif %}
-
-  <!-- selector atleta -->
-  <form method="GET" class="row g-2 mb-4">
-    <div class="col-md-5">
-      <select class="form-select" name="user_id">
-        {% for a in atletas %}
-          <option value="{{ a.id }}" {% if atleta and a.id==atleta.id %}selected{% endif %}>
-            {{ a.nombre }} ({{ a.email }})
-          </option>
-        {% endfor %}
-      </select>
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+    <div>
+      <div class="section-title">PLANIFICADOR</div>
+      <div class="text-soft">Semana · Asignación de entrenamientos por atleta</div>
     </div>
-    <div class="col-md-3">
-      <input class="form-control" type="date" name="center" value="{{ center.isoformat() if center else '' }}">
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-info w-100" type="submit">Ver semana</button>
-    </div>
-  </form>
 
-  {% if atleta %}
-  <div class="row g-3">
-    {% for f in fechas %}
-      {% set plan = planes[f] %}
-      {% set fecha_id = f.isoformat() %}
-      <div class="col-md-6 col-lg-4">
-        <form method="POST" action="{{ url_for('main.save_day') }}"
-              class="card p-3"
-              style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;">
+    <a class="btn btn-outline-info" href="{{ url_for('main.dashboard_entrenador') }}">
+      <i class="bi bi-grid"></i> Panel entrenador
+    </a>
+  </div>
 
-          <input type="hidden" name="user_id" value="{{ atleta.id }}">
-          <input type="hidden" name="fecha" value="{{ fecha_id }}">
+  <!-- Top controls -->
+  <div class="card glass p-3 p-md-4 mb-3">
+    <div class="row g-2 align-items-end">
 
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong class="text-light">{{ f.strftime('%a %d/%m')|upper }}</strong>
-            <span class="badge bg-secondary" id="badge-{{ fecha_id }}">{{ plan.plan_type }}</span>
-          </div>
-
-          <!-- SELECT TIPO -->
-          <select class="form-select mb-3"
-                  name="plan_type"
-                  id="planType-{{ fecha_id }}"
-                  onchange="onPlanTypeChange('{{ fecha_id }}')">
-            <option value="Descanso" {% if plan.plan_type=='Descanso' %}selected{% endif %}>Descanso</option>
-            <option value="Fuerza" {% if plan.plan_type=='Fuerza' %}selected{% endif %}>Fuerza</option>
-            <option value="Run" {% if plan.plan_type=='Run' %}selected{% endif %}>Run</option>
-            <option value="Bike" {% if plan.plan_type=='Bike' %}selected{% endif %}>Bike</option>
-            <option value="Natacion" {% if plan.plan_type=='Natacion' %}selected{% endif %}>Natación</option>
+      <!-- Atleta -->
+      <div class="col-12 col-md-5">
+        <label class="form-label text-muted mb-1">Atleta</label>
+        <form method="GET" class="d-flex gap-2">
+          <select class="form-select" name="user_id" onchange="this.form.submit()">
+            {% for a in atletas %}
+              <option value="{{ a.id }}" {% if atleta and a.id == atleta.id %}selected{% endif %}>
+                {{ a.nombre }}{% if a.grupo %} · {{ a.grupo }}{% endif %}
+              </option>
+            {% endfor %}
           </select>
 
-          <!-- NO FUERZA: 3 botones -->
-          <div id="enduranceBox-{{ fecha_id }}" class="endurance-box hidden">
-            <div class="mini-tabs">
-              <button type="button" class="mini-tab active"
-                      data-fecha="{{ fecha_id }}" data-target="warmup"
-                      onclick="switchMiniTab('{{ fecha_id }}','warmup')">Activación</button>
-              <button type="button" class="mini-tab"
-                      data-fecha="{{ fecha_id }}" data-target="main"
-                      onclick="switchMiniTab('{{ fecha_id }}','main')">Bloque principal</button>
-              <button type="button" class="mini-tab"
-                      data-fecha="{{ fecha_id }}" data-target="finisher"
-                      onclick="switchMiniTab('{{ fecha_id }}','finisher')">Enfriamiento</button>
-            </div>
-
-            <textarea class="form-control mini-area"
-                      id="warmup-{{ fecha_id }}"
-                      name="warmup"
-                      placeholder="Ej: movilidad + skipping...">{{ plan.warmup or "" }}</textarea>
-
-            <textarea class="form-control mini-area hidden"
-                      id="main-{{ fecha_id }}"
-                      name="main"
-                      placeholder="Ej: 3x1000 a 5'10'' rec 2'...">{{ plan.main or "" }}</textarea>
-
-            <textarea class="form-control mini-area hidden"
-                      id="finisher-{{ fecha_id }}"
-                      name="finisher"
-                      placeholder="Ej: 10' suave + estirar">{{ plan.finisher or "" }}</textarea>
-          </div>
-
-          <!-- FUERZA: selector rutina -->
-          <div id="strengthBox-{{ fecha_id }}" class="strength-box hidden">
-            <select class="form-select mb-2" name="rutina_select" id="rutinaSel-{{ fecha_id }}">
-              <option value="">— Sin rutina —</option>
-              {% for r in rutinas %}
-                <option value="RUTINA:{{ r.id }}" {% if plan.main == ("RUTINA:" ~ r.id) %}selected{% endif %}>
-                  {{ r.nombre }}
-                </option>
-              {% endfor %}
-            </select>
-
-            <div class="small text-muted text-center" style="letter-spacing:.12em;">RUTINA:ID</div>
-
-            <textarea class="form-control mini-area mt-2" name="warmup" placeholder="Warmup (opcional)">{{ plan.warmup or "" }}</textarea>
-            <textarea class="form-control mini-area mt-2" name="finisher" placeholder="Finisher (opcional)">{{ plan.finisher or "" }}</textarea>
-          </div>
-
-          <div class="d-flex gap-2 mt-3">
-            <input class="form-control" type="number" name="propuesto_score" value="{{ plan.propuesto_score or 0 }}" />
-            <button class="btn btn-primary w-100" type="submit">💾 Guardar día</button>
-          </div>
-
+          <input type="hidden" name="center" value="{{ center.isoformat() }}">
         </form>
       </div>
-    {% endfor %}
+
+      <!-- Centro semana -->
+      <div class="col-12 col-md-4">
+        <label class="form-label text-muted mb-1">Semana (fecha)</label>
+        <form method="GET" class="d-flex gap-2">
+          <input type="hidden" name="user_id" value="{{ atleta.id if atleta else '' }}">
+          <input type="date" class="form-control" name="center" value="{{ center.isoformat() }}">
+          <button class="btn btn-outline-info" type="submit">Ir</button>
+        </form>
+      </div>
+
+      <!-- Info -->
+      <div class="col-12 col-md-3 text-md-end">
+        {% if atleta %}
+          <div class="text-muted" style="letter-spacing:.12em;text-transform:uppercase;">Semana</div>
+          <div class="fw-bold">{{ semana_str }}</div>
+        {% else %}
+          <div class="text-muted">Seleccioná un atleta</div>
+        {% endif %}
+      </div>
+
+    </div>
   </div>
+
+  {% if not atleta %}
+    <div class="alert alert-warning">No hay atleta seleccionado.</div>
+  {% else %}
+
+    <div class="row g-3">
+
+      {% for f in fechas %}
+        {% set p = planes[f] %}
+        {% set blocked = ((p.puede_entrenar or 'si') == 'no') %}
+
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card plan-card glass lift {% if blocked %}plan-blocked{% endif %}">
+            <div class="card-body">
+
+              <!-- Day header -->
+              <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                  <div class="day-title">{{ f.strftime('%A')|upper }}</div>
+                  <div class="day-sub text-muted">{{ f.strftime('%d/%m/%Y') }}</div>
+                </div>
+
+                {% if blocked %}
+                  <span class="badge bg-danger">🚫 NO PUEDE</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ (p.plan_type or 'Descanso') }}</span>
+                {% endif %}
+              </div>
+
+              {% if blocked %}
+                <div class="blocked-box">
+                  <div class="blocked-title">El atleta bloqueó este día</div>
+                  <div class="blocked-text">
+                    {{ (p.comentario_atleta or 'Sin comentario') }}
+                  </div>
+                </div>
+
+                <div class="mt-3 d-grid">
+                  <button class="btn btn-outline-danger" type="button" disabled>
+                    Día bloqueado
+                  </button>
+                </div>
+
+              {% else %}
+
+                <!-- FORM -->
+                <form method="POST" action="{{ url_for('main.save_day') }}" class="mt-2">
+                  <input type="hidden" name="user_id" value="{{ atleta.id }}">
+                  <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
+
+                  <!-- type -->
+                  <label class="form-label text-muted mb-1">Tipo</label>
+                  <select class="form-select mb-2" name="plan_type" onchange="toggleFields(this)">
+                    {% set pt = (p.plan_type or 'Descanso') %}
+                    <option value="Descanso" {% if pt=='Descanso' %}selected{% endif %}>Descanso</option>
+                    <option value="Rodaje" {% if pt=='Rodaje' %}selected{% endif %}>Rodaje</option>
+                    <option value="Series" {% if pt=='Series' %}selected{% endif %}>Series</option>
+                    <option value="Fuerza" {% if pt=='Fuerza' %}selected{% endif %}>Fuerza</option>
+                    <option value="Cross" {% if pt=='Cross' %}selected{% endif %}>Cross</option>
+                  </select>
+
+                  <!-- warmup -->
+                  <label class="form-label text-muted mb-1">Activación</label>
+                  <textarea class="form-control mb-2" name="warmup" rows="2" placeholder="Activación...">{{ p.warmup or '' }}</textarea>
+
+                  <!-- fuerza -->
+                  <div class="fuerza-box mb-2" style="{% if (p.plan_type or '').lower() != 'fuerza' %}display:none;{% endif %}">
+                    <label class="form-label text-muted mb-1">Rutina</label>
+                    <select class="form-select" name="rutina_select">
+                      <option value="">— Seleccionar rutina —</option>
+                      {% for r in rutinas %}
+                        {% set val = "RUTINA: " ~ r.id %}
+                        <option value="{{ val }}" {% if (p.main or '') == val %}selected{% endif %}>
+                          {{ r.nombre }}
+                        </option>
+                      {% endfor %}
+                    </select>
+
+                    <div class="text-muted mt-2" style="font-size:.9rem;">
+                      * Para fuerza, el “main” guarda <b>RUTINA: ID</b>.
+                    </div>
+                  </div>
+
+                  <!-- main general -->
+                  <div class="main-box mb-2" style="{% if (p.plan_type or '').lower() == 'fuerza' %}display:none;{% endif %}">
+                    <label class="form-label text-muted mb-1">Bloque principal</label>
+                    <textarea class="form-control" name="main" rows="2" placeholder="Entrenamiento principal...">{{ p.main or '' }}</textarea>
+                  </div>
+
+                  <!-- finisher -->
+                  <label class="form-label text-muted mb-1">Enfriamiento</label>
+                  <textarea class="form-control mb-2" name="finisher" rows="2" placeholder="Enfriamiento...">{{ p.finisher or '' }}</textarea>
+
+                  <!-- score -->
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <label class="form-label text-muted mb-1">Score propuesto</label>
+                      <input type="number" class="form-control" name="propuesto_score" value="{{ p.propuesto_score or 0 }}">
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label text-muted mb-1">Score realizado</label>
+                      <input type="number" class="form-control" value="{{ p.realizado_score or 0 }}" disabled>
+                    </div>
+                  </div>
+
+                  <div class="d-grid mt-3">
+                    <button class="btn btn-info">
+                      ✅ Guardar día
+                    </button>
+                  </div>
+                </form>
+
+              {% endif %}
+
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+
+    </div>
+
   {% endif %}
 
 </div>
+{% endblock %}
 
+{% block extra_css %}
 <style>
-.hidden{display:none !important;}
-.endurance-box,.strength-box{
+.plan-card{
+  border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 14px;
+  border-radius: 20px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+}
+
+.day-title{
+  font-weight: 900;
+  letter-spacing: .12em;
+  font-size: .95rem;
+}
+.day-sub{
+  font-size: .92rem;
+}
+
+.plan-blocked{
+  border: 1px solid rgba(255, 59, 48, 0.45) !important;
+  background: rgba(255, 59, 48, 0.10) !important;
+}
+
+.blocked-box{
+  border-radius: 16px;
   padding: 12px;
+  border: 1px solid rgba(255, 59, 48, 0.35);
+  background: rgba(0,0,0,.35);
 }
-.mini-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.mini-tab{
-  border-radius:999px;padding:6px 10px;font-size:.82rem;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  color:#fff;
+.blocked-title{
+  font-weight: 900;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.92);
+  font-size: .80rem;
+  margin-bottom: 6px;
 }
-.mini-tab.active{
-  background: rgba(34,211,238,.16);
-  border-color: rgba(34,211,238,.28);
-}
-.mini-area{
-  min-height: 92px;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.10);
-  color:#fff;
-  border-radius: 12px;
-  margin-top: 8px;
+.blocked-text{
+  color: rgba(255,255,255,.78);
+  font-weight: 700;
+  line-height: 1.25;
+  font-size: .95rem;
 }
 </style>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function normalizeType(v){ return (v || "").toLowerCase().trim(); }
+function toggleFields(selectEl){
+  const form = selectEl.closest("form");
+  if(!form) return;
 
-function onPlanTypeChange(fecha){
-  const sel = document.getElementById(`planType-${fecha}`);
-  if (!sel) return;
+  const pt = (selectEl.value || "").toLowerCase();
+  const fuerzaBox = form.querySelector(".fuerza-box");
+  const mainBox = form.querySelector(".main-box");
 
-  const type = normalizeType(sel.value);
-
-  const endurance = document.getElementById(`enduranceBox-${fecha}`);
-  const strength = document.getElementById(`strengthBox-${fecha}`);
-  const badge = document.getElementById(`badge-${fecha}`);
-
-  if (badge) badge.textContent = sel.value;
-
-  if (type === "fuerza") {
-    endurance?.classList.add("hidden");
-    strength?.classList.remove("hidden");
-    return;
+  if(pt === "fuerza"){
+    if(fuerzaBox) fuerzaBox.style.display = "block";
+    if(mainBox) mainBox.style.display = "none";
+  }else{
+    if(fuerzaBox) fuerzaBox.style.display = "none";
+    if(mainBox) mainBox.style.display = "block";
   }
-
-  if (type === "descanso") {
-    endurance?.classList.add("hidden");
-    strength?.classList.add("hidden");
-    return;
-  }
-
-  strength?.classList.add("hidden");
-  endurance?.classList.remove("hidden");
-  switchMiniTab(fecha, "warmup");
 }
-
-function switchMiniTab(fecha, which){
-  const tabs = document.querySelectorAll(`.mini-tab[data-fecha="${fecha}"]`);
-  tabs.forEach(t => t.classList.toggle("active", t.dataset.target === which));
-
-  ["warmup","main","finisher"].forEach(k=>{
-    const el = document.getElementById(`${k}-${fecha}`);
-    if (!el) return;
-    el.classList.toggle("hidden", k !== which);
-  });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll("[id^='planType-']").forEach(sel=>{
-    const fecha = sel.id.replace("planType-","");
-    onPlanTypeChange(fecha);
-  });
-});
 </script>
 {% endblock %}

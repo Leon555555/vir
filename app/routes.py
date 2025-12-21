@@ -157,6 +157,7 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
         "finisher": p.finisher or "",
         "propuesto_score": p.propuesto_score or 0,
         "realizado_score": p.realizado_score or 0,
+        # ✅ disponibilidad atleta (si existen columnas)
         "puede_entrenar": (getattr(p, "puede_entrenar", None) or "si"),
         "comentario_atleta": (getattr(p, "comentario_atleta", None) or ""),
     }
@@ -175,6 +176,9 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     for f in fechas:
         if f not in planes:
             nuevo = DiaPlan(user_id=user_id, fecha=f, plan_type="Descanso")
+            # ✅ set default si existe
+            if hasattr(nuevo, "puede_entrenar") and getattr(nuevo, "puede_entrenar", None) is None:
+                nuevo.puede_entrenar = "si"
             planes[f] = nuevo
             db.session.add(nuevo)
             changed = True
@@ -335,6 +339,8 @@ def perfil_usuario(user_id: int):
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
+        if hasattr(plan_hoy, "puede_entrenar") and getattr(plan_hoy, "puede_entrenar", None) is None:
+            plan_hoy.puede_entrenar = "si"
         db.session.add(plan_hoy)
         db.session.commit()
 
@@ -354,6 +360,8 @@ def perfil_usuario(user_id: int):
     for d in dias_mes:
         if d not in planes_mes:
             nuevo = DiaPlan(user_id=user.id, fecha=d, plan_type="Descanso")
+            if hasattr(nuevo, "puede_entrenar") and getattr(nuevo, "puede_entrenar", None) is None:
+                nuevo.puede_entrenar = "si"
             planes_mes[d] = nuevo
             db.session.add(nuevo)
             changed = True
@@ -438,6 +446,8 @@ def api_day_detail():
     plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
     if not plan:
         plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso")
+        if hasattr(plan, "puede_entrenar") and getattr(plan, "puede_entrenar", None) is None:
+            plan.puede_entrenar = "si"
         db.session.add(plan)
         db.session.commit()
 
@@ -575,6 +585,47 @@ def athlete_save_log():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 # =============================================================
+# ✅ NUEVO: “NO PUEDO ENTRENAR” + COMENTARIO (ATLETA)
+# =============================================================
+@main_bp.route("/athlete/save_availability", methods=["POST"])
+@login_required
+def athlete_save_availability():
+    try:
+        data = request.get_json(silent=True) or {}
+        user_id = int(data.get("user_id") or 0)
+        fecha = safe_parse_ymd(data.get("fecha", ""), fallback=date.today())
+        no_puedo = bool(data.get("no_puedo", False))
+        comentario = (data.get("comentario") or "").strip()
+
+        if not user_id:
+            return jsonify({"ok": False, "error": "Falta user_id"}), 400
+        if (not is_admin()) and current_user.id != user_id:
+            return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+
+        plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
+        if not plan:
+            plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso")
+            db.session.add(plan)
+
+        # ✅ si tu tabla/modelo no tiene columnas todavía, devolvemos error claro
+        if not hasattr(plan, "puede_entrenar") or not hasattr(plan, "comentario_atleta"):
+            db.session.rollback()
+            return jsonify({
+                "ok": False,
+                "error": "Faltan columnas en DiaPlan: puede_entrenar / comentario_atleta. Ejecutá el ALTER TABLE."
+            }), 500
+
+        plan.puede_entrenar = "no" if no_puedo else "si"
+        plan.comentario_atleta = comentario
+
+        db.session.commit()
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+# =============================================================
 # DASHBOARD ENTRENADOR
 # =============================================================
 @main_bp.route("/coach/dashboard")
@@ -688,6 +739,11 @@ def save_day():
         plan = DiaPlan(user_id=user_id, fecha=fecha)
         db.session.add(plan)
 
+    # ✅ si el atleta bloqueó el día, no planificamos
+    if hasattr(plan, "puede_entrenar") and (getattr(plan, "puede_entrenar", "si") == "no"):
+        flash("🚫 El atleta marcó este día como 'No puedo entrenar'. No planifiques ese día.", "warning")
+        return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
+
     plan_type = (request.form.get("plan_type") or "Descanso").strip()
     plan.plan_type = plan_type
 
@@ -767,14 +823,12 @@ def admin_nuevo_ejercicio():
     video_filename = ""
 
     if selected:
-        # validar que exista realmente en static/videos
         if selected not in list_repo_videos():
             flash("Ese archivo no existe en /static/videos (subilo al repo primero).", "danger")
             return redirect(url_for("main.dashboard_entrenador"))
         video_filename = selected
 
     elif file and file.filename:
-        # upload (solo útil local / temporal)
         try:
             video_filename = save_video_to_static(file)
             flash("⚠️ Video subido al server (en Render gratis se puede perder). Ideal: usar 'Seleccionar video existente'.", "warning")

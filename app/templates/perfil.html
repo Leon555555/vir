@@ -15,7 +15,7 @@
         <h2 class="text-light mb-0">{{ user.nombre }}</h2>
         <div class="text-muted">{{ user.email }}</div>
 
-        <!-- ✅ STRAVA (OPCIÓN A) -->
+        <!-- STRAVA -->
         <div class="mt-2">
           {% if strava_account %}
             <span class="badge bg-success">🟠 Strava conectado</span>
@@ -158,10 +158,11 @@
           {% for d in w %}
             {% if d %}
               {% set pm = planes_mes[d] %}
-              {% set done = (d in done_month) %}
-              <div class="month-cell {% if done %}done{% endif %}" onclick="openDay('{{ d.isoformat() }}')">
+              {% set blocked = ((pm.puede_entrenar or 'si') == 'no') %}
+              <div class="month-cell {% if blocked %}blocked{% endif %}"
+                   data-date="{{ d.isoformat() }}"
+                   onclick="openDay('{{ d.isoformat() }}')">
                 <div class="daynum">{{ d.day }}</div>
-                <div class="ptype">{{ pm.plan_type }}</div>
               </div>
             {% else %}
               <div class="month-cell empty"></div>
@@ -197,7 +198,6 @@
           {% endfor %}
         </div>
 
-        <!-- ✅ letras visibles -->
         <div class="d-flex justify-content-between mt-2 vr-days">
           <span>L</span><span>M</span><span>X</span>
           <span>J</span><span>V</span><span>S</span><span>D</span>
@@ -225,6 +225,8 @@
 
       <div class="modal-body">
         <div class="row g-3">
+
+          <!-- IZQ: PLAN -->
           <div class="col-lg-5">
             <div class="card glass p-3 h-100">
               <div class="fw-bold mb-2">Plan</div>
@@ -243,9 +245,35 @@
                 <div class="plan-k">Enfriamiento</div>
                 <div class="plan-v" id="planFinisher">—</div>
               </div>
+
+              <!-- ✅ BLOQUEO ATLETA -->
+              <div class="mt-3 glass p-3" style="border-radius:16px;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="mini-title">DISPONIBILIDAD</div>
+                  <span id="availBadge" class="badge bg-secondary">—</span>
+                </div>
+
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="noPuedoToggle">
+                  <label class="form-check-label text-muted" for="noPuedoToggle">No puedo entrenar este día</label>
+                </div>
+
+                <textarea class="form-control mt-2" id="noPuedoText"
+                          placeholder="Ej: viaje / lesión / trabajo / etc (corto)"></textarea>
+
+                <button class="btn btn-outline-danger w-100 mt-2" type="button" onclick="saveAvailability()">
+                  Guardar bloqueo
+                </button>
+
+                <div class="text-muted mt-2" style="font-size:.9rem;">
+                  Si bloqueás el día, el coach lo verá en rojo y no planifica.
+                </div>
+              </div>
+
             </div>
           </div>
 
+          <!-- DER: FUERZA + LOG -->
           <div class="col-lg-7">
             <div class="card glass p-3">
               <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
@@ -371,21 +399,22 @@
   font-weight: 800;
 }
 
-/* ✅ FIX: que el mes no quede “invisible” */
-.month-head{
-  color: rgba(255,255,255,.72) !important;
+/* Month visible */
+.month-head{ color: rgba(255,255,255,.72) !important; }
+.month-cell{ background: rgba(0,0,0,.42) !important; }
+.month-cell .daynum{ color: rgba(255,255,255,.92) !important; }
+
+/* ✅ rojo cuando atleta bloquea */
+.month-cell.blocked{
+  background: rgba(255, 59, 48, 0.18) !important;
+  border: 1px solid rgba(255, 59, 48, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset;
 }
-.month-cell{
-  background: rgba(0,0,0,.42) !important;
-}
-.month-cell .daynum{
-  color: rgba(255,255,255,.92) !important;
-}
-.month-cell .ptype{
-  color: rgba(255,255,255,.82) !important;
+.month-cell.blocked .daynum{
+  color: rgba(255,255,255,.95) !important;
 }
 
-/* ✅ Letras del progreso visibles */
+/* Letras progreso */
 .vr-days span{
   color: rgba(255,255,255,.78);
   font-weight: 900;
@@ -421,22 +450,44 @@ function posterDataUrl(title){
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
+function setAvailUI(puede, comentario){
+  const toggle = document.getElementById("noPuedoToggle");
+  const text = document.getElementById("noPuedoText");
+  const badge = document.getElementById("availBadge");
+
+  const blocked = (puede === "no");
+  toggle.checked = blocked;
+  text.value = comentario || "";
+
+  if(blocked){
+    badge.className = "badge bg-danger";
+    badge.textContent = "NO PUEDE";
+  }else{
+    badge.className = "badge bg-success";
+    badge.textContent = "OK";
+  }
+}
+
 function openDay(isoDate){
   CURRENT_DAY = isoDate;
   if(!DAY_MODAL){
     DAY_MODAL = new bootstrap.Modal(document.getElementById("dayModal"));
   }
+
   document.getElementById("dayModalDate").textContent = isoDate;
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
   document.getElementById("strengthItems").innerHTML = "";
   document.getElementById("scriptBox").innerHTML = `<div class="text-muted">Tocá “Generar” para ver el guión del día.</div>`;
 
+  // reset disponibilidad mientras carga
+  setAvailUI("si", "");
+
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
     .then(r => r.json())
     .then(data => {
       if(!data.ok) throw new Error(data.error || "Error");
-      const p = data.plan;
+      const p = data.plan || {};
 
       document.getElementById("dayModalTitle").textContent = (data.rutina?.nombre ? data.rutina.nombre : "Detalle del día");
       document.getElementById("dayModalType").textContent = p.plan_type || "—";
@@ -445,6 +496,10 @@ function openDay(isoDate){
       document.getElementById("planMain").textContent = p.main || "—";
       document.getElementById("planFinisher").textContent = p.finisher || "—";
 
+      // disponibilidad
+      setAvailUI(p.puede_entrenar || "si", p.comentario_atleta || "");
+
+      // log
       document.getElementById("didTrain").checked = !!data.log?.did_train;
       document.getElementById("doneWarmup").value = data.log?.warmup_done || "";
       document.getElementById("doneMain").value = data.log?.main_done || "";
@@ -473,7 +528,7 @@ function renderStrength(items, doneIds){
     col.className = "col-12";
 
     const checked = doneIds.has(it.id) ? "checked" : "";
-    const vidSrc = it.video_src || "";   // ✅ FIX REAL
+    const vidSrc = it.video_src || "";
     const poster = posterDataUrl(it.nombre);
 
     col.innerHTML = `
@@ -552,6 +607,43 @@ function saveLog(){
     console.error(err);
     alert("Error guardando: " + err.message);
   });
+}
+
+async function saveAvailability(){
+  const noPuedo = document.getElementById("noPuedoToggle").checked;
+  const comentario = document.getElementById("noPuedoText").value || "";
+
+  const payload = {
+    user_id: CURRENT_USER,
+    fecha: CURRENT_DAY,
+    no_puedo: noPuedo,
+    comentario: comentario
+  };
+
+  try{
+    const res = await fetch("/athlete/save_availability", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error || "Error");
+
+    // actualizar badge
+    setAvailUI(noPuedo ? "no" : "si", comentario);
+
+    // pintar mes en vivo
+    const cell = document.querySelector(`.month-cell[data-date="${CSS.escape(CURRENT_DAY)}"]`);
+    if(cell){
+      if(noPuedo) cell.classList.add("blocked");
+      else cell.classList.remove("blocked");
+    }
+
+    alert("✅ Guardado");
+  }catch(err){
+    console.error(err);
+    alert("Error guardando disponibilidad: " + err.message);
+  }
 }
 
 async function genSessionScript(){

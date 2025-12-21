@@ -8,6 +8,31 @@ from app.extensions import db
 
 
 # -------------------------------------------------------------
+# STRAVA / INTEGRATIONS
+# -------------------------------------------------------------
+class IntegrationAccount(db.Model):
+    __tablename__ = "integration_accounts"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    provider = db.Column(db.String(40), nullable=False, index=True)  # "strava"
+
+    external_user_id = db.Column(db.String(80), nullable=True)
+
+    access_token = db.Column(db.Text, nullable=True)
+    refresh_token = db.Column(db.Text, nullable=True)
+    expires_at = db.Column(db.Integer, nullable=True, default=0)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "provider", name="uq_integration_user_provider"),
+    )
+
+
+# -------------------------------------------------------------
 # USERS / AUTH
 # -------------------------------------------------------------
 class User(db.Model, UserMixin):
@@ -23,10 +48,26 @@ class User(db.Model, UserMixin):
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    # relaciones (NO rompen nada; solo ayuda)
+    # relaciones
     dias_plan = db.relationship("DiaPlan", backref="user", lazy=True, cascade="all, delete-orphan")
     athlete_logs = db.relationship("AthleteLog", backref="user", lazy=True, cascade="all, delete-orphan")
     athlete_checks = db.relationship("AthleteCheck", backref="user", lazy=True, cascade="all, delete-orphan")
+
+    # ✅ Integraciones (Strava)
+    integration_accounts = db.relationship(
+        "IntegrationAccount",
+        backref="user",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def strava_account(self):
+        # Devuelve el IntegrationAccount de Strava si existe
+        for acc in (self.integration_accounts or []):
+            if (acc.provider or "").lower() == "strava":
+                return acc
+        return None
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -88,7 +129,6 @@ class AthleteCheck(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     fecha = db.Column(db.Date, nullable=False, index=True)
 
-    # NO FK porque a veces el item puede borrarse y vos querés mantener histórico
     rutina_item_id = db.Column(db.Integer, nullable=False, index=True)
     done = db.Column(db.Boolean, nullable=False, default=False)
 
@@ -131,22 +171,17 @@ class RutinaItem(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # ✅ IMPORTANTE: FK real (esto evita inconsistencias)
     rutina_id = db.Column(db.Integer, db.ForeignKey("rutinas.id", ondelete="CASCADE"), nullable=False, index=True)
     ejercicio_id = db.Column(db.Integer, db.ForeignKey("ejercicios.id", ondelete="SET NULL"), nullable=True, index=True)
 
     nombre = db.Column(db.String(120), nullable=False)
 
-    # strings porque usas cosas como: 30", 1', 8-10, etc.
     series = db.Column(db.String(40), nullable=True)
     reps = db.Column(db.String(40), nullable=True)
-
-    # ✅ Campo que te rompió la DB si no existe en Postgres
     peso = db.Column(db.String(40), nullable=True)
 
     descanso = db.Column(db.String(40), nullable=True)
     nota = db.Column(db.String(255), nullable=True)
     video_url = db.Column(db.String(255), nullable=True)
 
-    # ✅ orden persistente
     posicion = db.Column(db.Integer, nullable=False, default=0, index=True)

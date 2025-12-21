@@ -1,4 +1,6 @@
 # app/blueprints/__init__.py
-from .main import bp
+from __future__ import annotations
 
-__all__ = ["bp"]
+from flask import Blueprint
+
+bp = Blueprint("main", __name__)

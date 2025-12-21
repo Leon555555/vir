@@ -1,9 +1,12 @@
 # app/__init__.py
+from __future__ import annotations
+
 from flask import Flask
 from flask_login import LoginManager
 
-from app.extensions import db
 from app.config import Config
+from app.extensions import db
+
 
 def create_app() -> Flask:
     app = Flask(__name__)
@@ -15,7 +18,7 @@ def create_app() -> Flask:
     db.init_app(app)
 
     login_manager = LoginManager()
-    login_manager.login_view = "main.login"
+    login_manager.login_view = "main.login"  # tu login vive en blueprint main
     login_manager.init_app(app)
 
     from app.models import User
@@ -24,7 +27,12 @@ def create_app() -> Flask:
     def load_user(user_id: str):
         return User.query.get(int(user_id))
 
+    # ✅ Registrar blueprint principal
     from app.routes import main_bp
     app.register_blueprint(main_bp)
+
+    # ✅ Registrar blueprint strava (para url_for('strava.connect'))
+    from app.blueprints.strava import strava_bp
+    app.register_blueprint(strava_bp, url_prefix="/strava")
 
     return app

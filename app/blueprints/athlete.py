@@ -19,11 +19,9 @@ from ._shared import (
     is_tabata_routine
 )
 
-
 @bp.app_context_processor
 def _inject_admin():
     return {"is_admin": is_admin, "admin_ok": is_admin()}
-
 
 @bp.route("/perfil/<int:user_id>")
 @login_required
@@ -107,13 +105,8 @@ def perfil_usuario(user_id: int):
     streak = compute_streak(user.id)
     week_goal, week_done = week_goal_and_done(user.id, fechas, planes)
 
-    # Strava (si tu app lo usa, lo pasamos; si no existe el modelo/relación, queda None)
+    # ✅ No rompe aunque strava no exista todavía
     strava_account = None
-    try:
-        # si tenés integration_accounts o algo, ajustalo acá
-        strava_account = getattr(user, "strava_account", None)
-    except Exception:
-        strava_account = None
 
     return render_template(
         "perfil.html",
@@ -139,7 +132,6 @@ def perfil_usuario(user_id: int):
         week_done=week_done,
         strava_account=strava_account,
     )
-
 
 @bp.route("/api/day_detail")
 @login_required
@@ -206,22 +198,15 @@ def api_day_detail():
                     })
                 payload["items"] = out_items
 
-                # ✅ FIX: si no hay items, no hagas .in_() con basura
-                item_ids = [it.id for it in items]
-                if item_ids:
-                    checks = AthleteCheck.query.filter(
-                        AthleteCheck.user_id == user_id,
-                        AthleteCheck.fecha == fecha,
-                        AthleteCheck.rutina_item_id.in_(item_ids),
-                    ).all()
-                else:
-                    checks = []
-
+                checks = AthleteCheck.query.filter(
+                    AthleteCheck.user_id == user_id,
+                    AthleteCheck.fecha == fecha,
+                    AthleteCheck.rutina_item_id.in_([it.id for it in items]) if items else [0]
+                ).all()
                 done_ids = {c.rutina_item_id for c in checks if c.done}
                 payload["checks"] = list(done_ids)
 
     return jsonify(payload)
-
 
 @bp.route("/athlete/check_item", methods=["POST"])
 @login_required
@@ -265,7 +250,6 @@ def athlete_check_item():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 @bp.route("/athlete/save_log", methods=["POST"])
 @login_required
 def athlete_save_log():
@@ -295,7 +279,6 @@ def athlete_save_log():
     except Exception as e:
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
-
 
 @bp.route("/athlete/save_availability", methods=["POST"])
 @login_required

@@ -66,7 +66,7 @@
           </div>
 
           <div class="d-grid gap-2 mt-3">
-            <button class="btn btn-info" onclick="saveCfg()">💾 Guardar configuración</button>
+            <button class="btn btn-info" onclick="saveCfg(event)">💾 Guardar configuración</button>
           </div>
 
           <hr class="my-4" style="opacity:.15;">
@@ -354,7 +354,7 @@ function resetTabata(){
   v.load();
 }
 
-async function saveCfg(){
+async function saveCfg(ev){
   readCfgFromUI();
   try{
     const res = await fetch("{{ url_for('main.rutina_tabata_save', rutina_id=rutina.id) }}", {
@@ -367,7 +367,7 @@ async function saveCfg(){
       alert("Error guardando config: " + (data.error || "—"));
       return;
     }
-    const btn = event?.target;
+    const btn = ev?.target;
     if(btn){
       const old = btn.textContent;
       btn.textContent = "✅ Guardado";

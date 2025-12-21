@@ -1,56 +1,53 @@
 <div class="card card-pro">
   <h4 class="text-info mb-3">
-    <i class="bi bi-calendar3"></i> Calendario mensual — {{ hoy.strftime('%B %Y')|capitalize }}
+    <i class="bi bi-calendar3"></i> Calendario mensual — {{ month_label }}
   </h4>
 
-  <div class="calendar-grid">
-    {% for f in dias_mes %}
-      {% set p = planes_mes.get(f) %}
-      {% set tipo = p.plan_type|lower if p else 'sinplan' %}
+  <!-- Header días -->
+  <div class="vr-month-head">
+    <div class="vr-dow">L</div>
+    <div class="vr-dow">M</div>
+    <div class="vr-dow">X</div>
+    <div class="vr-dow">J</div>
+    <div class="vr-dow">V</div>
+    <div class="vr-dow">S</div>
+    <div class="vr-dow">D</div>
+  </div>
 
-      <div class="calendar-box {{ tipo }}">
-        <div class="date">{{ f.day }}</div>
+  <div class="vr-month-grid">
+    {% for week in month_grid %}
+      {% for f in week %}
+        {% if f %}
+          {% set p = planes_mes.get(f) %}
+          {% set tipo = (p.plan_type|lower) if p else 'sinplan' %}
 
-        {% if p %}
-          <div class="tipo">{{ tipo|capitalize }}</div>
-          {% if p.puede_entrenar == "no" %}
-            <span class="badge bg-danger mt-1">No entrena</span>
-          {% endif %}
+          <button
+            type="button"
+            class="vr-day {{ tipo }} {% if f == hoy %}is-today{% endif %}"
+            data-fecha="{{ f.isoformat() }}"
+            aria-label="Día {{ f.day }}"
+          >
+            <div class="vr-day-top">
+              <span class="vr-day-num">{{ f.day }}</span>
+              {% if p and p.puede_entrenar == "no" %}
+                <span class="vr-dot vr-dot-danger" title="No entrena"></span>
+              {% endif %}
+            </div>
+
+            {% if p %}
+              <div class="vr-day-type">{{ tipo|capitalize }}</div>
+            {% else %}
+              <div class="vr-day-type muted">Sin plan</div>
+            {% endif %}
+          </button>
         {% else %}
-          <div class="text-secondary small mt-3">Sin plan</div>
+          <div class="vr-day is-empty" aria-hidden="true"></div>
         {% endif %}
-      </div>
+      {% endfor %}
     {% endfor %}
   </div>
 
-  <style>
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 10px;
-    }
-    .calendar-box {
-      border-radius: 10px;
-      padding: 10px;
-      min-height: 120px;
-      background: #0f141a;
-      border: 1px solid rgba(255,255,255,0.08);
-      position: relative;
-    }
-    .calendar-box .date {
-      position: absolute;
-      right: 8px;
-      top: 6px;
-      font-size: 0.8rem;
-      color: #888;
-    }
-
-    /* Colores PRO */
-    .calendar-box.fuerza     { border-left: 6px solid #facc15; }
-    .calendar-box.pista      { border-left: 6px solid #ef4444; }
-    .calendar-box.bike       { border-left: 6px solid #22c55e; }
-    .calendar-box.natacion   { border-left: 6px solid #3b82f6; }
-    .calendar-box.descanso   { border-left: 6px solid #999; }
-    .calendar-box.sinplan    { border-left: 6px solid #555; }
-  </style>
+  <div class="text-muted small mt-3">
+    Tip: tocá un día para ver detalle (si tenés modal/JS conectado a <code>/api/day_detail</code>).
+  </div>
 </div>

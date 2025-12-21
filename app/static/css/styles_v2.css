@@ -277,6 +277,140 @@ body.vr-body{
 .vr-body .bg-light{
   background: transparent !important;
 }
+
 .rb-handle { cursor: grab; user-select: none; -webkit-user-select: none; }
 .rb-item { touch-action: none; }
 .rb-ghost { opacity: .45; }
+
+/* ============================================================
+   MES - CALENDARIO EN CUADRÍCULA (VR)
+   (para templates/components/mes.html nuevo)
+   ============================================================ */
+
+.vr-month-head{
+  display:grid;
+  grid-template-columns:repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.vr-dow{
+  text-align:center;
+  font-weight: 800;
+  letter-spacing: .6px;
+  color: rgba(255,255,255,.65);
+  padding: 6px 0;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+}
+
+.vr-month-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.vr-day{
+  width: 100%;
+  text-align: left;
+  border-radius: 14px;
+  padding: 10px 10px 12px 10px;
+  min-height: 92px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.10);
+  position: relative;
+  transition: transform .08s ease, border-color .12s ease, background .12s ease;
+  cursor: pointer;
+}
+
+.vr-day:hover{
+  transform: translateY(-1px);
+  border-color: rgba(34,211,238,.35);
+  background: rgba(255,255,255,.07);
+}
+
+.vr-day:active{
+  transform: translateY(0px) scale(.995);
+}
+
+/* Celdas vacías (días fuera del mes) */
+.vr-day.is-empty{
+  min-height: 92px;
+  border: 1px dashed rgba(255,255,255,.08);
+  background: rgba(255,255,255,.02);
+  border-radius: 14px;
+}
+
+/* “Hoy” */
+.vr-day.is-today{
+  box-shadow: 0 0 0 2px rgba(34,211,238,.18);
+  border-color: rgba(34,211,238,.35);
+}
+
+/* Top row dentro del día */
+.vr-day-top{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.vr-day-num{
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,.90);
+}
+
+.vr-day-type{
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,.85);
+  margin-top: 2px;
+}
+
+.vr-day-type.muted{
+  color: rgba(255,255,255,.45);
+  font-weight: 700;
+}
+
+/* Puntito de alerta (No entrena) */
+.vr-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display:inline-block;
+  border: 1px solid rgba(255,255,255,.22);
+  background: rgba(255,255,255,.18);
+}
+.vr-dot-danger{
+  background: rgba(239,68,68,.9);
+  border-color: rgba(239,68,68,.9);
+}
+
+/* Colores por tipo (borde izquierdo pro) */
+.vr-day.fuerza   { border-left: 6px solid #facc15; }
+.vr-day.pista    { border-left: 6px solid #ef4444; }
+.vr-day.bike     { border-left: 6px solid #22c55e; }
+.vr-day.natacion { border-left: 6px solid #3b82f6; }
+.vr-day.descanso { border-left: 6px solid rgba(255,255,255,.35); }
+.vr-day.sinplan  { border-left: 6px solid rgba(255,255,255,.20); }
+
+/* Responsive: en móvil, apretamos gaps y altura */
+@media (max-width: 520px){
+  .vr-month-head,
+  .vr-month-grid{
+    gap: 8px;
+  }
+  .vr-day,
+  .vr-day.is-empty{
+    min-height: 78px;
+    padding: 9px;
+    border-radius: 12px;
+  }
+  .vr-dow{
+    border-radius: 12px;
+    padding: 5px 0;
+    font-size: .9rem;
+  }
+}

@@ -17,7 +17,7 @@ from flask import (
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
-from sqlalchemy import func  # ✅ para max(posicion) sin romper
+from sqlalchemy import func  # ✅ para max(posicion)
 
 from app.extensions import db
 from app.models import (
@@ -109,73 +109,6 @@ def build_video_src(video_url: str | None) -> str:
     if not rel:
         return ""
     return url_for("static", filename=rel)
-
-
-# =============================================================
-# TABATA HELPERS (OPCIÓN B)
-# Guardamos config en Rutina.descripcion como JSON:
-# {"tabata":{"work":40,"rest":20,"rounds":1,"recovery":60,"title":"..."}}
-# =============================================================
-TABATA_DEFAULT = {
-    "work": 40,        # segundos trabajo
-    "rest": 20,        # segundos descanso
-    "rounds": 1,       # vueltas
-    "recovery": 60,    # recuperación final
-    "title": "Tabata",
-}
-
-
-def parse_tabata_config(r: Rutina) -> Dict[str, Any]:
-    cfg = dict(TABATA_DEFAULT)
-    raw = (getattr(r, "descripcion", "") or "").strip()
-    if not raw:
-        return cfg
-
-    try:
-        data = json.loads(raw)
-        tab = data.get("tabata") if isinstance(data, dict) else None
-        if isinstance(tab, dict):
-            for k in ("work", "rest", "rounds", "recovery", "title"):
-                if k in tab and tab[k] is not None:
-                    cfg[k] = tab[k]
-    except Exception:
-        return cfg
-
-    def clamp_int(x, lo, hi, default):
-        try:
-            v = int(x)
-            return max(lo, min(hi, v))
-        except Exception:
-            return default
-
-    cfg["work"] = clamp_int(cfg.get("work"), 5, 600, TABATA_DEFAULT["work"])
-    cfg["rest"] = clamp_int(cfg.get("rest"), 0, 600, TABATA_DEFAULT["rest"])
-    cfg["rounds"] = clamp_int(cfg.get("rounds"), 1, 50, TABATA_DEFAULT["rounds"])
-    cfg["recovery"] = clamp_int(cfg.get("recovery"), 0, 1800, TABATA_DEFAULT["recovery"])
-    cfg["title"] = str(cfg.get("title") or TABATA_DEFAULT["title"])[:80]
-    return cfg
-
-
-def save_tabata_config(r: Rutina, cfg: Dict[str, Any]) -> None:
-    data: Dict[str, Any] = {}
-    raw = (getattr(r, "descripcion", "") or "").strip()
-
-    if raw:
-        try:
-            tmp = json.loads(raw)
-            if isinstance(tmp, dict):
-                data = tmp
-        except Exception:
-            data = {}
-
-    data["tabata"] = {
-        "work": int(cfg["work"]),
-        "rest": int(cfg["rest"]),
-        "rounds": int(cfg["rounds"]),
-        "recovery": int(cfg["recovery"]),
-        "title": str(cfg["title"]),
-    }
-    r.descripcion = json.dumps(data, ensure_ascii=False)
 
 
 # =============================================================
@@ -447,7 +380,6 @@ def perfil_usuario(user_id: int):
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     hoy = date.today()
 
-    # asegura plan hoy
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
@@ -456,13 +388,11 @@ def perfil_usuario(user_id: int):
         db.session.add(plan_hoy)
         db.session.commit()
 
-    # semana
     fechas = week_dates(center)
     planes = ensure_week_plans(user.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
     done_week = get_strength_done_days(user.id, fechas).union(get_log_done_days(user.id, fechas))
 
-    # mes
     dias_mes = month_dates(center.year, center.month)
     planes_mes_db = DiaPlan.query.filter(
         DiaPlan.user_id == user.id,
@@ -484,7 +414,6 @@ def perfil_usuario(user_id: int):
 
     done_month = get_strength_done_days(user.id, dias_mes).union(get_log_done_days(user.id, dias_mes))
 
-    # grid mes
     first_day = date(center.year, center.month, 1)
     start = start_of_week(first_day)
     last_day = dias_mes[-1]
@@ -502,7 +431,6 @@ def perfil_usuario(user_id: int):
     month_label = first_day.strftime("%B %Y").upper()
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
-    # checks semana para modal
     done_set: set[Tuple[date, int]] = set()
     checks = AthleteCheck.query.filter(
         AthleteCheck.user_id == user.id,
@@ -597,15 +525,16 @@ def api_day_detail():
 
                 out_items = []
                 for it in items:
+                    vurl = normalize_item_video_url(getattr(it, "video_url", "") or "")
                     out_items.append({
                         "id": it.id,
-                        "nombre": it.nombre,
+                        "nombre": getattr(it, "nombre", "") or "",
                         "series": getattr(it, "series", "") or "",
                         "reps": getattr(it, "reps", "") or "",
                         "peso": getattr(it, "peso", "") or "",
                         "descanso": getattr(it, "descanso", "") or "",
-                        "video_url": normalize_item_video_url(getattr(it, "video_url", "")),
-                        "video_src": build_video_src(getattr(it, "video_url", "")),
+                        "video_url": vurl,
+                        "video_src": build_video_src(vurl),
                         "nota": getattr(it, "nota", "") or "",
                     })
                 payload["items"] = out_items
@@ -858,7 +787,6 @@ def save_day():
         plan = DiaPlan(user_id=user_id, fecha=fecha)
         db.session.add(plan)
 
-    # si el atleta bloqueó el día
     if hasattr(plan, "puede_entrenar") and (getattr(plan, "puede_entrenar", "si") == "no"):
         flash("🚫 El atleta marcó este día como 'No puedo entrenar'.", "warning")
         return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
@@ -866,7 +794,6 @@ def save_day():
     plan_type = (request.form.get("plan_type") or "Descanso").strip()
     plan.plan_type = plan_type
 
-    # Fuerza usa selector de rutina
     if plan_type.lower() == "fuerza":
         rutina_select = (request.form.get("rutina_select") or "").strip()
         plan.main = rutina_select
@@ -1030,7 +957,6 @@ def rutina_add_item(rutina_id: int):
 
     vurl = f"videos/{ejercicio.video_filename}" if getattr(ejercicio, "video_filename", None) else ""
 
-    # next posicion si existe columna
     next_pos = None
     if hasattr(RutinaItem, "posicion"):
         max_pos = db.session.query(func.max(RutinaItem.posicion)).filter_by(rutina_id=rutina.id).scalar()
@@ -1047,7 +973,6 @@ def rutina_add_item(rutina_id: int):
         video_url=vurl
     )
 
-    # seteo opcional si existen columnas
     if hasattr(item, "peso"):
         item.peso = (request.form.get("peso") or "").strip()
     if hasattr(item, "posicion") and next_pos is not None:
@@ -1105,7 +1030,6 @@ def rutina_delete_item(rutina_id: int, item_id: int):
 def rutina_reorder(rutina_id: int):
     """
     Reordenar SOLO si existe columna 'posicion'.
-    Si no existe, no rompe: devuelve error claro.
     """
     if not is_admin():
         return jsonify({"ok": False, "error": "Solo admin"}), 403
@@ -1139,61 +1063,143 @@ def rutina_reorder(rutina_id: int):
 
 
 # =============================================================
-# ✅ TABATA PLAYER (OPCIÓN B) POR RUTINA
-# URL: /rutinas/<id>/tabata
+# TABATA (PLAYER + CONFIG) — Opción B
+# Guardamos config embebida en Rutina.descripcion con markers
 # =============================================================
-@main_bp.route("/rutinas/<int:rutina_id>/tabata", methods=["GET", "POST"])
+TABATA_MARK_START = "[TABATA_CFG]"
+TABATA_MARK_END = "[/TABATA_CFG]"
+
+
+def _tabata_default_cfg() -> Dict[str, Any]:
+    return {
+        "work": 40,
+        "rest": 20,
+        "warmup": 0,
+        "cooldown": 60,
+        "rounds": 1,
+        "auto_next_video": True,
+    }
+
+
+def _tabata_extract_cfg(text: str | None) -> Dict[str, Any]:
+    cfg = _tabata_default_cfg()
+    if not text:
+        return cfg
+
+    s = str(text)
+    if TABATA_MARK_START not in s or TABATA_MARK_END not in s:
+        return cfg
+
+    try:
+        start = s.index(TABATA_MARK_START) + len(TABATA_MARK_START)
+        end = s.index(TABATA_MARK_END)
+        raw = s[start:end].strip()
+        data = json.loads(raw) if raw else {}
+        if isinstance(data, dict):
+            for k in cfg.keys():
+                if k in data:
+                    cfg[k] = data[k]
+    except Exception:
+        return cfg
+
+    for key in ("work", "rest", "warmup", "cooldown", "rounds"):
+        try:
+            cfg[key] = int(cfg.get(key, _tabata_default_cfg()[key]))
+        except Exception:
+            cfg[key] = _tabata_default_cfg()[key]
+
+    cfg["work"] = max(5, cfg["work"])
+    cfg["rest"] = max(0, cfg["rest"])
+    cfg["warmup"] = max(0, cfg["warmup"])
+    cfg["cooldown"] = max(0, cfg["cooldown"])
+    cfg["rounds"] = max(1, cfg["rounds"])
+    cfg["auto_next_video"] = bool(cfg.get("auto_next_video", True))
+
+    return cfg
+
+
+def _tabata_strip_cfg(text: str | None) -> str:
+    if not text:
+        return ""
+    s = str(text)
+    if TABATA_MARK_START not in s or TABATA_MARK_END not in s:
+        return s.strip()
+    try:
+        pre = s.split(TABATA_MARK_START, 1)[0]
+        post = s.split(TABATA_MARK_END, 1)[1] if TABATA_MARK_END in s else ""
+        return (pre + post).strip()
+    except Exception:
+        return s.strip()
+
+
+def _tabata_embed_cfg(descripcion: str | None, cfg: Dict[str, Any]) -> str:
+    base = _tabata_strip_cfg(descripcion)
+    payload = json.dumps(cfg, ensure_ascii=False)
+    if base:
+        return f"{base}\n\n{TABATA_MARK_START}{payload}{TABATA_MARK_END}"
+    return f"{TABATA_MARK_START}{payload}{TABATA_MARK_END}"
+
+
+@main_bp.route("/rutinas/<int:rutina_id>/tabata", methods=["GET"])
 @login_required
 def rutina_tabata_player(rutina_id: int):
+    if not is_admin():
+        flash("Solo el admin puede usar el Tabata", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
     rutina = Rutina.query.get_or_404(rutina_id)
-
     items = _rutina_items_query(rutina.id).all()
-    cfg = parse_tabata_config(rutina)
 
-    # Guardar config (solo admin)
-    if request.method == "POST":
-        if not is_admin():
-            flash("Solo admin puede guardar tiempos del Tabata", "danger")
-            return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
+    cfg = _tabata_extract_cfg(getattr(rutina, "descripcion", "") or "")
 
-        def get_int(name: str, default: int, lo: int, hi: int) -> int:
-            try:
-                v = int(request.form.get(name, default))
-                return max(lo, min(hi, v))
-            except Exception:
-                return default
-
-        cfg["title"] = (request.form.get("title") or cfg["title"]).strip()[:80]
-        cfg["work"] = get_int("work", cfg["work"], 5, 600)
-        cfg["rest"] = get_int("rest", cfg["rest"], 0, 600)
-        cfg["rounds"] = get_int("rounds", cfg["rounds"], 1, 50)
-        cfg["recovery"] = get_int("recovery", cfg["recovery"], 0, 1800)
-
-        save_tabata_config(rutina, cfg)
-        db.session.commit()
-
-        flash("✅ Tiempos Tabata guardados", "success")
-        return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
-
-    items_payload: List[Dict[str, Any]] = []
+    player_items: List[Dict[str, Any]] = []
     for it in items:
-        items_payload.append({
+        vurl = normalize_item_video_url(getattr(it, "video_url", "") or "")
+        player_items.append({
             "id": it.id,
-            "nombre": it.nombre,
-            "series": getattr(it, "series", "") or "",
-            "reps": getattr(it, "reps", "") or "",
-            "descanso": getattr(it, "descanso", "") or "",
-            "nota": getattr(it, "nota", "") or "",
-            "video_src": build_video_src(getattr(it, "video_url", "")),
+            "nombre": getattr(it, "nombre", "") or "",
+            "video_src": build_video_src(vurl),
         })
 
     return render_template(
-        "tabata_player.html",
+        "rutina_tabata.html",
         rutina=rutina,
-        cfg=cfg,
-        items_payload=items_payload,
-        is_admin=is_admin(),
+        items=items,
+        tabata_cfg=cfg,
+        tabata_items_json=json.dumps(player_items, ensure_ascii=False),
     )
+
+
+@main_bp.route("/rutinas/<int:rutina_id>/tabata/save", methods=["POST"])
+@login_required
+def rutina_tabata_save(rutina_id: int):
+    if not is_admin():
+        return jsonify({"ok": False, "error": "Solo admin"}), 403
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+
+    data = request.get_json(silent=True) or {}
+    cfg = _tabata_default_cfg()
+
+    for k in cfg.keys():
+        if k in data:
+            cfg[k] = data[k]
+
+    try:
+        cfg["work"] = max(5, int(cfg.get("work", 40)))
+        cfg["rest"] = max(0, int(cfg.get("rest", 20)))
+        cfg["warmup"] = max(0, int(cfg.get("warmup", 0)))
+        cfg["cooldown"] = max(0, int(cfg.get("cooldown", 60)))
+        cfg["rounds"] = max(1, int(cfg.get("rounds", 1)))
+    except Exception:
+        cfg = _tabata_default_cfg()
+
+    cfg["auto_next_video"] = bool(cfg.get("auto_next_video", True))
+
+    rutina.descripcion = _tabata_embed_cfg(getattr(rutina, "descripcion", "") or "", cfg)
+    db.session.commit()
+
+    return jsonify({"ok": True, "cfg": cfg})
 
 
 # =============================================================

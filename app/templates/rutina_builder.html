@@ -20,7 +20,13 @@
       {% endif %}
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+      <!-- ✅ NUEVO: TABATA -->
+      <a class="btn btn-warning text-dark"
+         href="{{ url_for('main.rutina_tabata_player', rutina_id=rutina.id) }}">
+        ⚡ TABATA
+      </a>
+
       <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') }}">← Volver al panel</a>
       <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">📅 Planificador</a>
     </div>
@@ -223,7 +229,6 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <!-- OJO: src directo en <video> (más compatible que <source> fijo mp4) -->
         <video id="videoPlayer" class="w-100" controls playsinline preload="metadata"></video>
       </div>
     </div>
@@ -255,7 +260,6 @@ function openVideo(btn){
 
   titleEl.textContent = title;
 
-  // Reset “duro” para evitar cache raro / 0:00 pegado
   try { player.pause(); } catch(e){}
   player.removeAttribute("src");
   player.load();

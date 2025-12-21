@@ -1,0 +1,388 @@
+{% extends "layout.html" %}
+{% block title %}TABATA — {{ rutina.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark">TABATA</span>
+        <h2 class="mb-0 text-strong">Player · {{ rutina.nombre }}</h2>
+      </div>
+      <div class="text-soft mt-1">
+        Configurá tiempos y reproducí la rutina con video.
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-light" href="{{ url_for('main.rutina_builder', rutina_id=rutina.id) }}">← Volver al builder</a>
+      <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">📅 Planificador</a>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.dashboard_entrenador') }}">Panel</a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- CONFIG -->
+    <div class="col-12 col-xl-4">
+      <div class="card glass lift">
+        <div class="card-header">
+          <h5 class="mb-0 text-strong">Configuración</h5>
+          <div class="text-soft">Ej: 10 ejercicios · 40" work · 20" rest · rec final 60"</div>
+        </div>
+
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label text-muted mb-1">Trabajo (seg)</label>
+              <input id="cfgWork" type="number" class="form-control" value="{{ tabata_cfg.work }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted mb-1">Descanso (seg)</label>
+              <input id="cfgRest" type="number" class="form-control" value="{{ tabata_cfg.rest }}">
+            </div>
+
+            <div class="col-6">
+              <label class="form-label text-muted mb-1">Warmup (seg)</label>
+              <input id="cfgWarmup" type="number" class="form-control" value="{{ tabata_cfg.warmup }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted mb-1">Recuperación final (seg)</label>
+              <input id="cfgCooldown" type="number" class="form-control" value="{{ tabata_cfg.cooldown }}">
+            </div>
+
+            <div class="col-6">
+              <label class="form-label text-muted mb-1">Vueltas</label>
+              <input id="cfgRounds" type="number" class="form-control" value="{{ tabata_cfg.rounds }}">
+            </div>
+
+            <div class="col-6 d-flex align-items-end">
+              <div class="form-check">
+                <input id="cfgAutoVideo" class="form-check-input" type="checkbox" {% if tabata_cfg.auto_next_video %}checked{% endif %}>
+                <label class="form-check-label">Auto video</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-grid gap-2 mt-3">
+            <button class="btn btn-info" onclick="saveCfg()">💾 Guardar configuración</button>
+          </div>
+
+          <hr class="my-4" style="opacity:.15;">
+
+          <div class="text-soft mb-2">Esta rutina tiene <b>{{ items|length }}</b> ejercicios.</div>
+          <div class="small text-soft">Tip: si querés “10 ejercicios”, agregá 10 ítems en el builder.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYER -->
+    <div class="col-12 col-xl-8">
+      <div class="card glass lift">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h5 class="mb-0 text-strong">Player</h5>
+            <div class="text-soft">Trabajo / Descanso / Warmup / Recuperación final</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success" onclick="startTabata()">▶ Start</button>
+            <button class="btn btn-outline-warning" onclick="pauseTabata()">⏸ Pausa</button>
+            <button class="btn btn-outline-danger" onclick="resetTabata()">⟲ Reset</button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+            <div>
+              <div class="text-soft">Fase</div>
+              <div id="phaseLabel" class="h4 mb-0">—</div>
+              <div class="text-soft mt-1">
+                <span id="roundLabel">Vuelta: —</span> ·
+                <span id="indexLabel">Ejercicio: —</span>
+              </div>
+            </div>
+
+            <div class="text-end">
+              <div class="text-soft">Tiempo</div>
+              <div id="timer" class="display-4 mb-0" style="font-weight:900; letter-spacing:.04em;">00:00</div>
+            </div>
+          </div>
+
+          <div class="row g-3 align-items-start">
+            <div class="col-12 col-lg-7">
+              <div class="glass p-3" style="border-radius:18px; border:1px solid rgba(255,255,255,.10);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="text-strong" id="exerciseName">—</div>
+                  <span class="badge bg-secondary" id="exerciseMeta">—</span>
+                </div>
+
+                <video id="playerVideo" class="w-100" controls playsinline preload="metadata"
+                       style="border-radius:14px; background:rgba(0,0,0,.35);"></video>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-5">
+              <div class="glass p-3" style="border-radius:18px; border:1px solid rgba(255,255,255,.10);">
+                <div class="text-soft mb-2">Lista</div>
+
+                <div id="exerciseList" class="tab-list">
+                  {% for it in items %}
+                    <div class="tab-li">
+                      <div class="tab-li-title">{{ loop.index }}. {{ it.nombre }}</div>
+                      <div class="text-soft" style="font-size:.9rem;">
+                        {% if it.video_url %}con video{% else %}sin video{% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+
+                <div class="text-soft mt-3" style="font-size:.9rem;">
+                  Se reproduce en orden del builder.
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const TABATA_ITEMS = {{ tabata_items_json | safe }};
+
+let tInterval = null;
+let paused = false;
+
+let cfg = {
+  work: parseInt(document.getElementById("cfgWork").value || "40"),
+  rest: parseInt(document.getElementById("cfgRest").value || "20"),
+  warmup: parseInt(document.getElementById("cfgWarmup").value || "0"),
+  cooldown: parseInt(document.getElementById("cfgCooldown").value || "60"),
+  rounds: parseInt(document.getElementById("cfgRounds").value || "1"),
+  auto_next_video: document.getElementById("cfgAutoVideo").checked
+};
+
+let state = {
+  round: 1,
+  idx: 0,
+  phase: "idle",
+  remaining: 0
+};
+
+function pad(n){ return String(n).padStart(2,"0"); }
+function fmt(sec){
+  sec = Math.max(0, parseInt(sec||0));
+  const m = Math.floor(sec/60);
+  const s = sec%60;
+  return `${pad(m)}:${pad(s)}`;
+}
+
+function readCfgFromUI(){
+  cfg.work = Math.max(5, parseInt(document.getElementById("cfgWork").value || "40"));
+  cfg.rest = Math.max(0, parseInt(document.getElementById("cfgRest").value || "20"));
+  cfg.warmup = Math.max(0, parseInt(document.getElementById("cfgWarmup").value || "0"));
+  cfg.cooldown = Math.max(0, parseInt(document.getElementById("cfgCooldown").value || "60"));
+  cfg.rounds = Math.max(1, parseInt(document.getElementById("cfgRounds").value || "1"));
+  cfg.auto_next_video = document.getElementById("cfgAutoVideo").checked;
+}
+
+function setPhase(phase, remaining){
+  state.phase = phase;
+  state.remaining = remaining;
+
+  document.getElementById("phaseLabel").textContent =
+    phase === "warmup" ? "🔥 Warmup" :
+    phase === "work" ? "💪 Trabajo" :
+    phase === "rest" ? "🧘 Descanso" :
+    phase === "cooldown" ? "✅ Recuperación" :
+    phase === "done" ? "🎉 Finalizado" : "—";
+
+  document.getElementById("timer").textContent = fmt(state.remaining);
+
+  if(phase === "work"){
+    const it = TABATA_ITEMS[state.idx];
+    document.getElementById("exerciseName").textContent = it ? it.nombre : "—";
+    document.getElementById("exerciseMeta").textContent = `Ej ${state.idx+1}/${TABATA_ITEMS.length}`;
+
+    const v = document.getElementById("playerVideo");
+    if(it && it.video_src){
+      if(cfg.auto_next_video){
+        try { v.pause(); } catch(e){}
+        v.src = it.video_src;
+        v.load();
+      } else {
+        if(!v.src){
+          v.src = it.video_src;
+          v.load();
+        }
+      }
+    }
+  }
+
+  document.getElementById("roundLabel").textContent = `Vuelta: ${state.round}/${cfg.rounds}`;
+  document.getElementById("indexLabel").textContent = `Ejercicio: ${Math.min(state.idx+1, TABATA_ITEMS.length)}/${TABATA_ITEMS.length}`;
+}
+
+function tick(){
+  if(paused) return;
+  state.remaining -= 1;
+  document.getElementById("timer").textContent = fmt(state.remaining);
+  if(state.remaining <= 0){
+    nextStep();
+  }
+}
+
+function nextStep(){
+  if(state.phase === "idle"){
+    if(cfg.warmup > 0){
+      setPhase("warmup", cfg.warmup);
+      return;
+    }
+    setPhase("work", cfg.work);
+    return;
+  }
+
+  if(state.phase === "warmup"){
+    state.idx = 0;
+    state.round = 1;
+    setPhase("work", cfg.work);
+    return;
+  }
+
+  if(state.phase === "work"){
+    if(cfg.rest > 0){
+      setPhase("rest", cfg.rest);
+    } else {
+      advanceExerciseOrRound();
+    }
+    return;
+  }
+
+  if(state.phase === "rest"){
+    advanceExerciseOrRound();
+    return;
+  }
+
+  if(state.phase === "cooldown"){
+    setPhase("done", 0);
+    stopTimer();
+    return;
+  }
+}
+
+function advanceExerciseOrRound(){
+  state.idx += 1;
+
+  if(state.idx < TABATA_ITEMS.length){
+    setPhase("work", cfg.work);
+    return;
+  }
+
+  if(state.round < cfg.rounds){
+    state.round += 1;
+    state.idx = 0;
+    setPhase("work", cfg.work);
+    return;
+  }
+
+  if(cfg.cooldown > 0){
+    setPhase("cooldown", cfg.cooldown);
+    return;
+  }
+
+  setPhase("done", 0);
+  stopTimer();
+}
+
+function startTimer(){
+  stopTimer();
+  tInterval = setInterval(tick, 1000);
+}
+
+function stopTimer(){
+  if(tInterval){
+    clearInterval(tInterval);
+    tInterval = null;
+  }
+}
+
+function startTabata(){
+  if(!TABATA_ITEMS || TABATA_ITEMS.length === 0){
+    alert("Esta rutina no tiene ejercicios. Agregalos en el builder.");
+    return;
+  }
+  readCfgFromUI();
+  paused = false;
+
+  if(state.phase === "done"){
+    resetTabata();
+  }
+
+  if(state.phase === "idle"){
+    state.round = 1;
+    state.idx = 0;
+    nextStep();
+  }
+  startTimer();
+}
+
+function pauseTabata(){
+  paused = !paused;
+}
+
+function resetTabata(){
+  stopTimer();
+  paused = false;
+
+  state = { round: 1, idx: 0, phase: "idle", remaining: 0 };
+  document.getElementById("phaseLabel").textContent = "—";
+  document.getElementById("timer").textContent = "00:00";
+  document.getElementById("exerciseName").textContent = "—";
+  document.getElementById("exerciseMeta").textContent = "—";
+  document.getElementById("roundLabel").textContent = "Vuelta: —";
+  document.getElementById("indexLabel").textContent = "Ejercicio: —";
+
+  const v = document.getElementById("playerVideo");
+  try{ v.pause(); }catch(e){}
+  v.removeAttribute("src");
+  v.load();
+}
+
+async function saveCfg(){
+  readCfgFromUI();
+  try{
+    const res = await fetch("{{ url_for('main.rutina_tabata_save', rutina_id=rutina.id) }}", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(cfg)
+    });
+    const data = await res.json();
+    if(!data.ok){
+      alert("Error guardando config: " + (data.error || "—"));
+      return;
+    }
+    const btn = event?.target;
+    if(btn){
+      const old = btn.textContent;
+      btn.textContent = "✅ Guardado";
+      setTimeout(()=>btn.textContent = old, 900);
+    }
+  }catch(e){
+    alert("Error guardando config (network).");
+  }
+}
+</script>
+
+<style>
+.tab-list{ display:flex; flex-direction:column; gap:10px; max-height:460px; overflow:auto; padding-right:6px; }
+.tab-li{ padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.03); }
+.tab-li-title{ font-weight:800; }
+</style>
+
+{% endblock %}

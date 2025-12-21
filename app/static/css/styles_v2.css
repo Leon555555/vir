@@ -201,10 +201,7 @@ body.vr-body{
 
 /* ------------------------------------------------------------
    BUILDER – EJERCICIOS EN GRIS (como te gusta)
-   (esto aplica a tu HTML actual sin cambiarlo)
 ------------------------------------------------------------ */
-
-/* Caja grande de cada item de rutina */
 .vr-body .rutina-item,
 .vr-body .builder-item,
 .vr-body .exercise-item{
@@ -215,14 +212,12 @@ body.vr-body{
   margin-bottom: 14px;
 }
 
-/* bloques internos del item (los paneles grises del builder) */
 .vr-body .rutina-item .bg-light,
 .vr-body .builder-item .bg-light{
   background: rgba(255,255,255,.10) !important;
   border-radius: var(--r);
 }
 
-/* badges dentro del builder */
 .vr-body .badge{
   background: rgba(255,255,255,.14);
   border: 1px solid rgba(255,255,255,.14);
@@ -230,7 +225,6 @@ body.vr-body{
   border-radius: 999px;
 }
 
-/* headers dentro del builder */
 .vr-body .rutina-item-header,
 .vr-body .builder-header{
   color: var(--text);
@@ -283,134 +277,96 @@ body.vr-body{
 .rb-ghost { opacity: .45; }
 
 /* ============================================================
-   MES - CALENDARIO EN CUADRÍCULA (VR)
-   (para templates/components/mes.html nuevo)
+   ✅ PERFIL - MES EN CUADRÍCULA (MONTH GRID)
+   Estas clases YA existen en tu perfil.html:
+   - month-grid / month-head / month-cell / daynum / ptype
    ============================================================ */
 
-.vr-month-head{
-  display:grid;
-  grid-template-columns:repeat(7, 1fr);
+.month-grid{
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 10px;
+  align-items: stretch;
 }
 
-.vr-dow{
-  text-align:center;
-  font-weight: 800;
-  letter-spacing: .6px;
-  color: rgba(255,255,255,.65);
-  padding: 6px 0;
+.month-head{
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: .10em;
+  color: rgba(255,255,255,.72);
+  padding: 8px 0;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 12px;
   background: rgba(255,255,255,.04);
 }
 
-.vr-month-grid{
-  display:grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
-}
-
-.vr-day{
-  width: 100%;
-  text-align: left;
-  border-radius: 14px;
-  padding: 10px 10px 12px 10px;
-  min-height: 92px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.10);
+.month-cell{
   position: relative;
-  transition: transform .08s ease, border-color .12s ease, background .12s ease;
+  border-radius: 14px;
+  padding: 10px 10px 12px;
+  min-height: 92px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.32);
   cursor: pointer;
+  transition: transform .08s ease, border-color .12s ease, background .12s ease;
 }
 
-.vr-day:hover{
+.month-cell:hover{
   transform: translateY(-1px);
   border-color: rgba(34,211,238,.35);
-  background: rgba(255,255,255,.07);
+  background: rgba(255,255,255,.06);
 }
 
-.vr-day:active{
+.month-cell:active{
   transform: translateY(0px) scale(.995);
 }
 
-/* Celdas vacías (días fuera del mes) */
-.vr-day.is-empty{
-  min-height: 92px;
+.month-cell.empty{
+  cursor: default;
   border: 1px dashed rgba(255,255,255,.08);
   background: rgba(255,255,255,.02);
-  border-radius: 14px;
 }
 
-/* “Hoy” */
-.vr-day.is-today{
+/* número día */
+.month-cell .daynum{
+  font-weight: 900;
+  font-size: .95rem;
+  color: rgba(255,255,255,.92);
+}
+
+/* tipo de plan */
+.month-cell .ptype{
+  margin-top: 6px;
+  font-size: .85rem;
+  font-weight: 800;
+  color: rgba(255,255,255,.82);
+  text-transform: capitalize;
+}
+
+/* marcado done_month */
+.month-cell.done{
   box-shadow: 0 0 0 2px rgba(34,211,238,.18);
   border-color: rgba(34,211,238,.35);
 }
 
-/* Top row dentro del día */
-.vr-day-top{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.vr-day-num{
-  font-weight: 900;
-  font-size: 0.95rem;
-  color: rgba(255,255,255,.90);
-}
-
-.vr-day-type{
-  font-weight: 800;
-  font-size: 0.85rem;
-  color: rgba(255,255,255,.85);
-  margin-top: 2px;
-}
-
-.vr-day-type.muted{
-  color: rgba(255,255,255,.45);
-  font-weight: 700;
-}
-
-/* Puntito de alerta (No entrena) */
-.vr-dot{
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  display:inline-block;
-  border: 1px solid rgba(255,255,255,.22);
-  background: rgba(255,255,255,.18);
-}
-.vr-dot-danger{
-  background: rgba(239,68,68,.9);
-  border-color: rgba(239,68,68,.9);
-}
-
-/* Colores por tipo (borde izquierdo pro) */
-.vr-day.fuerza   { border-left: 6px solid #facc15; }
-.vr-day.pista    { border-left: 6px solid #ef4444; }
-.vr-day.bike     { border-left: 6px solid #22c55e; }
-.vr-day.natacion { border-left: 6px solid #3b82f6; }
-.vr-day.descanso { border-left: 6px solid rgba(255,255,255,.35); }
-.vr-day.sinplan  { border-left: 6px solid rgba(255,255,255,.20); }
-
-/* Responsive: en móvil, apretamos gaps y altura */
+/* responsive mobile */
 @media (max-width: 520px){
-  .vr-month-head,
-  .vr-month-grid{
-    gap: 8px;
+  .month-grid{ gap: 8px; }
+
+  .month-head{
+    padding: 6px 0;
+    font-size: .9rem;
+    border-radius: 12px;
   }
-  .vr-day,
-  .vr-day.is-empty{
+
+  .month-cell,
+  .month-cell.empty{
     min-height: 78px;
     padding: 9px;
     border-radius: 12px;
   }
-  .vr-dow{
-    border-radius: 12px;
-    padding: 5px 0;
-    font-size: .9rem;
+
+  .month-cell .ptype{
+    font-size: .78rem;
   }
 }

@@ -1,244 +1,249 @@
 (function () {
-  const data = window.TABATA_DATA || { cfg: {}, items: [] };
-  const cfg = data.cfg || {};
-  const items = Array.isArray(data.items) ? data.items : [];
+  const items = Array.isArray(window.__TABATA_ITEMS__) ? window.__TABATA_ITEMS__ : [];
 
   const $ = (id) => document.getElementById(id);
 
-  const elTimer = $("timer");
-  const elPhase = $("phaseLabel");
-  const elEx = $("exerciseLabel");
-  const elRound = $("roundLabel");
-  const elNext = $("nextLabel");
-  const video = $("videoPlayer");
+  const cfgWork = $("cfgWork");
+  const cfgRest = $("cfgRest");
+  const cfgRounds = $("cfgRounds");
+  const cfgRecovery = $("cfgRecovery");
 
+  const btnApply = $("btnApply");
   const btnStart = $("btnStart");
   const btnPause = $("btnPause");
-  const btnStop = $("btnStop");
+  const btnReset = $("btnReset");
 
-  let interval = null;
-  let paused = false;
+  const timerBig = $("timerBig");
+  const timerHint = $("timerHint");
+  const stateLabel = $("stateLabel");
+  const roundLabel = $("roundLabel");
+  const roundTotal = $("roundTotal");
 
-  let phase = "READY";
-  let round = 1;
-  let idx = 0;
-  let secondsLeft = 0;
+  const exTitle = $("exTitle");
+  const exNote = $("exNote");
+  const exVideo = $("exVideo");
+  const queue = $("queue");
+  const phaseBadge = $("phaseBadge");
 
-  const totalRounds = Math.max(1, parseInt(cfg.rounds || 1, 10));
-  const WORK = Math.max(5, parseInt(cfg.work || 40, 10));
-  const REST = Math.max(0, parseInt(cfg.rest || 20, 10));
-  const RECOVERY = Math.max(0, parseInt(cfg.recovery || 60, 10));
-
-  function fmt(n) {
-    n = Math.max(0, n | 0);
-    return String(n).padStart(2, "0");
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function mmss(s) {
+    s = Math.max(0, Math.floor(s));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${pad2(m)}:${pad2(r)}`;
   }
 
-  function setButtons(running) {
+  let config = {
+    work: parseInt(cfgWork.value || "40", 10),
+    rest: parseInt(cfgRest.value || "20", 10),
+    rounds: parseInt(cfgRounds.value || String(items.length || 10), 10),
+    recovery: parseInt(cfgRecovery.value || "60", 10),
+  };
+
+  function sanitizeConfig() {
+    config.work = Math.max(5, parseInt(cfgWork.value || "40", 10));
+    config.rest = Math.max(0, parseInt(cfgRest.value || "20", 10));
+    config.rounds = Math.max(1, parseInt(cfgRounds.value || String(items.length || 10), 10));
+    config.recovery = Math.max(0, parseInt(cfgRecovery.value || "60", 10));
+    cfgWork.value = config.work;
+    cfgRest.value = config.rest;
+    cfgRounds.value = config.rounds;
+    cfgRecovery.value = config.recovery;
+  }
+
+  function getSeq() {
+    if (!items.length) return [];
+    const seq = [];
+    for (let i = 0; i < config.rounds; i++) {
+      seq.push(items[i % items.length]);
+    }
+    return seq;
+  }
+
+  let seq = getSeq();
+  roundTotal.textContent = String(seq.length);
+
+  let phase = "idle"; // work | rest | recovery | done | idle
+  let idx = 0;
+  let remaining = 0;
+  let running = false;
+  let interval = null;
+
+  function setUIState() {
     btnStart.disabled = running;
     btnPause.disabled = !running;
-    btnStop.disabled = !running;
+    btnReset.disabled = (phase === "idle");
   }
 
-  function currentItem() {
-    return items[idx] || null;
+  function escapeHtml(s) {
+    return String(s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  function loadVideoForItem(it) {
-    const src = (it && it.video_src) ? it.video_src : "";
-    if (!src) {
-      video.removeAttribute("src");
-      video.load();
-      return;
+  function renderQueue() {
+    const next = [];
+    for (let i = idx; i < Math.min(idx + 5, seq.length); i++) {
+      next.push(`<span class="badge bg-secondary me-2 mb-2">${i + 1}. ${escapeHtml(seq[i].nombre || "—")}</span>`);
     }
-    if (video.getAttribute("src") !== src) {
-      video.setAttribute("src", src);
-      video.load();
-    }
+    queue.innerHTML = next.length ? next.join("") : `<div class="text-soft">—</div>`;
   }
 
-  function updateUI() {
-    const it = currentItem();
-
-    if (phase === "READY") {
-      elPhase.innerText = "Listo";
-      elEx.innerText = it ? it.nombre : "—";
-      elTimer.innerText = fmt(WORK);
-      elRound.innerText = items.length ? `${round} / ${totalRounds}` : "—";
-      elNext.innerText = items.length ? "Dale play para arrancar" : "No hay ejercicios en esta rutina";
+  function loadExercise(i) {
+    const it = seq[i];
+    if (!it) {
+      exTitle.textContent = "—";
+      exNote.textContent = "";
+      exVideo.removeAttribute("src");
+      exVideo.load();
       return;
     }
-
-    if (phase === "WORK") {
-      elPhase.innerText = "💪 Trabajo";
-      elEx.innerText = it ? it.nombre : "—";
-      elTimer.innerText = fmt(secondsLeft);
-      elRound.innerText = `${round} / ${totalRounds}`;
-      elNext.innerText = `Luego: descanso ${REST}s`;
-      return;
-    }
-
-    if (phase === "REST") {
-      elPhase.innerText = "🧘 Descanso";
-      elEx.innerText = it ? it.nombre : "—";
-      elTimer.innerText = fmt(secondsLeft);
-      elRound.innerText = `${round} / ${totalRounds}`;
-
-      const nextIdx = (idx + 1 < items.length) ? (idx + 1) : 0;
-      const nextRound = (idx + 1 < items.length) ? round : (round + 1);
-      const nextIt = items[nextIdx];
-
-      if (nextRound <= totalRounds && nextIt) {
-        elNext.innerText = `Siguiente: ${nextIt.nombre} (${WORK}s)`;
-      } else {
-        elNext.innerText = RECOVERY > 0 ? `Luego: recuperación final ${RECOVERY}s` : "Luego: fin";
-      }
-      return;
-    }
-
-    if (phase === "RECOVERY") {
-      elPhase.innerText = "🧊 Recuperación";
-      elEx.innerText = "—";
-      elTimer.innerText = fmt(secondsLeft);
-      elRound.innerText = `${totalRounds} / ${totalRounds}`;
-      elNext.innerText = "Cerrá con respiración y movilidad suave";
-      return;
-    }
-
-    if (phase === "DONE") {
-      elPhase.innerText = "🎉 Finalizado";
-      elEx.innerText = "—";
-      elTimer.innerText = "00";
-      elRound.innerText = `${totalRounds} / ${totalRounds}`;
-      elNext.innerText = "Buen trabajo.";
-      return;
+    exTitle.textContent = it.nombre || "—";
+    exNote.textContent = it.nota || "";
+    if (it.video_src) {
+      try { exVideo.pause(); } catch(e) {}
+      exVideo.src = it.video_src;
+      exVideo.load();
+    } else {
+      exVideo.removeAttribute("src");
+      exVideo.load();
     }
   }
 
-  function stopInterval(resetAll = true) {
+  function setPhase(p, seconds) {
+    phase = p;
+    remaining = seconds;
+    timerBig.textContent = mmss(remaining);
+
+    if (phase === "work") {
+      phaseBadge.textContent = "WORK";
+      phaseBadge.className = "badge bg-success";
+      timerHint.textContent = "Trabajo";
+      stateLabel.textContent = "Trabajando";
+    } else if (phase === "rest") {
+      phaseBadge.textContent = "REST";
+      phaseBadge.className = "badge bg-warning text-dark";
+      timerHint.textContent = "Descanso";
+      stateLabel.textContent = "Descansando";
+    } else if (phase === "recovery") {
+      phaseBadge.textContent = "RECOVERY";
+      phaseBadge.className = "badge bg-info";
+      timerHint.textContent = "Recuperación final";
+      stateLabel.textContent = "Recuperación";
+    } else if (phase === "done") {
+      phaseBadge.textContent = "DONE";
+      phaseBadge.className = "badge bg-secondary";
+      timerHint.textContent = "Finalizado";
+      stateLabel.textContent = "Terminado ✅";
+      timerBig.textContent = "00:00";
+    } else {
+      phaseBadge.textContent = "—";
+      phaseBadge.className = "badge bg-secondary";
+      timerHint.textContent = "Preparado";
+      stateLabel.textContent = "Listo";
+      timerBig.textContent = "00:00";
+    }
+
+    roundLabel.textContent = (phase === "recovery" || phase === "done")
+      ? String(seq.length)
+      : String(Math.min(idx + 1, seq.length));
+
+    renderQueue();
+    setUIState();
+  }
+
+  function stop() {
+    running = false;
     if (interval) clearInterval(interval);
     interval = null;
-    paused = false;
-
-    btnPause.innerHTML = '<i class="bi bi-pause-fill"></i> Pausa';
-
-    if (resetAll) {
-      phase = "READY";
-      round = 1;
-      idx = 0;
-      secondsLeft = WORK;
-      loadVideoForItem(currentItem());
-      updateUI();
-    }
-    setButtons(false);
-  }
-
-  function advanceExerciseOrFinish() {
-    idx += 1;
-
-    if (idx >= items.length) {
-      idx = 0;
-      round += 1;
-    }
-
-    if (items.length === 0) {
-      phase = "DONE";
-      stopInterval(false);
-      updateUI();
-      return;
-    }
-
-    if (round > totalRounds) {
-      if (RECOVERY > 0) {
-        phase = "RECOVERY";
-        secondsLeft = RECOVERY;
-        loadVideoForItem(null);
-        updateUI();
-        return;
-      }
-      phase = "DONE";
-      stopInterval(false);
-      updateUI();
-      return;
-    }
-
-    phase = "WORK";
-    secondsLeft = WORK;
-    loadVideoForItem(currentItem());
-    updateUI();
+    setUIState();
   }
 
   function tick() {
-    if (paused) return;
+    if (!running) return;
 
-    secondsLeft -= 1;
-    updateUI();
+    remaining -= 1;
+    timerBig.textContent = mmss(remaining);
 
-    if (secondsLeft > 0) return;
-
-    if (phase === "WORK") {
-      if (REST > 0) {
-        phase = "REST";
-        secondsLeft = REST;
-        updateUI();
-        return;
+    if (remaining <= 0) {
+      if (phase === "work") {
+        if (config.rest > 0) {
+          setPhase("rest", config.rest);
+        } else {
+          idx += 1;
+          if (idx >= seq.length) {
+            if (config.recovery > 0) setPhase("recovery", config.recovery);
+            else { setPhase("done", 0); stop(); }
+          } else {
+            loadExercise(idx);
+            setPhase("work", config.work);
+          }
+        }
+      } else if (phase === "rest") {
+        idx += 1;
+        if (idx >= seq.length) {
+          if (config.recovery > 0) setPhase("recovery", config.recovery);
+          else { setPhase("done", 0); stop(); }
+        } else {
+          loadExercise(idx);
+          setPhase("work", config.work);
+        }
+      } else if (phase === "recovery") {
+        setPhase("done", 0);
+        stop();
       }
-      advanceExerciseOrFinish();
-      return;
-    }
-
-    if (phase === "REST") {
-      advanceExerciseOrFinish();
-      return;
-    }
-
-    if (phase === "RECOVERY") {
-      phase = "DONE";
-      stopInterval(false);
-      updateUI();
-      return;
     }
   }
 
   function start() {
-    if (!items.length) {
-      alert("Esta rutina no tiene ejercicios. Agregalos en el Builder.");
-      return;
+    if (running) return;
+    running = true;
+
+    if (phase === "idle") {
+      idx = 0;
+      loadExercise(idx);
+      setPhase("work", config.work);
     }
 
-    paused = false;
-    phase = "WORK";
-    round = 1;
-    idx = 0;
-    secondsLeft = WORK;
-
-    loadVideoForItem(currentItem());
-    updateUI();
-
-    setButtons(true);
     interval = setInterval(tick, 1000);
+    setUIState();
   }
 
-  function pauseToggle() {
-    if (!interval) return;
-    paused = !paused;
-    btnPause.innerHTML = paused
-      ? '<i class="bi bi-play-fill"></i> Reanudar'
-      : '<i class="bi bi-pause-fill"></i> Pausa';
+  function pause() {
+    if (!running) return;
+    running = false;
+    if (interval) clearInterval(interval);
+    interval = null;
+    setUIState();
   }
 
-  window.TabataUI = {
-    preview: function (i) {
-      if (!items[i]) return;
-      idx = i;
-      loadVideoForItem(items[i]);
-      elEx.innerText = items[i].nombre;
-    }
-  };
+  function reset() {
+    stop();
+    idx = 0;
+    seq = getSeq();
+    roundTotal.textContent = String(seq.length);
+    loadExercise(0);
+    setPhase("idle", 0);
+  }
+
+  btnApply.addEventListener("click", () => {
+    sanitizeConfig();
+    seq = getSeq();
+    roundTotal.textContent = String(seq.length);
+    reset();
+  });
 
   btnStart.addEventListener("click", start);
-  btnPause.addEventListener("click", pauseToggle);
-  btnStop.addEventListener("click", function () { stopInterval(true); });
+  btnPause.addEventListener("click", pause);
+  btnReset.addEventListener("click", reset);
 
-  stopInterval(true);
+  // init
+  sanitizeConfig();
+  seq = getSeq();
+  roundTotal.textContent = String(seq.length);
+  loadExercise(0);
+  setPhase("idle", 0);
 })();

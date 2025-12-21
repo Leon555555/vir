@@ -1,14 +1,14 @@
-# app/routes/auth.py
+# app/blueprints/auth.py
 from __future__ import annotations
 
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.models import User
-from . import main_bp, is_admin
+from . import bp
+from ._shared import is_admin
 
-
-@main_bp.route("/")
+@bp.route("/")
 def index():
     if current_user.is_authenticated:
         if is_admin():
@@ -16,8 +16,7 @@ def index():
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
 
-
-@main_bp.route("/login", methods=["GET", "POST"])
+@bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
@@ -40,16 +39,14 @@ def login():
 
     return render_template("login.html")
 
-
-@main_bp.route("/logout")
+@bp.route("/logout")
 @login_required
 def logout():
     logout_user()
     flash("Sesión cerrada", "info")
     return redirect(url_for("main.login"))
 
-
-@main_bp.route("/perfil")
+@bp.route("/perfil")
 @login_required
 def perfil_redirect():
     if is_admin():

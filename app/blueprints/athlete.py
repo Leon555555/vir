@@ -1,4 +1,4 @@
-# app/routes/athlete.py
+# app/blueprints/athlete.py
 from __future__ import annotations
 
 from datetime import datetime, timedelta, date
@@ -10,16 +10,20 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import User, DiaPlan, Rutina, RutinaItem, AthleteCheck, AthleteLog
 
-from . import (
-    main_bp, is_admin, safe_parse_ymd, week_dates, month_dates, start_of_week,
-    ensure_week_plans, compute_streak, week_goal_and_done,
-    serialize_plan, serialize_rutina,
-    _rutina_items_query, get_strength_done_days, get_log_done_days,
-    normalize_item_video_url, build_video_src
+from . import bp
+from ._shared import (
+    is_admin, safe_parse_ymd, week_dates, month_dates, start_of_week,
+    ensure_week_plans, serialize_plan, serialize_rutina,
+    _rutina_items_query, build_video_src, normalize_item_video_url,
+    compute_streak, week_goal_and_done, get_strength_done_days, get_log_done_days,
+    is_tabata_routine
 )
 
+@bp.app_context_processor
+def _inject_admin():
+    return {"is_admin": is_admin, "admin_ok": is_admin()}
 
-@main_bp.route("/perfil/<int:user_id>")
+@bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id: int):
     user = User.query.get_or_404(user_id)
@@ -66,7 +70,6 @@ def perfil_usuario(user_id: int):
 
     done_month = get_strength_done_days(user.id, dias_mes).union(get_log_done_days(user.id, dias_mes))
 
-    # grid mes
     first_day = date(center.year, center.month, 1)
     start = start_of_week(first_day)
     last_day = dias_mes[-1]
@@ -84,7 +87,6 @@ def perfil_usuario(user_id: int):
     month_label = first_day.strftime("%B %Y").upper()
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
-    # checks semana para modal
     done_set: set[Tuple[date, int]] = set()
     checks = AthleteCheck.query.filter(
         AthleteCheck.user_id == user.id,
@@ -103,8 +105,14 @@ def perfil_usuario(user_id: int):
     streak = compute_streak(user.id)
     week_goal, week_done = week_goal_and_done(user.id, fechas, planes)
 
-    # strava_account puede existir en tu app; si no existe en context, dejalo None
-    # (si vos ya lo pasás en otro lado, lo respetará)
+    # Strava (si tu app lo usa, lo pasamos; si no existe el modelo/relación, queda None)
+    strava_account = None
+    try:
+        # si tenés integration_accounts o algo, ajustalo acá
+        strava_account = getattr(user, "strava_account", None)
+    except Exception:
+        strava_account = None
+
     return render_template(
         "perfil.html",
         user=user,
@@ -127,11 +135,10 @@ def perfil_usuario(user_id: int):
         streak=streak,
         week_goal=week_goal,
         week_done=week_done,
-        strava_account=None,
+        strava_account=strava_account,
     )
 
-
-@main_bp.route("/api/day_detail")
+@bp.route("/api/day_detail")
 @login_required
 def api_day_detail():
     user_id = request.args.get("user_id", type=int)
@@ -178,6 +185,9 @@ def api_day_detail():
                 items = _rutina_items_query(rid).all()
                 payload["rutina"] = serialize_rutina(r)
 
+                if is_tabata_routine(r):
+                    payload["tabata_url"] = url_for("main.rutina_tabata_player", rutina_id=r.id)
+
                 out_items = []
                 for it in items:
                     out_items.append({
@@ -201,16 +211,9 @@ def api_day_detail():
                 done_ids = {c.rutina_item_id for c in checks if c.done}
                 payload["checks"] = list(done_ids)
 
-                # ✅ si la rutina es tabata (por nombre/tipo), habilitamos botón
-                name = (r.nombre or "").lower()
-                tipo = (getattr(r, "tipo", "") or "").lower()
-                if "tabata" in name or "tabata" in tipo:
-                    payload["tabata_url"] = url_for("main.rutina_tabata_player", rutina_id=r.id, fecha=fecha.isoformat(), user_id=user_id)
-
     return jsonify(payload)
 
-
-@main_bp.route("/athlete/check_item", methods=["POST"])
+@bp.route("/athlete/check_item", methods=["POST"])
 @login_required
 def athlete_check_item():
     try:
@@ -252,8 +255,7 @@ def athlete_check_item():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
-@main_bp.route("/athlete/save_log", methods=["POST"])
+@bp.route("/athlete/save_log", methods=["POST"])
 @login_required
 def athlete_save_log():
     try:
@@ -283,8 +285,7 @@ def athlete_save_log():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
-@main_bp.route("/athlete/save_availability", methods=["POST"])
+@bp.route("/athlete/save_availability", methods=["POST"])
 @login_required
 def athlete_save_availability():
     try:

@@ -1,25 +1,17 @@
-# app/routes/routines.py
+# app/blueprints/routines.py
 from __future__ import annotations
 
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required
-
 from sqlalchemy import func
 
 from app.extensions import db
 from app.models import Rutina, Ejercicio, RutinaItem
 
-from . import main_bp, is_admin
+from . import bp
+from ._shared import is_admin, _rutina_items_query
 
-
-def _items_query(rid: int):
-    q = RutinaItem.query.filter_by(rutina_id=rid)
-    if hasattr(RutinaItem, "posicion"):
-        return q.order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc())
-    return q.order_by(RutinaItem.id.asc())
-
-
-@main_bp.route("/rutinas/<int:rutina_id>/builder")
+@bp.route("/rutinas/<int:rutina_id>/builder")
 @login_required
 def rutina_builder(rutina_id: int):
     if not is_admin():
@@ -27,12 +19,11 @@ def rutina_builder(rutina_id: int):
         return redirect(url_for("main.perfil_redirect"))
 
     rutina = Rutina.query.get_or_404(rutina_id)
-    items = _items_query(rutina.id).all()
+    items = _rutina_items_query(rutina.id).all()
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre).all()
     return render_template("rutina_builder.html", rutina=rutina, items=items, ejercicios=ejercicios)
 
-
-@main_bp.route("/rutinas/<int:rutina_id>/add_item", methods=["POST"])
+@bp.route("/rutinas/<int:rutina_id>/add_item", methods=["POST"])
 @login_required
 def rutina_add_item(rutina_id: int):
     if not is_admin():
@@ -46,7 +37,6 @@ def rutina_add_item(rutina_id: int):
         return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
     ejercicio = Ejercicio.query.get_or_404(ejercicio_id)
-
     vurl = f"videos/{ejercicio.video_filename}" if getattr(ejercicio, "video_filename", None) else ""
 
     next_pos = None
@@ -76,8 +66,7 @@ def rutina_add_item(rutina_id: int):
     flash("✅ Ejercicio añadido", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
-
-@main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
+@bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
 def rutina_update_item(rutina_id: int, item_id: int):
     if not is_admin():
@@ -101,8 +90,7 @@ def rutina_update_item(rutina_id: int, item_id: int):
     flash("✅ Cambios guardados", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
-
-@main_bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
+@bp.route("/rutinas/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
 @login_required
 def rutina_delete_item(rutina_id: int, item_id: int):
     if not is_admin():
@@ -116,8 +104,7 @@ def rutina_delete_item(rutina_id: int, item_id: int):
     flash("🗑️ Item eliminado", "info")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))
 
-
-@main_bp.route("/rutinas/<int:rutina_id>/reorder", methods=["POST"])
+@bp.route("/rutinas/<int:rutina_id>/reorder", methods=["POST"])
 @login_required
 def rutina_reorder(rutina_id: int):
     if not is_admin():
@@ -128,7 +115,6 @@ def rutina_reorder(rutina_id: int):
 
     data = request.get_json(silent=True) or {}
     order = data.get("order") or []
-
     if not isinstance(order, list) or not order:
         return jsonify({"ok": False, "error": "order inválido"}), 400
 

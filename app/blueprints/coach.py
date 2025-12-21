@@ -1,16 +1,20 @@
-# app/routes/coach.py
+# app/blueprints/coach.py
 from __future__ import annotations
 
+from datetime import date
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import User, DiaPlan, Rutina, Ejercicio, AthleteLog, AthleteCheck
+from app.models import User, DiaPlan, Rutina, Ejercicio
 
-from . import main_bp, is_admin, week_dates, safe_parse_ymd, ensure_week_plans, list_repo_videos
+from . import bp
+from ._shared import (
+    is_admin, safe_parse_ymd, week_dates, ensure_week_plans,
+    list_repo_videos, save_video_to_static
+)
 
-
-@main_bp.route("/coach/dashboard")
+@bp.route("/coach/dashboard")
 @login_required
 def dashboard_entrenador():
     if not is_admin():
@@ -20,7 +24,6 @@ def dashboard_entrenador():
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
     ejercicios = Ejercicio.query.order_by(Ejercicio.id.desc()).all()
     atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.desc()).all()
-
     available_videos = list_repo_videos()
 
     return render_template(
@@ -31,8 +34,7 @@ def dashboard_entrenador():
         available_videos=available_videos,
     )
 
-
-@main_bp.route("/admin/atletas/nuevo", methods=["POST"])
+@bp.route("/admin/atletas/nuevo", methods=["POST"])
 @login_required
 def admin_nuevo_atleta():
     if not is_admin():
@@ -61,8 +63,78 @@ def admin_nuevo_atleta():
     flash("✅ Atleta creado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
+@bp.route("/crear_rutina", methods=["POST"])
+@login_required
+def crear_rutina():
+    if not is_admin():
+        flash("Solo el admin puede crear rutinas", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
 
-@main_bp.route("/coach/planificador")
+    nombre = (request.form.get("nombre") or "").strip()
+    tipo = (request.form.get("tipo") or "").strip()
+    descripcion = (request.form.get("descripcion") or "").strip()
+
+    if not nombre:
+        flash("El nombre es obligatorio", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    nueva = Rutina(nombre=nombre, tipo=tipo, descripcion=descripcion, created_by=current_user.id)
+    db.session.add(nueva)
+    db.session.commit()
+
+    flash("✅ Rutina creada", "success")
+    return redirect(url_for("main.dashboard_entrenador"))
+
+@bp.route("/admin/ejercicios/nuevo", methods=["POST"])
+@login_required
+def admin_nuevo_ejercicio():
+    if not is_admin():
+        flash("Solo el admin puede crear ejercicios", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    nombre = (request.form.get("nombre") or "").strip()
+    categoria = (request.form.get("categoria") or "").strip()
+    descripcion = (request.form.get("descripcion") or "").strip()
+
+    selected = (request.form.get("video_existing") or "").strip()
+    file = request.files.get("video")
+
+    if not nombre:
+        flash("Falta el nombre del ejercicio", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    video_filename = ""
+
+    if selected:
+        if selected not in list_repo_videos():
+            flash("Ese archivo no existe en /static/videos (subilo al repo primero).", "danger")
+            return redirect(url_for("main.dashboard_entrenador"))
+        video_filename = selected
+
+    elif file and file.filename:
+        try:
+            video_filename = save_video_to_static(file)
+            flash("⚠️ Video subido al server (Render gratis puede perderse). Ideal: seleccionar existente.", "warning")
+        except Exception as e:
+            flash(f"Error subiendo video: {e}", "danger")
+            return redirect(url_for("main.dashboard_entrenador"))
+    else:
+        flash("Falta video: seleccioná uno existente o subí uno (local).", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    ejercicio = Ejercicio(
+        nombre=nombre,
+        categoria=categoria,
+        descripcion=descripcion,
+        video_filename=video_filename
+    )
+    db.session.add(ejercicio)
+    db.session.commit()
+
+    flash("✅ Ejercicio creado en el banco", "success")
+    return redirect(url_for("main.dashboard_entrenador"))
+
+@bp.route("/coach/planificador")
 @login_required
 def coach_planificador():
     if not is_admin():
@@ -81,9 +153,8 @@ def coach_planificador():
         flash("No hay atletas", "warning")
         return render_template("dashboard_entrenador.html", atletas=atletas, rutinas=rutinas, atleta=None)
 
-    center = safe_parse_ymd(request.args.get("center", ""), fallback=None)
+    center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
     fechas = week_dates(center)
-
     planes = ensure_week_plans(atleta.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
@@ -98,8 +169,7 @@ def coach_planificador():
         center=center,
     )
 
-
-@main_bp.route("/dia/save", methods=["POST"])
+@bp.route("/dia/save", methods=["POST"])
 @login_required
 def save_day():
     if not is_admin():
@@ -114,7 +184,6 @@ def save_day():
         plan = DiaPlan(user_id=user_id, fecha=fecha)
         db.session.add(plan)
 
-    # si el atleta bloqueó el día
     if hasattr(plan, "puede_entrenar") and (getattr(plan, "puede_entrenar", "si") == "no"):
         flash("🚫 El atleta marcó este día como 'No puedo entrenar'.", "warning")
         return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
@@ -141,33 +210,10 @@ def save_day():
     flash("✅ Día guardado", "success")
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
-
-@main_bp.route("/crear_rutina", methods=["POST"])
-@login_required
-def crear_rutina():
-    if not is_admin():
-        flash("Solo el admin puede crear rutinas", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
-
-    nombre = (request.form.get("nombre") or "").strip()
-    tipo = (request.form.get("tipo") or "").strip()
-    descripcion = (request.form.get("descripcion") or "").strip()
-
-    if not nombre:
-        flash("El nombre es obligatorio", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
-
-    nueva = Rutina(nombre=nombre, tipo=tipo, descripcion=descripcion, created_by=current_user.id)
-    db.session.add(nueva)
-    db.session.commit()
-
-    flash("✅ Rutina creada", "success")
-    return redirect(url_for("main.dashboard_entrenador"))
-
-
-@main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
+@bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required
 def admin_delete_user(user_id: int):
+    from app.models import AthleteLog, AthleteCheck  # evita imports cruzados
     if not is_admin():
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.dashboard_entrenador"))

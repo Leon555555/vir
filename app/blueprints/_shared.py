@@ -1,4 +1,4 @@
-# app/routes/__init__.py
+# app/blueprints/_shared.py
 from __future__ import annotations
 
 from datetime import datetime, timedelta, date
@@ -10,40 +10,24 @@ import time
 import json
 
 from werkzeug.utils import secure_filename
-from flask import Blueprint, current_app, url_for
+from flask import current_app, url_for
 from flask_login import current_user
-
 from sqlalchemy import func
 
 from app.extensions import db
-from app.models import (
-    User, DiaPlan, Rutina, Ejercicio, RutinaItem,
-    AthleteCheck, AthleteLog
-)
-
-# ✅ Un SOLO blueprint para mantener url_for('main.xxx')
-main_bp = Blueprint("main", __name__)
+from app.models import DiaPlan, RutinaItem, AthleteCheck, AthleteLog
 
 # =============================================================
 # MEDIA / VIDEOS (FREE SAFE MODE)
 # =============================================================
 ALLOWED_VIDEO_EXT = {".mp4", ".mov", ".webm", ".m4v"}
 
-
 def videos_dir() -> str:
-    """
-    Carpeta canonical de videos estáticos:
-    app/static/videos
-    """
     folder = os.path.join(current_app.static_folder, "videos")
     os.makedirs(folder, exist_ok=True)
     return folder
 
-
 def list_repo_videos() -> List[str]:
-    """
-    Lista archivos disponibles en app/static/videos (repo).
-    """
     folder = videos_dir()
     out: List[str] = []
     try:
@@ -59,12 +43,7 @@ def list_repo_videos() -> List[str]:
     out.sort(key=lambda s: s.lower())
     return out
 
-
 def save_video_to_static(file_storage) -> str:
-    """
-    OJO: en Render gratis NO es persistente (se pierde).
-    Local OK.
-    """
     filename = secure_filename(file_storage.filename or "")
     if not filename:
         raise ValueError("Nombre de archivo no válido")
@@ -79,11 +58,7 @@ def save_video_to_static(file_storage) -> str:
     file_storage.save(out_path)
     return safe
 
-
 def normalize_item_video_url(v: str | None) -> str:
-    """
-    Guardamos/mostramos siempre como 'videos/<filename>' (sin /static).
-    """
     if not v:
         return ""
     s = str(v).strip()
@@ -97,16 +72,11 @@ def normalize_item_video_url(v: str | None) -> str:
         s = f"videos/{s}"
     return s
 
-
 def build_video_src(video_url: str | None) -> str:
-    """
-    Devuelve url absoluta a /static/videos/...
-    """
     rel = normalize_item_video_url(video_url)
     if not rel:
         return ""
     return url_for("static", filename=rel)
-
 
 # =============================================================
 # FECHAS / UTILIDADES
@@ -114,17 +84,14 @@ def build_video_src(video_url: str | None) -> str:
 def start_of_week(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
-
 def week_dates(center: date | None = None) -> List[date]:
     base = center or date.today()
     start = start_of_week(base)
     return [start + timedelta(days=i) for i in range(7)]
 
-
 def month_dates(year: int, month: int) -> List[date]:
     _, last = monthrange(year, month)
     return [date(year, month, d) for d in range(1, last + 1)]
-
 
 def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
     if not s:
@@ -137,7 +104,6 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
         except Exception:
             return fallback or date.today()
 
-
 def is_admin() -> bool:
     return bool(
         current_user.is_authenticated and (
@@ -145,16 +111,13 @@ def is_admin() -> bool:
         )
     )
 
-
-@main_bp.app_context_processor
 def inject_is_admin():
     return {"is_admin": is_admin, "admin_ok": is_admin()}
-
 
 # =============================================================
 # SERIALIZADORES
 # =============================================================
-def serialize_rutina(r: Rutina) -> Dict[str, Any]:
+def serialize_rutina(r) -> Dict[str, Any]:
     return {
         "id": r.id,
         "nombre": r.nombre,
@@ -162,7 +125,6 @@ def serialize_rutina(r: Rutina) -> Dict[str, Any]:
         "descripcion": getattr(r, "descripcion", "") or "",
         "created_by": getattr(r, "created_by", None),
     }
-
 
 def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
     return {
@@ -178,7 +140,6 @@ def serialize_plan(p: DiaPlan) -> Dict[str, Any]:
         "puede_entrenar": (getattr(p, "puede_entrenar", None) or "si"),
         "comentario_atleta": (getattr(p, "comentario_atleta", None) or ""),
     }
-
 
 # =============================================================
 # HELPERS PERFIL (PROGRESO / RACHAS)
@@ -205,18 +166,11 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
 
     return planes
 
-
 def _rutina_items_query(rid: int):
-    """
-    Orden seguro:
-    - si existe RutinaItem.posicion -> order_by(posicion, id)
-    - si no -> order_by(id)
-    """
     q = RutinaItem.query.filter_by(rutina_id=rid)
     if hasattr(RutinaItem, "posicion"):
         return q.order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc())
     return q.order_by(RutinaItem.id.asc())
-
 
 def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
     done_days: set[date] = set()
@@ -253,7 +207,6 @@ def get_strength_done_days(user_id: int, fechas: List[date]) -> set[date]:
 
     return done_days
 
-
 def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
     logs = AthleteLog.query.filter(
         AthleteLog.user_id == user_id,
@@ -261,7 +214,6 @@ def get_log_done_days(user_id: int, fechas: List[date]) -> set[date]:
         AthleteLog.did_train == True
     ).all()
     return {l.fecha for l in logs}
-
 
 def compute_streak(user_id: int) -> int:
     today = date.today()
@@ -295,7 +247,6 @@ def compute_streak(user_id: int) -> int:
 
     return streak
 
-
 def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaPlan]) -> Tuple[int, int]:
     goal = 0
     for f in fechas:
@@ -308,14 +259,10 @@ def week_goal_and_done(user_id: int, fechas: List[date], planes: Dict[date, DiaP
     done_days = get_strength_done_days(user_id, fechas).union(get_log_done_days(user_id, fechas))
     return goal, len(done_days)
 
-
 # =============================================================
-# Importar módulos para “registrar” rutas en main_bp
+# TABATA helper (detección)
 # =============================================================
-from . import auth  # noqa: E402,F401
-from . import coach  # noqa: E402,F401
-from . import athlete  # noqa: E402,F401
-from . import routines  # noqa: E402,F401
-from . import tabata  # noqa: E402,F401
-from . import media  # noqa: E402,F401
-from . import ai  # noqa: E402,F401
+def is_tabata_routine(rutina) -> bool:
+    nombre = (getattr(rutina, "nombre", "") or "").lower()
+    tipo = (getattr(rutina, "tipo", "") or "").lower()
+    return ("tabata" in nombre) or ("tabata" in tipo)

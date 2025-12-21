@@ -1,13 +1,19 @@
 # app/routes.py
-# Solo importa los módulos para registrar rutas en el blueprint "main"
+from __future__ import annotations
+
+"""
+Este archivo NO define un Blueprint.
+Solo expone `main_bp` importándolo desde app.blueprints
+y fuerza la importación de los módulos para que registren rutas.
+"""
 
 from app.blueprints import bp as main_bp
 
-# importa módulos (registran endpoints sobre bp)
-from app.blueprints import auth      # noqa
-from app.blueprints import coach     # noqa
-from app.blueprints import athlete   # noqa
-from app.blueprints import routines  # noqa
-from app.blueprints import tabata    # noqa
-from app.blueprints import media     # noqa
-from app.blueprints import ai        # noqa
+# Importa módulos (registran endpoints sobre bp)
+from app.blueprints import auth      # noqa: F401
+from app.blueprints import coach     # noqa: F401
+from app.blueprints import athlete   # noqa: F401
+from app.blueprints import routines  # noqa: F401
+from app.blueprints import tabata    # noqa: F401
+from app.blueprints import media     # noqa: F401
+from app.blueprints import ai        # noqa: F401

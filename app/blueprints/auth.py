@@ -8,6 +8,7 @@ from app.models import User
 from . import bp
 from ._shared import is_admin
 
+
 @bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -15,6 +16,7 @@ def index():
             return redirect(url_for("main.dashboard_entrenador"))
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
     return redirect(url_for("main.login"))
+
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -39,12 +41,14 @@ def login():
 
     return render_template("login.html")
 
+
 @bp.route("/logout")
 @login_required
 def logout():
     logout_user()
     flash("Sesión cerrada", "info")
     return redirect(url_for("main.login"))
+
 
 @bp.route("/perfil")
 @login_required

@@ -14,6 +14,7 @@ from ._shared import (
     list_repo_videos, save_video_to_static
 )
 
+
 @bp.route("/coach/dashboard")
 @login_required
 def dashboard_entrenador():
@@ -33,6 +34,7 @@ def dashboard_entrenador():
         atletas=atletas,
         available_videos=available_videos,
     )
+
 
 @bp.route("/admin/atletas/nuevo", methods=["POST"])
 @login_required
@@ -63,6 +65,7 @@ def admin_nuevo_atleta():
     flash("✅ Atleta creado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
+
 @bp.route("/crear_rutina", methods=["POST"])
 @login_required
 def crear_rutina():
@@ -84,6 +87,7 @@ def crear_rutina():
 
     flash("✅ Rutina creada", "success")
     return redirect(url_for("main.dashboard_entrenador"))
+
 
 @bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
@@ -134,6 +138,7 @@ def admin_nuevo_ejercicio():
     flash("✅ Ejercicio creado en el banco", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
+
 @bp.route("/coach/planificador")
 @login_required
 def coach_planificador():
@@ -168,6 +173,7 @@ def coach_planificador():
         semana_str=semana_str,
         center=center,
     )
+
 
 @bp.route("/dia/save", methods=["POST"])
 @login_required
@@ -209,6 +215,7 @@ def save_day():
     db.session.commit()
     flash("✅ Día guardado", "success")
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
+
 
 @bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required

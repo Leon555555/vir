@@ -31,7 +31,6 @@
               </option>
             {% endfor %}
           </select>
-
           <input type="hidden" name="center" value="{{ center.isoformat() }}">
         </form>
       </div>
@@ -110,8 +109,8 @@
 
                   <!-- type -->
                   <label class="form-label text-muted mb-1">Tipo</label>
+                  {% set pt = (p.plan_type or 'Descanso') %}
                   <select class="form-select mb-2" name="plan_type" onchange="toggleFields(this)">
-                    {% set pt = (p.plan_type or 'Descanso') %}
                     <option value="Descanso" {% if pt=='Descanso' %}selected{% endif %}>Descanso</option>
                     <option value="Rodaje" {% if pt=='Rodaje' %}selected{% endif %}>Rodaje</option>
                     <option value="Series" {% if pt=='Series' %}selected{% endif %}>Series</option>
@@ -124,7 +123,7 @@
                   <textarea class="form-control mb-2" name="warmup" rows="2" placeholder="Activación...">{{ p.warmup or '' }}</textarea>
 
                   <!-- fuerza -->
-                  <div class="fuerza-box mb-2" style="{% if (p.plan_type or '').lower() != 'fuerza' %}display:none;{% endif %}">
+                  <div class="fuerza-box mb-2" data-box="fuerza" style="{% if (p.plan_type or '').lower() != 'fuerza' %}display:none;{% endif %}">
                     <label class="form-label text-muted mb-1">Rutina</label>
                     <select class="form-select" name="rutina_select">
                       <option value="">— Seleccionar rutina —</option>
@@ -142,7 +141,7 @@
                   </div>
 
                   <!-- main general -->
-                  <div class="main-box mb-2" style="{% if (p.plan_type or '').lower() == 'fuerza' %}display:none;{% endif %}">
+                  <div class="main-box mb-2" data-box="main" style="{% if (p.plan_type or '').lower() == 'fuerza' %}display:none;{% endif %}">
                     <label class="form-label text-muted mb-1">Bloque principal</label>
                     <textarea class="form-control" name="main" rows="2" placeholder="Entrenamiento principal...">{{ p.main or '' }}</textarea>
                   </div>
@@ -192,7 +191,6 @@
   border-radius: 20px;
   box-shadow: 0 14px 40px rgba(0,0,0,.35);
 }
-
 .day-title{
   font-weight: 900;
   letter-spacing: .12em;
@@ -201,12 +199,10 @@
 .day-sub{
   font-size: .92rem;
 }
-
 .plan-blocked{
   border: 1px solid rgba(255, 59, 48, 0.45) !important;
   background: rgba(255, 59, 48, 0.10) !important;
 }
-
 .blocked-box{
   border-radius: 16px;
   padding: 12px;
@@ -237,8 +233,8 @@ function toggleFields(selectEl){
   if(!form) return;
 
   const pt = (selectEl.value || "").toLowerCase();
-  const fuerzaBox = form.querySelector(".fuerza-box");
-  const mainBox = form.querySelector(".main-box");
+  const fuerzaBox = form.querySelector('[data-box="fuerza"]');
+  const mainBox = form.querySelector('[data-box="main"]');
 
   if(pt === "fuerza"){
     if(fuerzaBox) fuerzaBox.style.display = "block";
@@ -248,5 +244,10 @@ function toggleFields(selectEl){
     if(mainBox) mainBox.style.display = "block";
   }
 }
+
+// al cargar, asegura estado correcto en todos los forms
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll('select[name="plan_type"]').forEach(sel => toggleFields(sel));
+});
 </script>
 {% endblock %}

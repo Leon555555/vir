@@ -1,0 +1,165 @@
+{% extends "layout.html" %}
+{% block title %}Tabata — VR Training{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <div class="section-title">TABATA</div>
+    <div class="text-soft">{{ rutina.nombre }} · ejercicios: {{ items_payload|length }}</div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-info" href="{{ url_for('main.rutina_builder', rutina_id=rutina.id) }}">
+      <i class="bi bi-sliders"></i> Builder
+    </a>
+    <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') if admin_ok else url_for('main.perfil_redirect') }}">
+      <i class="bi bi-arrow-left"></i> Volver
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  <!-- PLAYER -->
+  <div class="col-12 col-lg-7">
+    <div class="card glass p-3 p-md-4">
+
+      <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+        <div>
+          <div class="fw-bold" style="letter-spacing:.12em;text-transform:uppercase;">
+            <span id="tabTitle">{{ cfg.title }}</span>
+          </div>
+          <div class="text-muted" id="tabSubtitle">
+            {{ cfg.work }}s trabajo · {{ cfg.rest }}s descanso · {{ cfg.rounds }} ronda(s) · recup {{ cfg.recovery }}s
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-info" id="btnStart"><i class="bi bi-play-fill"></i> Iniciar</button>
+          <button class="btn btn-outline-light" id="btnPause" disabled><i class="bi bi-pause-fill"></i> Pausa</button>
+          <button class="btn btn-outline-danger" id="btnStop" disabled><i class="bi bi-stop-fill"></i> Reset</button>
+        </div>
+      </div>
+
+      <div class="row g-3 align-items-center">
+        <div class="col-12 col-md-6">
+          <div class="mini-stat w-100">
+            <div class="mini-title">FASE</div>
+            <div class="mini-value" id="phaseLabel">Listo</div>
+          </div>
+
+          <div class="mini-stat w-100 mt-2">
+            <div class="mini-title">EJERCICIO</div>
+            <div class="mini-value" id="exerciseLabel">—</div>
+          </div>
+
+          <div class="mini-stat w-100 mt-2">
+            <div class="mini-title">RONDA / TOTAL</div>
+            <div class="mini-value" id="roundLabel">—</div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6 text-center">
+          <div style="font-weight:1000;font-size:4rem;line-height:1;" id="timer">00</div>
+          <div class="text-muted mt-1" id="nextLabel">—</div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <video id="videoPlayer"
+               class="w-100"
+               style="border-radius:16px;border:1px solid rgba(255,255,255,.12);background:#000;max-height:360px;"
+               playsinline
+               webkit-playsinline
+               muted
+               controls
+               preload="metadata">
+        </video>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CONFIG + LISTA -->
+  <div class="col-12 col-lg-5">
+
+    {% if is_admin %}
+    <div class="card glass p-3 p-md-4 mb-3">
+      <div class="fw-bold mb-2" style="letter-spacing:.12em;text-transform:uppercase;">Configurar tiempos</div>
+
+      <form method="POST">
+        <label class="form-label text-muted mb-1">Título</label>
+        <input class="form-control mb-2" name="title" value="{{ cfg.title }}">
+
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label text-muted mb-1">Trabajo (s)</label>
+            <input type="number" class="form-control" name="work" min="5" max="600" value="{{ cfg.work }}">
+          </div>
+          <div class="col-6">
+            <label class="form-label text-muted mb-1">Descanso (s)</label>
+            <input type="number" class="form-control" name="rest" min="0" max="600" value="{{ cfg.rest }}">
+          </div>
+          <div class="col-6 mt-2">
+            <label class="form-label text-muted mb-1">Rondas</label>
+            <input type="number" class="form-control" name="rounds" min="1" max="50" value="{{ cfg.rounds }}">
+          </div>
+          <div class="col-6 mt-2">
+            <label class="form-label text-muted mb-1">Recuperación final (s)</label>
+            <input type="number" class="form-control" name="recovery" min="0" max="1800" value="{{ cfg.recovery }}">
+          </div>
+        </div>
+
+        <div class="d-grid mt-3">
+          <button class="btn btn-info"><i class="bi bi-save2"></i> Guardar</button>
+        </div>
+
+        <div class="text-muted mt-2" style="font-size:.92rem;">
+          Ejemplo: 10 ejercicios · 40" trabajo · 20" descanso · recuperación final 60".
+          Los 10 ejercicios los cargás en el Builder (ordenados).
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="card glass p-3 p-md-4">
+      <div class="fw-bold mb-2" style="letter-spacing:.12em;text-transform:uppercase;">Lista de ejercicios</div>
+
+      {% if items_payload|length == 0 %}
+        <div class="alert alert-warning vr-alert">Esta rutina no tiene ejercicios. Andá al Builder y agregalos.</div>
+      {% else %}
+        <div class="list-group" style="gap:10px;">
+          {% for it in items_payload %}
+            <div class="glass p-2" style="border-radius:16px;">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div class="fw-bold">{{ loop.index }}. {{ it.nombre }}</div>
+                <button type="button" class="btn btn-outline-info btn-sm"
+                        onclick="TabataUI.preview({{ loop.index0 }})">
+                  Ver
+                </button>
+              </div>
+              <div class="text-muted" style="font-size:.92rem;">
+                {{ it.nota or '' }}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  window.TABATA_DATA = {
+    rutinaId: {{ rutina.id }},
+    cfg: {{ cfg|tojson }},
+    items: {{ items_payload|tojson }}
+  };
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/tabata_player.js') }}?v=1"></script>
+{% endblock %}

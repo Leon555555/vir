@@ -112,6 +112,73 @@ def build_video_src(video_url: str | None) -> str:
 
 
 # =============================================================
+# TABATA HELPERS (OPCIÓN B)
+# Guardamos config en Rutina.descripcion como JSON:
+# {"tabata":{"work":40,"rest":20,"rounds":1,"recovery":60,"title":"..."}}
+# =============================================================
+TABATA_DEFAULT = {
+    "work": 40,        # segundos trabajo
+    "rest": 20,        # segundos descanso
+    "rounds": 1,       # vueltas
+    "recovery": 60,    # recuperación final
+    "title": "Tabata",
+}
+
+
+def parse_tabata_config(r: Rutina) -> Dict[str, Any]:
+    cfg = dict(TABATA_DEFAULT)
+    raw = (getattr(r, "descripcion", "") or "").strip()
+    if not raw:
+        return cfg
+
+    try:
+        data = json.loads(raw)
+        tab = data.get("tabata") if isinstance(data, dict) else None
+        if isinstance(tab, dict):
+            for k in ("work", "rest", "rounds", "recovery", "title"):
+                if k in tab and tab[k] is not None:
+                    cfg[k] = tab[k]
+    except Exception:
+        return cfg
+
+    def clamp_int(x, lo, hi, default):
+        try:
+            v = int(x)
+            return max(lo, min(hi, v))
+        except Exception:
+            return default
+
+    cfg["work"] = clamp_int(cfg.get("work"), 5, 600, TABATA_DEFAULT["work"])
+    cfg["rest"] = clamp_int(cfg.get("rest"), 0, 600, TABATA_DEFAULT["rest"])
+    cfg["rounds"] = clamp_int(cfg.get("rounds"), 1, 50, TABATA_DEFAULT["rounds"])
+    cfg["recovery"] = clamp_int(cfg.get("recovery"), 0, 1800, TABATA_DEFAULT["recovery"])
+    cfg["title"] = str(cfg.get("title") or TABATA_DEFAULT["title"])[:80]
+    return cfg
+
+
+def save_tabata_config(r: Rutina, cfg: Dict[str, Any]) -> None:
+    data: Dict[str, Any] = {}
+    raw = (getattr(r, "descripcion", "") or "").strip()
+
+    if raw:
+        try:
+            tmp = json.loads(raw)
+            if isinstance(tmp, dict):
+                data = tmp
+        except Exception:
+            data = {}
+
+    data["tabata"] = {
+        "work": int(cfg["work"]),
+        "rest": int(cfg["rest"]),
+        "rounds": int(cfg["rounds"]),
+        "recovery": int(cfg["recovery"]),
+        "title": str(cfg["title"]),
+    }
+    r.descripcion = json.dumps(data, ensure_ascii=False)
+
+
+# =============================================================
 # FECHAS / UTILIDADES
 # =============================================================
 def start_of_week(d: date) -> date:
@@ -1069,6 +1136,64 @@ def rutina_reorder(rutina_id: int):
 
     db.session.commit()
     return jsonify({"ok": True})
+
+
+# =============================================================
+# ✅ TABATA PLAYER (OPCIÓN B) POR RUTINA
+# URL: /rutinas/<id>/tabata
+# =============================================================
+@main_bp.route("/rutinas/<int:rutina_id>/tabata", methods=["GET", "POST"])
+@login_required
+def rutina_tabata_player(rutina_id: int):
+    rutina = Rutina.query.get_or_404(rutina_id)
+
+    items = _rutina_items_query(rutina.id).all()
+    cfg = parse_tabata_config(rutina)
+
+    # Guardar config (solo admin)
+    if request.method == "POST":
+        if not is_admin():
+            flash("Solo admin puede guardar tiempos del Tabata", "danger")
+            return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
+
+        def get_int(name: str, default: int, lo: int, hi: int) -> int:
+            try:
+                v = int(request.form.get(name, default))
+                return max(lo, min(hi, v))
+            except Exception:
+                return default
+
+        cfg["title"] = (request.form.get("title") or cfg["title"]).strip()[:80]
+        cfg["work"] = get_int("work", cfg["work"], 5, 600)
+        cfg["rest"] = get_int("rest", cfg["rest"], 0, 600)
+        cfg["rounds"] = get_int("rounds", cfg["rounds"], 1, 50)
+        cfg["recovery"] = get_int("recovery", cfg["recovery"], 0, 1800)
+
+        save_tabata_config(rutina, cfg)
+        db.session.commit()
+
+        flash("✅ Tiempos Tabata guardados", "success")
+        return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
+
+    items_payload: List[Dict[str, Any]] = []
+    for it in items:
+        items_payload.append({
+            "id": it.id,
+            "nombre": it.nombre,
+            "series": getattr(it, "series", "") or "",
+            "reps": getattr(it, "reps", "") or "",
+            "descanso": getattr(it, "descanso", "") or "",
+            "nota": getattr(it, "nota", "") or "",
+            "video_src": build_video_src(getattr(it, "video_url", "")),
+        })
+
+    return render_template(
+        "tabata_player.html",
+        rutina=rutina,
+        cfg=cfg,
+        items_payload=items_payload,
+        is_admin=is_admin(),
+    )
 
 
 # =============================================================

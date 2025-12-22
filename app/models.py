@@ -25,7 +25,7 @@ class IntegrationAccount(db.Model):
     expires_at = db.Column(db.Integer, nullable=True, default=0)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "provider", name="uq_integration_user_provider"),
@@ -53,7 +53,7 @@ class User(db.Model, UserMixin):
     athlete_logs = db.relationship("AthleteLog", backref="user", lazy=True, cascade="all, delete-orphan")
     athlete_checks = db.relationship("AthleteCheck", backref="user", lazy=True, cascade="all, delete-orphan")
 
-    # ✅ Integraciones (Strava)
+    # Integraciones (Strava)
     integration_accounts = db.relationship(
         "IntegrationAccount",
         backref="user",
@@ -63,7 +63,6 @@ class User(db.Model, UserMixin):
 
     @property
     def strava_account(self):
-        # Devuelve el IntegrationAccount de Strava si existe
         for acc in (self.integration_accounts or []):
             if (acc.provider or "").lower() == "strava":
                 return acc
@@ -150,6 +149,9 @@ class Rutina(db.Model):
     tipo = db.Column(db.String(60), nullable=True)
     descripcion = db.Column(db.String(255), nullable=True)
     created_by = db.Column(db.Integer, nullable=True)
+
+    # ✅ NUEVO: preset tabata persistido por rutina (JSON en texto)
+    tabata_preset = db.Column(db.Text, nullable=True)
 
     items = db.relationship("RutinaItem", backref="rutina", lazy=True, cascade="all, delete-orphan")
 

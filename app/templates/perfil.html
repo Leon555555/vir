@@ -285,6 +285,38 @@
                 </div>
               </div>
 
+              <!-- ✅ TABATA BLOCK (solo aparece si la rutina es tabata) -->
+              <div id="tabataBlock" class="glass p-3 mb-3" style="border-radius:18px; display:none;">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <div class="mini-title" style="letter-spacing:.14em;">TABATA</div>
+                    <div class="text-strong" id="tabataTitle" style="font-weight:900;">—</div>
+                    <div class="text-muted" id="tabataPhase" style="font-weight:800;">—</div>
+                  </div>
+
+                  <div class="text-strong" style="font-weight:900; font-size:1.25rem;">
+                    <span id="tabataTimer">00:00</span>
+                  </div>
+                </div>
+
+                <div class="mt-3" id="tabataVisual">
+                  <video id="tabataVideo" class="w-100" controls playsinline webkit-playsinline preload="metadata"
+                         style="border-radius:16px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.35); min-height:240px; object-fit:cover;">
+                  </video>
+                </div>
+
+                <div class="d-flex gap-2 mt-3 flex-wrap">
+                  <button class="btn btn-outline-info btn-sm" type="button" onclick="tabataPlay()">▶ Play</button>
+                  <button class="btn btn-outline-light btn-sm" type="button" onclick="tabataPause()">⏸ Pausa</button>
+                  <button class="btn btn-outline-warning btn-sm" type="button" onclick="tabataNext()">⏭ Siguiente</button>
+                  <button class="btn btn-outline-danger btn-sm" type="button" onclick="tabataStop()">⏹ Stop</button>
+                </div>
+
+                <div class="text-muted mt-2" style="font-size:.9rem;">
+                  Empieza automáticamente en <b>3s</b>. En descansos aparece reloj + cuenta atrás.
+                </div>
+              </div>
+
               <div id="strengthItems" class="row g-3"></div>
 
               <div class="mt-3">
@@ -430,6 +462,207 @@ let CURRENT_DAY = null;
 let CURRENT_USER = {{ user.id }};
 let CURRENT_ITEMS = [];
 
+/* =========================
+   TABATA PLAYER
+========================= */
+let TABATA = {
+  active: false,
+  phase: "idle",
+  idx: 0,
+  set: 1,
+  t: 0,
+  interval: null,
+  items: [],
+  cfg: null
+};
+
+function fmt(s){
+  s = Math.max(0, Math.floor(s||0));
+  const m = String(Math.floor(s/60)).padStart(2,"0");
+  const ss = String(s%60).padStart(2,"0");
+  return `${m}:${ss}`;
+}
+function tabataUI(title, phase){
+  document.getElementById("tabataTitle").textContent = title || "TABATA";
+  document.getElementById("tabataPhase").textContent = phase || "";
+}
+function tabataSetTimer(seconds){
+  document.getElementById("tabataTimer").textContent = fmt(seconds);
+}
+function tabataClearInterval(){
+  if(TABATA.interval){
+    clearInterval(TABATA.interval);
+    TABATA.interval = null;
+  }
+}
+function showTabataClock(seconds){
+  const vis = document.getElementById("tabataVisual");
+  vis.innerHTML = `
+    <div class="glass p-4" style="border-radius:16px; text-align:center;">
+      <div style="font-size:54px; margin-bottom:8px;">⏱️</div>
+      <div class="text-strong" style="font-weight:900; font-size:1.6rem;">RECUPERACIÓN</div>
+      <div class="text-muted" style="margin-top:6px;">${fmt(seconds)}</div>
+    </div>
+  `;
+}
+function ensureTabataVideo(){
+  const vis = document.getElementById("tabataVisual");
+  if(!document.getElementById("tabataVideo")){
+    vis.innerHTML = `
+      <video id="tabataVideo" class="w-100" controls playsinline webkit-playsinline preload="metadata"
+        style="border-radius:16px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.35); min-height:240px; object-fit:cover;">
+      </video>
+    `;
+  }
+}
+
+function tabataStop(){
+  TABATA.active = false;
+  TABATA.phase = "idle";
+  TABATA.idx = 0;
+  TABATA.set = 1;
+  TABATA.t = 0;
+  tabataClearInterval();
+  tabataUI("TABATA", "Detenido");
+  tabataSetTimer(0);
+
+  const v = document.getElementById("tabataVideo");
+  if(v){
+    try{ v.pause(); }catch(e){}
+    v.removeAttribute("src");
+    v.load();
+  }
+}
+function tabataPlay(){
+  if(!TABATA.cfg || !TABATA.items.length) return;
+  if(TABATA.active) return;
+  TABATA.active = true;
+  if(TABATA.phase === "idle"){
+    TABATA.phase = "count_in";
+    TABATA.t = TABATA.cfg.count_in ?? 3;
+  }
+  tabataTickStart();
+}
+function tabataPause(){
+  TABATA.active = false;
+  tabataClearInterval();
+  const v = document.getElementById("tabataVideo");
+  if(v){ try{ v.pause(); }catch(e){} }
+}
+function tabataApplyWork(){
+  const it = TABATA.items[TABATA.idx];
+  const name = it?.nombre || "Ejercicio";
+  tabataUI(`Ejercicio ${TABATA.idx + 1} · ${name}`, "TRABAJO");
+
+  ensureTabataVideo();
+  const v = document.getElementById("tabataVideo");
+  const src = it?.video_src || "";
+  if(v && src){
+    if(v.src !== src){
+      v.src = src;
+      v.load();
+    }
+    setTimeout(()=>{ try{ v.play(); }catch(e){} }, 100);
+  }
+  tabataSetTimer(TABATA.t);
+}
+function tabataApplyRest(label){
+  tabataUI("RECUPERACIÓN", label || "DESCANSO");
+  tabataSetTimer(TABATA.t);
+  showTabataClock(TABATA.t);
+  const v = document.getElementById("tabataVideo");
+  if(v){ try{ v.pause(); }catch(e){} }
+}
+function tabataAdvance(){
+  if(TABATA.phase === "count_in"){
+    TABATA.phase = "work";
+    TABATA.t = TABATA.cfg.work ?? 40;
+    TABATA.idx = 0;
+    tabataApplyWork();
+    return;
+  }
+  if(TABATA.phase === "work"){
+    TABATA.phase = "rest";
+    TABATA.t = TABATA.cfg.rest ?? 20;
+    tabataApplyRest("DESCANSO");
+    return;
+  }
+  if(TABATA.phase === "rest"){
+    TABATA.idx += 1;
+    const rounds = TABATA.cfg.rounds ?? TABATA.items.length;
+    const sets = TABATA.cfg.sets ?? 1;
+
+    if(TABATA.idx >= rounds){
+      TABATA.idx = 0;
+      TABATA.set += 1;
+
+      if(TABATA.set > sets){
+        TABATA.phase = "finisher";
+        TABATA.t = TABATA.cfg.finisher_rest ?? 60;
+        tabataApplyRest("FINAL");
+        return;
+      }
+      TABATA.phase = "between_sets";
+      TABATA.t = TABATA.cfg.rest_between_sets ?? 60;
+      tabataApplyRest(`SET ${TABATA.set - 1} COMPLETO`);
+      return;
+    }
+
+    TABATA.phase = "work";
+    TABATA.t = TABATA.cfg.work ?? 40;
+    tabataApplyWork();
+    return;
+  }
+  if(TABATA.phase === "between_sets"){
+    TABATA.phase = "work";
+    TABATA.t = TABATA.cfg.work ?? 40;
+    tabataApplyWork();
+    return;
+  }
+  if(TABATA.phase === "finisher"){
+    tabataUI("TABATA", "✅ FINALIZADO");
+    tabataStop();
+    return;
+  }
+}
+function tabataTickStart(){
+  tabataClearInterval();
+
+  if(TABATA.phase === "count_in"){
+    tabataUI("TABATA", "EMPIEZA EN...");
+    tabataSetTimer(TABATA.t);
+    showTabataClock(TABATA.t);
+  }else if(TABATA.phase === "work"){
+    tabataApplyWork();
+  }else{
+    tabataApplyRest("RECUPERACIÓN");
+  }
+
+  TABATA.interval = setInterval(()=>{
+    if(!TABATA.active) return;
+    TABATA.t -= 1;
+    tabataSetTimer(TABATA.t);
+
+    if(TABATA.phase !== "work"){
+      showTabataClock(TABATA.t);
+    }
+    if(TABATA.t <= 0){
+      tabataAdvance();
+    }
+  }, 1000);
+}
+function tabataNext(){
+  if(!TABATA.cfg || !TABATA.items.length) return;
+  TABATA.phase = "work";
+  TABATA.t = TABATA.cfg.work ?? 40;
+  TABATA.idx = (TABATA.idx + 1) % TABATA.items.length;
+  tabataApplyWork();
+  tabataTickStart();
+}
+
+/* =========================
+   HELPERS
+========================= */
 function posterDataUrl(title){
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const svg = `
@@ -480,7 +713,9 @@ function openDay(isoDate){
   document.getElementById("strengthItems").innerHTML = "";
   document.getElementById("scriptBox").innerHTML = `<div class="text-muted">Tocá “Generar” para ver el guión del día.</div>`;
 
-  // reset disponibilidad mientras carga
+  tabataStop();
+  document.getElementById("tabataBlock").style.display = "none";
+
   setAvailUI("si", "");
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
@@ -496,10 +731,8 @@ function openDay(isoDate){
       document.getElementById("planMain").textContent = p.main || "—";
       document.getElementById("planFinisher").textContent = p.finisher || "—";
 
-      // disponibilidad
       setAvailUI(p.puede_entrenar || "si", p.comentario_atleta || "");
 
-      // log
       document.getElementById("didTrain").checked = !!data.log?.did_train;
       document.getElementById("doneWarmup").value = data.log?.warmup_done || "";
       document.getElementById("doneMain").value = data.log?.main_done || "";
@@ -508,6 +741,23 @@ function openDay(isoDate){
       CURRENT_ITEMS = Array.isArray(data.items) ? data.items : [];
       const doneIds = new Set(Array.isArray(data.checks) ? data.checks : []);
       renderStrength(CURRENT_ITEMS, doneIds);
+
+      // ✅ TABATA auto
+      const tabBlock = document.getElementById("tabataBlock");
+      if(data.is_tabata && data.tabata_cfg && Array.isArray(data.items) && data.items.length){
+        tabBlock.style.display = "";
+        TABATA.cfg = data.tabata_cfg;
+        TABATA.items = data.items;
+
+        tabataStop();
+        TABATA.phase = "count_in";
+        TABATA.t = (TABATA.cfg.count_in ?? 3);
+
+        setTimeout(()=> tabataPlay(), 50);
+      }else{
+        tabBlock.style.display = "none";
+        tabataStop();
+      }
 
       DAY_MODAL.show();
     })
@@ -520,7 +770,6 @@ function openDay(isoDate){
 function renderStrength(items, doneIds){
   const wrap = document.getElementById("strengthItems");
   wrap.innerHTML = "";
-
   if(!items.length) return;
 
   items.forEach(it => {
@@ -560,7 +809,6 @@ function renderStrength(items, doneIds){
         </div>
       </div>
     `;
-
     wrap.appendChild(col);
   });
 }
@@ -629,11 +877,9 @@ async function saveAvailability(){
     const j = await res.json();
     if(!j.ok) throw new Error(j.error || "Error");
 
-    // actualizar badge
     setAvailUI(noPuedo ? "no" : "si", comentario);
 
-    // pintar mes en vivo
-    const cell = document.querySelector(`.month-cell[data-date="${CSS.escape(CURRENT_DAY)}"]`);
+    const cell = document.querySelector(\`.month-cell[data-date="\${CSS.escape(CURRENT_DAY)}"]\`);
     if(cell){
       if(noPuedo) cell.classList.add("blocked");
       else cell.classList.remove("blocked");

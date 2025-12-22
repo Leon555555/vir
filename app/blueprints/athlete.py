@@ -1,158 +1,152 @@
 # app/blueprints/athlete.py
 from __future__ import annotations
 
-from datetime import datetime, timedelta, date
-from typing import Any, Dict, List, Tuple, Optional
+import json
+from datetime import date, datetime
 
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import request, jsonify, url_for, render_template, redirect, flash
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import User, DiaPlan, Rutina, RutinaItem, AthleteCheck, AthleteLog
-
+from app.models import User, DiaPlan, AthleteLog, AthleteCheck, Rutina
 from . import bp
 from ._shared import (
-    is_admin, safe_parse_ymd, week_dates, month_dates, start_of_week,
-    ensure_week_plans, serialize_plan, serialize_rutina,
-    _rutina_items_query, build_video_src, normalize_item_video_url,
-    compute_streak, week_goal_and_done, get_strength_done_days, get_log_done_days,
-    is_tabata_routine
+    safe_parse_ymd,
+    ensure_week_plans,
+    week_dates,
+    month_dates,
+    serialize_plan,
+    _rutina_items_query,
+    build_video_src,
+    normalize_item_video_url,
+    is_tabata_routine,
+    compute_streak,
+    week_goal_and_done,
+    get_strength_done_days,
+    get_log_done_days,
 )
 
-@bp.app_context_processor
-def _inject_admin():
-    return {"is_admin": is_admin, "admin_ok": is_admin()}
+
+def _get_or_create_log(user_id: int, d: date) -> AthleteLog:
+    log = AthleteLog.query.filter_by(user_id=user_id, fecha=d).first()
+    if not log:
+        log = AthleteLog(user_id=user_id, fecha=d, did_train=False)
+        db.session.add(log)
+        db.session.commit()
+    return log
+
 
 @bp.route("/perfil/<int:user_id>")
 @login_required
 def perfil_usuario(user_id: int):
+    # atleta ve su perfil, admin puede ver cualquiera
+    if current_user.id != user_id and not getattr(current_user, "is_admin", False):
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
     user = User.query.get_or_404(user_id)
 
-    if (not is_admin()) and current_user.id != user.id:
-        flash("Acceso denegado", "danger")
-        return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
-
-    view = (request.args.get("view") or "today").strip().lower()
+    view = request.args.get("view", "today")
     center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
+
     hoy = date.today()
 
-    plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
+    # streak + semana
+    fechas_sem = week_dates(center)
+    planes_sem = ensure_week_plans(user.id, fechas_sem)
+    week_goal, week_done = week_goal_and_done(user.id, fechas_sem, planes_sem)
+    streak = compute_streak(user.id)
+
+    done_week = get_strength_done_days(user.id, fechas_sem).union(get_log_done_days(user.id, fechas_sem))
+
+    # plan hoy
+    plan_hoy = planes_sem.get(hoy)
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
-        if hasattr(plan_hoy, "puede_entrenar") and getattr(plan_hoy, "puede_entrenar", None) is None:
-            plan_hoy.puede_entrenar = "si"
         db.session.add(plan_hoy)
         db.session.commit()
 
-    fechas = week_dates(center)
-    planes = ensure_week_plans(user.id, fechas)
-    semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
-    done_week = get_strength_done_days(user.id, fechas).union(get_log_done_days(user.id, fechas))
+    # month view
+    y = center.year
+    m = center.month
+    days = month_dates(y, m)
 
-    dias_mes = month_dates(center.year, center.month)
-    planes_mes_db = DiaPlan.query.filter(
-        DiaPlan.user_id == user.id,
-        DiaPlan.fecha.in_(dias_mes)
-    ).all()
+    # grid (7 cols)
+    import calendar
+    cal = calendar.Calendar(firstweekday=0)  # lunes
+    month_grid = []
+    week = []
+    for d in cal.itermonthdates(y, m):
+        if d.month != m:
+            week.append(None)
+        else:
+            week.append(d)
+        if len(week) == 7:
+            month_grid.append(week)
+            week = []
+    if week:
+        while len(week) < 7:
+            week.append(None)
+        month_grid.append(week)
+
+    planes_mes_db = DiaPlan.query.filter(DiaPlan.user_id == user.id, DiaPlan.fecha.in_(days)).all()
     planes_mes = {p.fecha: p for p in planes_mes_db}
-
+    # asegurar existan
     changed = False
-    for d in dias_mes:
+    for d in days:
         if d not in planes_mes:
-            nuevo = DiaPlan(user_id=user.id, fecha=d, plan_type="Descanso")
-            if hasattr(nuevo, "puede_entrenar") and getattr(nuevo, "puede_entrenar", None) is None:
-                nuevo.puede_entrenar = "si"
-            planes_mes[d] = nuevo
-            db.session.add(nuevo)
+            p = DiaPlan(user_id=user.id, fecha=d, plan_type="Descanso", puede_entrenar="si")
+            db.session.add(p)
+            planes_mes[d] = p
             changed = True
     if changed:
         db.session.commit()
 
-    done_month = get_strength_done_days(user.id, dias_mes).union(get_log_done_days(user.id, dias_mes))
+    semana_str = f"{fechas_sem[0].strftime('%d/%m')} – {fechas_sem[-1].strftime('%d/%m')}"
+    month_label = center.strftime("%B %Y").capitalize()
 
-    first_day = date(center.year, center.month, 1)
-    start = start_of_week(first_day)
-    last_day = dias_mes[-1]
-    end = start_of_week(last_day) + timedelta(days=6)
-
-    month_grid: List[List[Optional[date]]] = []
-    cur = start
-    while cur <= end:
-        w: List[Optional[date]] = []
-        for _ in range(7):
-            w.append(cur if cur.month == center.month else None)
-            cur += timedelta(days=1)
-        month_grid.append(w)
-
-    month_label = first_day.strftime("%B %Y").upper()
-    rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
-
-    done_set: set[Tuple[date, int]] = set()
-    checks = AthleteCheck.query.filter(
-        AthleteCheck.user_id == user.id,
-        AthleteCheck.fecha.in_(fechas)
-    ).all()
-    for c in checks:
-        if c.done:
-            done_set.add((c.fecha, c.rutina_item_id))
-
-    logs = AthleteLog.query.filter(
-        AthleteLog.user_id == user.id,
-        AthleteLog.fecha.in_(fechas)
-    ).all()
-    log_by_day: Dict[date, AthleteLog] = {l.fecha: l for l in logs}
-
-    streak = compute_streak(user.id)
-    week_goal, week_done = week_goal_and_done(user.id, fechas, planes)
-
-    # ✅ No rompe aunque strava no exista todavía
-    strava_account = None
+    # strava account (si existe)
+    strava_account = getattr(user, "strava_account", None)
 
     return render_template(
         "perfil.html",
         user=user,
         view=view,
+        center=center,
         hoy=hoy,
         plan_hoy=plan_hoy,
-        center=center,
-        fechas=fechas,
-        planes=planes,
-        semana_str=semana_str,
+        fechas=fechas_sem,
+        planes=planes_sem,
         done_week=done_week,
-        dias_mes=dias_mes,
-        planes_mes=planes_mes,
-        done_month=done_month,
-        month_grid=month_grid,
+        semana_str=semana_str,
         month_label=month_label,
-        rutinas=rutinas,
-        done_set=done_set,
-        log_by_day=log_by_day,
-        streak=streak,
+        month_grid=month_grid,
+        planes_mes=planes_mes,
         week_goal=week_goal,
         week_done=week_done,
+        streak=streak,
         strava_account=strava_account,
     )
+
 
 @bp.route("/api/day_detail")
 @login_required
 def api_day_detail():
-    user_id = request.args.get("user_id", type=int)
+    user_id = int(request.args.get("user_id", current_user.id))
     fecha = safe_parse_ymd(request.args.get("fecha", ""), fallback=date.today())
 
-    if not user_id:
-        return jsonify({"ok": False, "error": "Falta user_id"}), 400
-    if (not is_admin()) and current_user.id != user_id:
+    if current_user.id != user_id and not getattr(current_user, "is_admin", False):
         return jsonify({"ok": False, "error": "Acceso denegado"}), 403
 
     plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
     if not plan:
-        plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso")
-        if hasattr(plan, "puede_entrenar") and getattr(plan, "puede_entrenar", None) is None:
-            plan.puede_entrenar = "si"
+        plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso", puede_entrenar="si")
         db.session.add(plan)
         db.session.commit()
 
-    payload: Dict[str, Any] = {
+    log = AthleteLog.query.filter_by(user_id=user_id, fecha=fecha).first()
+
+    payload = {
         "ok": True,
         "fecha": fecha.isoformat(),
         "plan": serialize_plan(plan),
@@ -161,158 +155,149 @@ def api_day_detail():
         "checks": [],
         "log": None,
         "tabata_url": "",
+        "is_tabata": False,
+        "tabata_cfg": None,
     }
 
-    log = AthleteLog.query.filter_by(user_id=user_id, fecha=fecha).first()
-    payload["log"] = {
-        "did_train": bool(log.did_train) if log else False,
-        "warmup_done": (log.warmup_done or "") if log else "",
-        "main_done": (log.main_done or "") if log else "",
-        "finisher_done": (log.finisher_done or "") if log else "",
-    }
+    # log
+    if log:
+        payload["log"] = {
+            "did_train": bool(log.did_train),
+            "warmup_done": log.warmup_done or "",
+            "main_done": log.main_done or "",
+            "finisher_done": log.finisher_done or "",
+        }
 
-    if plan.main and isinstance(plan.main, str) and plan.main.startswith("RUTINA:"):
-        rid_str = plan.main.split(":", 1)[1].strip()
+    # fuerza: si main empieza con RUTINA:ID
+    rid = None
+    main = (plan.main or "")
+    if isinstance(main, str) and main.startswith("RUTINA:"):
+        rid_str = main.split(":", 1)[1].strip()
         if rid_str.isdigit():
             rid = int(rid_str)
-            r = Rutina.query.get(rid)
-            if r:
-                items = _rutina_items_query(rid).all()
-                payload["rutina"] = serialize_rutina(r)
 
-                if is_tabata_routine(r):
-                    payload["tabata_url"] = url_for("main.rutina_tabata_player", rutina_id=r.id)
+    if rid:
+        r = Rutina.query.get(rid)
+        if r:
+            payload["rutina"] = {"id": r.id, "nombre": r.nombre, "tipo": r.tipo or ""}
 
-                out_items = []
-                for it in items:
-                    out_items.append({
-                        "id": it.id,
-                        "nombre": it.nombre,
-                        "series": getattr(it, "series", "") or "",
-                        "reps": getattr(it, "reps", "") or "",
-                        "peso": getattr(it, "peso", "") or "",
-                        "descanso": getattr(it, "descanso", "") or "",
-                        "video_url": normalize_item_video_url(getattr(it, "video_url", "")),
-                        "video_src": build_video_src(getattr(it, "video_url", "")),
-                        "nota": getattr(it, "nota", "") or "",
-                    })
-                payload["items"] = out_items
+            items = _rutina_items_query(r.id).all()
+            out_items = []
+            for it in items:
+                out_items.append({
+                    "id": it.id,
+                    "nombre": it.nombre,
+                    "series": it.series or "",
+                    "reps": it.reps or "",
+                    "peso": it.peso or "",
+                    "descanso": it.descanso or "",
+                    "nota": it.nota or "",
+                    "video_src": build_video_src(getattr(it, "video_url", "")),
+                    "video_url": normalize_item_video_url(getattr(it, "video_url", "")),
+                })
+            payload["items"] = out_items
 
-                checks = AthleteCheck.query.filter(
-                    AthleteCheck.user_id == user_id,
-                    AthleteCheck.fecha == fecha,
-                    AthleteCheck.rutina_item_id.in_([it.id for it in items]) if items else [0]
-                ).all()
-                done_ids = {c.rutina_item_id for c in checks if c.done}
-                payload["checks"] = list(done_ids)
+            checks = AthleteCheck.query.filter(
+                AthleteCheck.user_id == user_id,
+                AthleteCheck.fecha == fecha,
+                AthleteCheck.rutina_item_id.in_([it.id for it in items]) if items else [0]
+            ).all()
+            payload["checks"] = [c.rutina_item_id for c in checks if c.done]
+
+            # ✅ TABATA cfg desde DB
+            if is_tabata_routine(r):
+                payload["tabata_url"] = url_for("main.rutina_tabata_player", rutina_id=r.id)
+                payload["is_tabata"] = True
+                cfg = None
+                try:
+                    raw = (getattr(r, "tabata_preset", None) or "").strip()
+                    cfg = json.loads(raw) if raw else None
+                except Exception:
+                    cfg = None
+
+                if not cfg:
+                    cfg = {
+                        "work": 40, "rest": 20,
+                        "rounds": max(1, len(out_items)),
+                        "sets": 1,
+                        "rest_between_sets": 60,
+                        "finisher_rest": 60,
+                        "count_in": 3
+                    }
+                payload["tabata_cfg"] = cfg
 
     return jsonify(payload)
+
 
 @bp.route("/athlete/check_item", methods=["POST"])
 @login_required
 def athlete_check_item():
-    try:
-        user_id = request.form.get("user_id", type=int)
-        fecha = safe_parse_ymd(request.form.get("fecha", ""), fallback=date.today())
-        item_id = request.form.get("item_id", type=int)
-        done = request.form.get("done", "1") in ("1", "true", "True", "on")
+    user_id = int(request.form.get("user_id", current_user.id))
+    fecha = safe_parse_ymd(request.form.get("fecha", ""), fallback=date.today())
+    item_id = int(request.form.get("item_id", 0))
+    done = request.form.get("done", "0") in ("1", "true", "True", "on")
 
-        if not user_id or not item_id:
-            return jsonify({"ok": False, "error": "Faltan datos"}), 400
-        if (not is_admin()) and current_user.id != user_id:
-            return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+    if current_user.id != user_id and not getattr(current_user, "is_admin", False):
+        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+    if item_id <= 0:
+        return jsonify({"ok": False, "error": "item_id inválido"}), 400
 
-        item = RutinaItem.query.get_or_404(item_id)
+    chk = AthleteCheck.query.filter_by(user_id=user_id, fecha=fecha, rutina_item_id=item_id).first()
+    if not chk:
+        chk = AthleteCheck(user_id=user_id, fecha=fecha, rutina_item_id=item_id, done=done)
+        db.session.add(chk)
+    else:
+        chk.done = done
+        chk.updated_at = datetime.utcnow()
 
-        existing = AthleteCheck.query.filter_by(
-            user_id=user_id, fecha=fecha, rutina_item_id=item.id
-        ).first()
+    db.session.commit()
+    return jsonify({"ok": True})
 
-        if existing:
-            existing.done = done
-            if hasattr(existing, "updated_at"):
-                existing.updated_at = datetime.utcnow()
-        else:
-            row = AthleteCheck(
-                user_id=user_id,
-                fecha=fecha,
-                rutina_item_id=item.id,
-                done=done
-            )
-            if hasattr(row, "updated_at"):
-                row.updated_at = datetime.utcnow()
-            db.session.add(row)
-
-        db.session.commit()
-        return jsonify({"ok": True})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"ok": False, "error": str(e)}), 500
 
 @bp.route("/athlete/save_log", methods=["POST"])
 @login_required
 def athlete_save_log():
-    try:
-        data = request.get_json(silent=True) or {}
-        user_id = int(data.get("user_id"))
-        fecha = safe_parse_ymd(data.get("fecha", ""), fallback=date.today())
+    data = request.get_json(force=True, silent=True) or {}
+    user_id = int(data.get("user_id", current_user.id))
+    fecha = safe_parse_ymd(str(data.get("fecha", "")), fallback=date.today())
 
-        if (not is_admin()) and current_user.id != user_id:
-            return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+    if current_user.id != user_id and not getattr(current_user, "is_admin", False):
+        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
 
-        log = AthleteLog.query.filter_by(user_id=user_id, fecha=fecha).first()
-        if not log:
-            log = AthleteLog(user_id=user_id, fecha=fecha)
-            db.session.add(log)
+    log = AthleteLog.query.filter_by(user_id=user_id, fecha=fecha).first()
+    if not log:
+        log = AthleteLog(user_id=user_id, fecha=fecha)
+        db.session.add(log)
 
-        log.did_train = bool(data.get("did_train", False))
-        log.warmup_done = (data.get("warmup_done") or "").strip()
-        log.main_done = (data.get("main_done") or "").strip()
-        log.finisher_done = (data.get("finisher_done") or "").strip()
-        if hasattr(log, "updated_at"):
-            log.updated_at = datetime.utcnow()
+    log.did_train = bool(data.get("did_train", False))
+    log.warmup_done = (data.get("warmup_done") or "")
+    log.main_done = (data.get("main_done") or "")
+    log.finisher_done = (data.get("finisher_done") or "")
+    log.updated_at = datetime.utcnow()
 
-        db.session.commit()
-        return jsonify({"ok": True})
+    db.session.commit()
+    return jsonify({"ok": True})
 
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"ok": False, "error": str(e)}), 500
 
 @bp.route("/athlete/save_availability", methods=["POST"])
 @login_required
 def athlete_save_availability():
-    try:
-        data = request.get_json(silent=True) or {}
-        user_id = int(data.get("user_id") or 0)
-        fecha = safe_parse_ymd(data.get("fecha", ""), fallback=date.today())
-        no_puedo = bool(data.get("no_puedo", False))
-        comentario = (data.get("comentario") or "").strip()
+    data = request.get_json(force=True, silent=True) or {}
+    user_id = int(data.get("user_id", current_user.id))
+    fecha = safe_parse_ymd(str(data.get("fecha", "")), fallback=date.today())
+    no_puedo = bool(data.get("no_puedo", False))
+    comentario = (data.get("comentario") or "").strip()
 
-        if not user_id:
-            return jsonify({"ok": False, "error": "Falta user_id"}), 400
-        if (not is_admin()) and current_user.id != user_id:
-            return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+    if current_user.id != user_id and not getattr(current_user, "is_admin", False):
+        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
 
-        plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
-        if not plan:
-            plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso")
-            db.session.add(plan)
+    plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
+    if not plan:
+        plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso", puede_entrenar="si")
+        db.session.add(plan)
 
-        if not hasattr(plan, "puede_entrenar") or not hasattr(plan, "comentario_atleta"):
-            db.session.rollback()
-            return jsonify({
-                "ok": False,
-                "error": "Faltan columnas en DiaPlan: puede_entrenar / comentario_atleta."
-            }), 500
+    plan.puede_entrenar = "no" if no_puedo else "si"
+    plan.comentario_atleta = comentario
+    db.session.commit()
 
-        plan.puede_entrenar = "no" if no_puedo else "si"
-        plan.comentario_atleta = comentario
-
-        db.session.commit()
-        return jsonify({"ok": True})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify({"ok": True})

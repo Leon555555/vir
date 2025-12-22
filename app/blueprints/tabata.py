@@ -2,17 +2,14 @@
 from __future__ import annotations
 
 import json
-from flask import render_template, request, redirect, url_for, flash, session
+from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
+from app.extensions import db
 from app.models import Rutina
 from . import bp
-from ._shared import (
-    is_admin,
-    _rutina_items_query,
-    build_video_src,
-    normalize_item_video_url,
-)
+from ._shared import is_admin, _rutina_items_query, build_video_src, normalize_item_video_url
+
 
 def _int(v, default: int) -> int:
     try:
@@ -20,11 +17,16 @@ def _int(v, default: int) -> int:
     except Exception:
         return default
 
-def _int_arg(name: str, default: int) -> int:
-    return _int(request.args.get(name, default), default)
 
-def _session_key(rutina_id: int) -> str:
-    return f"tabata_preset:{rutina_id}"
+def _preset_from_rutina(rutina: Rutina) -> dict:
+    raw = (getattr(rutina, "tabata_preset", None) or "").strip()
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {}
+
 
 @bp.route("/rutinas/<int:rutina_id>/tabata")
 @login_required
@@ -46,16 +48,17 @@ def rutina_tabata_player(rutina_id: int):
             "nota": getattr(it, "nota", "") or "",
         })
 
-    preset = session.get(_session_key(rutina_id)) or {}
+    preset = _preset_from_rutina(rutina)
 
+    # defaults + preset
     cfg = {
-        "work": _int_arg("work", _int(preset.get("work", 40), 40)),
-        "rest": _int_arg("rest", _int(preset.get("rest", 20), 20)),
-        "rounds": _int_arg("rounds", _int(preset.get("rounds", max(1, len(player_items))), max(1, len(player_items)))),
-        "sets": _int_arg("sets", _int(preset.get("sets", 1), 1)),
-        "rest_between_sets": _int_arg("rest_between_sets", _int(preset.get("rest_between_sets", 60), 60)),
-        "finisher_rest": _int_arg("finisher_rest", _int(preset.get("finisher_rest", 60), 60)),
-        "count_in": _int_arg("count_in", _int(preset.get("count_in", 5), 5)),
+        "work": _int(preset.get("work", 40), 40),
+        "rest": _int(preset.get("rest", 20), 20),
+        "rounds": _int(preset.get("rounds", max(1, len(player_items))), max(1, len(player_items))),
+        "sets": _int(preset.get("sets", 1), 1),
+        "rest_between_sets": _int(preset.get("rest_between_sets", 60), 60),
+        "finisher_rest": _int(preset.get("finisher_rest", 60), 60),
+        "count_in": _int(preset.get("count_in", 3), 3),
     }
 
     if player_items and cfg["rounds"] > len(player_items):
@@ -70,7 +73,7 @@ def rutina_tabata_player(rutina_id: int):
         tabata_cfg_json=json.dumps(cfg, ensure_ascii=False),
     )
 
-# ✅ ENDPOINT QUE TU rutina_builder.html PIDE
+
 @bp.route("/rutinas/<int:rutina_id>/tabata/settings/save", methods=["POST"])
 @login_required
 def rutina_tabata_settings_save(rutina_id: int):
@@ -78,23 +81,23 @@ def rutina_tabata_settings_save(rutina_id: int):
         flash("Solo admin puede guardar preset TABATA", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
-    work = _int(request.form.get("work"), 40)
-    rest = _int(request.form.get("rest"), 20)
-    rounds = _int(request.form.get("rounds"), 10)
-    finisher_rest = _int(request.form.get("recovery"), 60)
+    rutina = Rutina.query.get_or_404(rutina_id)
 
+    # tu builder manda: work, rest, rounds, recovery
     preset = {
-        "work": work,
-        "rest": rest,
-        "rounds": rounds,
-        "sets": 1,
-        "rest_between_sets": 60,
-        "finisher_rest": finisher_rest,
-        "count_in": 5,
+        "work": _int(request.form.get("work"), 40),
+        "rest": _int(request.form.get("rest"), 20),
+        "rounds": _int(request.form.get("rounds"), 10),
+        "finisher_rest": _int(request.form.get("recovery"), 60),
+
+        # opcionales (si después los agregás al builder)
+        "sets": _int(request.form.get("sets"), 1),
+        "rest_between_sets": _int(request.form.get("rest_between_sets"), 60),
+        "count_in": _int(request.form.get("count_in"), 3),
     }
 
-    session[_session_key(rutina_id)] = preset
-    session.modified = True
+    rutina.tabata_preset = json.dumps(preset, ensure_ascii=False)
+    db.session.commit()
 
     flash("✅ Preset TABATA guardado", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina_id))

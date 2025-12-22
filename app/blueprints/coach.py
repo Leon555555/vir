@@ -41,7 +41,7 @@ def dashboard_entrenador():
 def admin_nuevo_atleta():
     if not is_admin():
         flash("Solo admin", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     nombre = (request.form.get("nombre") or "").strip()
     email = (request.form.get("email") or "").strip().lower()
@@ -50,11 +50,11 @@ def admin_nuevo_atleta():
 
     if not nombre or not email or not password:
         flash("Faltan datos (nombre/email/password)", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     if User.query.filter_by(email=email).first():
         flash("Ese email ya existe", "warning")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     u = User(nombre=nombre, email=email, grupo=grupo, is_admin=False)
     u.set_password(password)
@@ -63,7 +63,7 @@ def admin_nuevo_atleta():
     db.session.commit()
 
     flash("✅ Atleta creado", "success")
-    return redirect(url_for("main.dashboard_entrenador"))
+    return redirect(url_for("coach.dashboard_entrenador"))
 
 
 @bp.route("/crear_rutina", methods=["POST"])
@@ -71,7 +71,7 @@ def admin_nuevo_atleta():
 def crear_rutina():
     if not is_admin():
         flash("Solo el admin puede crear rutinas", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     nombre = (request.form.get("nombre") or "").strip()
     tipo = (request.form.get("tipo") or "").strip()
@@ -79,14 +79,14 @@ def crear_rutina():
 
     if not nombre:
         flash("El nombre es obligatorio", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     nueva = Rutina(nombre=nombre, tipo=tipo, descripcion=descripcion, created_by=current_user.id)
     db.session.add(nueva)
     db.session.commit()
 
     flash("✅ Rutina creada", "success")
-    return redirect(url_for("main.dashboard_entrenador"))
+    return redirect(url_for("coach.dashboard_entrenador"))
 
 
 @bp.route("/admin/ejercicios/nuevo", methods=["POST"])
@@ -94,7 +94,7 @@ def crear_rutina():
 def admin_nuevo_ejercicio():
     if not is_admin():
         flash("Solo el admin puede crear ejercicios", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     nombre = (request.form.get("nombre") or "").strip()
     categoria = (request.form.get("categoria") or "").strip()
@@ -105,14 +105,14 @@ def admin_nuevo_ejercicio():
 
     if not nombre:
         flash("Falta el nombre del ejercicio", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     video_filename = ""
 
     if selected:
         if selected not in list_repo_videos():
             flash("Ese archivo no existe en /static/videos (subilo al repo primero).", "danger")
-            return redirect(url_for("main.dashboard_entrenador"))
+            return redirect(url_for("coach.dashboard_entrenador"))
         video_filename = selected
 
     elif file and file.filename:
@@ -121,10 +121,10 @@ def admin_nuevo_ejercicio():
             flash("⚠️ Video subido al server (Render gratis puede perderse). Ideal: seleccionar existente.", "warning")
         except Exception as e:
             flash(f"Error subiendo video: {e}", "danger")
-            return redirect(url_for("main.dashboard_entrenador"))
+            return redirect(url_for("coach.dashboard_entrenador"))
     else:
         flash("Falta video: seleccioná uno existente o subí uno (local).", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     ejercicio = Ejercicio(
         nombre=nombre,
@@ -136,7 +136,7 @@ def admin_nuevo_ejercicio():
     db.session.commit()
 
     flash("✅ Ejercicio creado en el banco", "success")
-    return redirect(url_for("main.dashboard_entrenador"))
+    return redirect(url_for("coach.dashboard_entrenador"))
 
 
 @bp.route("/coach/planificador")
@@ -190,9 +190,10 @@ def save_day():
         plan = DiaPlan(user_id=user_id, fecha=fecha)
         db.session.add(plan)
 
-    if hasattr(plan, "puede_entrenar") and (getattr(plan, "puede_entrenar", "si") == "no"):
+    # Si atleta bloqueó el día
+    if getattr(plan, "puede_entrenar", "si") == "no":
         flash("🚫 El atleta marcó este día como 'No puedo entrenar'.", "warning")
-        return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
+        return redirect(url_for("coach.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
     plan_type = (request.form.get("plan_type") or "Descanso").strip()
     plan.plan_type = plan_type
@@ -214,21 +215,21 @@ def save_day():
 
     db.session.commit()
     flash("✅ Día guardado", "success")
-    return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
+    return redirect(url_for("coach.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
 
 @bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required
 def admin_delete_user(user_id: int):
-    from app.models import AthleteLog, AthleteCheck  # evita imports cruzados
+    from app.models import AthleteLog, AthleteCheck
     if not is_admin():
         flash("Acceso denegado", "danger")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     user = User.query.get_or_404(user_id)
     if user.email == "admin@vir.app":
         flash("No se puede eliminar admin", "warning")
-        return redirect(url_for("main.dashboard_entrenador"))
+        return redirect(url_for("coach.dashboard_entrenador"))
 
     DiaPlan.query.filter_by(user_id=user.id).delete()
     AthleteLog.query.filter_by(user_id=user.id).delete()
@@ -238,4 +239,4 @@ def admin_delete_user(user_id: int):
     db.session.commit()
 
     flash("✅ Atleta eliminado", "success")
-    return redirect(url_for("main.dashboard_entrenador"))
+    return redirect(url_for("coach.dashboard_entrenador"))

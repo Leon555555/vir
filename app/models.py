@@ -6,6 +6,12 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
 
+# JSONB para Postgres (si no existe, fallback a Text)
+try:
+    from sqlalchemy.dialects.postgresql import JSONB
+except Exception:
+    JSONB = None
+
 
 # -------------------------------------------------------------
 # STRAVA / INTEGRATIONS
@@ -17,7 +23,6 @@ class IntegrationAccount(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     provider = db.Column(db.String(40), nullable=False, index=True)  # "strava"
-
     external_user_id = db.Column(db.String(80), nullable=True)
 
     access_token = db.Column(db.Text, nullable=True)
@@ -25,7 +30,7 @@ class IntegrationAccount(db.Model):
     expires_at = db.Column(db.Integer, nullable=True, default=0)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "provider", name="uq_integration_user_provider"),
@@ -48,12 +53,10 @@ class User(db.Model, UserMixin):
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    # relaciones
     dias_plan = db.relationship("DiaPlan", backref="user", lazy=True, cascade="all, delete-orphan")
     athlete_logs = db.relationship("AthleteLog", backref="user", lazy=True, cascade="all, delete-orphan")
     athlete_checks = db.relationship("AthleteCheck", backref="user", lazy=True, cascade="all, delete-orphan")
 
-    # Integraciones (Strava)
     integration_accounts = db.relationship(
         "IntegrationAccount",
         backref="user",
@@ -150,8 +153,11 @@ class Rutina(db.Model):
     descripcion = db.Column(db.String(255), nullable=True)
     created_by = db.Column(db.Integer, nullable=True)
 
-    # ✅ NUEVO: preset tabata persistido por rutina (JSON en texto)
-    tabata_preset = db.Column(db.Text, nullable=True)
+    # ✅ TABATA preset: {"work":40,"rest":20,"rounds":8,"sets":1,"count_in":3,"rest_between_sets":60,"finisher_rest":60}
+    if JSONB is not None:
+        tabata_preset = db.Column(JSONB, nullable=True)
+    else:
+        tabata_preset = db.Column(db.Text, nullable=True)
 
     items = db.relationship("RutinaItem", backref="rutina", lazy=True, cascade="all, delete-orphan")
 

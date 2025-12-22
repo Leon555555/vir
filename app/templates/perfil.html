@@ -3,7 +3,6 @@
 
 {% block content %}
 <div class="container mt-4">
-
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div class="d-flex align-items-center gap-3">
@@ -15,13 +14,11 @@
         <h2 class="text-light mb-0">{{ user.nombre }}</h2>
         <div class="text-muted">{{ user.email }}</div>
 
-        <!-- STRAVA -->
         <div class="mt-2">
           {% if strava_account %}
             <span class="badge bg-success">🟠 Strava conectado</span>
           {% else %}
-            <a href="{{ url_for('strava.connect') }}"
-               class="btn btn-sm btn-outline-warning">
+            <a href="{{ url_for('strava.connect') }}" class="btn btn-sm btn-outline-warning">
               🔗 Conectar con Strava
             </a>
           {% endif %}
@@ -60,7 +57,6 @@
        href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">Progreso</a>
   </div>
 
-  <!-- TODAY -->
   {% if view == 'today' %}
     <div class="card glass p-3 p-md-4">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
@@ -87,7 +83,6 @@
     </div>
   {% endif %}
 
-  <!-- WEEK -->
   {% if view == 'week' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
@@ -134,7 +129,6 @@
     </div>
   {% endif %}
 
-  <!-- MONTH -->
   {% if view == 'month' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
@@ -173,7 +167,6 @@
     </div>
   {% endif %}
 
-  <!-- PROGRESS -->
   {% if view == 'progress' %}
     <div class="card glass p-3 p-md-4">
       <div class="mb-2">
@@ -226,7 +219,6 @@
       <div class="modal-body">
         <div class="row g-3">
 
-          <!-- IZQ: PLAN -->
           <div class="col-lg-5">
             <div class="card glass p-3 h-100">
               <div class="fw-bold mb-2">Plan</div>
@@ -246,7 +238,6 @@
                 <div class="plan-v" id="planFinisher">—</div>
               </div>
 
-              <!-- ✅ BLOQUEO ATLETA -->
               <div class="mt-3 glass p-3" style="border-radius:16px;">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div class="mini-title">DISPONIBILIDAD</div>
@@ -273,7 +264,6 @@
             </div>
           </div>
 
-          <!-- DER: FUERZA + LOG -->
           <div class="col-lg-7">
             <div class="card glass p-3">
               <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
@@ -285,7 +275,7 @@
                 </div>
               </div>
 
-              <!-- ✅ TABATA BLOCK (solo aparece si la rutina es tabata) -->
+              <!-- TABATA -->
               <div id="tabataBlock" class="glass p-3 mb-3" style="border-radius:18px; display:none;">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <div>
@@ -358,100 +348,32 @@
 
 {% block extra_css %}
 <style>
-.day-modal{
-  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
-  color: rgba(255,255,255,.92);
-}
+.day-modal{ background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important; color: rgba(255,255,255,.92);}
 .day-modal .modal-body{ background: transparent; }
 
-.plan-row{
-  padding: 12px 10px;
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 16px;
-  background: rgba(255,255,255,.03);
-  margin-bottom: 10px;
-}
-.plan-k{
-  font-weight: 900;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.78);
-  font-size: .82rem;
-}
+.plan-row{ padding: 12px 10px; border: 1px solid rgba(255,255,255,.10); border-radius: 16px; background: rgba(255,255,255,.03); margin-bottom: 10px;}
+.plan-k{ font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.78); font-size: .82rem;}
 .plan-k-small{ font-size:.72rem; opacity:.78; }
-.plan-v{
-  margin-top: 6px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: rgba(255,255,255,.94);
-}
+.plan-v{ margin-top: 6px; font-size: 1.05rem; font-weight: 700; color: rgba(255,255,255,.94); }
 
-.exercise-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
-  overflow:hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-}
-.exercise-head{
-  padding: 10px 12px;
-  display:flex;
-  justify-content: space-between;
-  align-items:flex-start;
-  gap:10px;
-}
-.exercise-name{
-  font-weight: 900;
-  font-size: 1.02rem;
-  color: rgba(255,255,255,.96);
-}
-.exercise-meta{
-  font-size:.92rem;
-  color: rgba(255,255,255,.80);
-}
-.exercise-video{
-  padding: 10px 12px 12px;
-}
-.exercise-video video{
-  width:100%;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(0,0,0,.35);
-  min-height: 220px;
-  object-fit: cover;
-}
+.exercise-card{ border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.03); border-radius: 18px; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,.35);}
+.exercise-head{ padding: 10px 12px; display:flex; justify-content: space-between; align-items:flex-start; gap:10px;}
+.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
+.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); }
+.exercise-video{ padding: 10px 12px 12px; }
+.exercise-video video{ width:100%; border-radius: 16px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.35); min-height: 220px; object-fit: cover; }
 
-.done-pill{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.done-pill .form-check-label{
-  color: rgba(255,255,255,.70);
-  font-weight: 800;
-}
+.done-pill{ display:flex; align-items:center; gap:8px;}
+.done-pill .form-check-label{ color: rgba(255,255,255,.70); font-weight: 800; }
 
-/* Month visible */
 .month-head{ color: rgba(255,255,255,.72) !important; }
 .month-cell{ background: rgba(0,0,0,.42) !important; }
 .month-cell .daynum{ color: rgba(255,255,255,.92) !important; }
 
-/* ✅ rojo cuando atleta bloquea */
-.month-cell.blocked{
-  background: rgba(255, 59, 48, 0.18) !important;
-  border: 1px solid rgba(255, 59, 48, 0.55) !important;
-  box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset;
-}
-.month-cell.blocked .daynum{
-  color: rgba(255,255,255,.95) !important;
-}
+.month-cell.blocked{ background: rgba(255, 59, 48, 0.18) !important; border: 1px solid rgba(255, 59, 48, 0.55) !important; box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset; }
+.month-cell.blocked .daynum{ color: rgba(255,255,255,.95) !important; }
 
-/* Letras progreso */
-.vr-days span{
-  color: rgba(255,255,255,.78);
-  font-weight: 900;
-  letter-spacing:.08em;
-}
+.vr-days span{ color: rgba(255,255,255,.78); font-weight: 900; letter-spacing:.08em;}
 </style>
 {% endblock %}
 
@@ -461,6 +383,11 @@ let DAY_MODAL = null;
 let CURRENT_DAY = null;
 let CURRENT_USER = {{ user.id }};
 let CURRENT_ITEMS = [];
+
+// Seguridad: si bootstrap no existe, que explote claro
+if(typeof bootstrap === "undefined"){
+  console.error("Bootstrap JS no está cargado. Revisá layout.html");
+}
 
 /* =========================
    TABATA PLAYER
@@ -703,6 +630,11 @@ function setAvailUI(puede, comentario){
 
 function openDay(isoDate){
   CURRENT_DAY = isoDate;
+
+  if(typeof bootstrap === "undefined"){
+    alert("Bootstrap JS no cargó. Revisá layout.html (bootstrap.bundle.min.js).");
+    return;
+  }
   if(!DAY_MODAL){
     DAY_MODAL = new bootstrap.Modal(document.getElementById("dayModal"));
   }
@@ -715,7 +647,6 @@ function openDay(isoDate){
 
   tabataStop();
   document.getElementById("tabataBlock").style.display = "none";
-
   setAvailUI("si", "");
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
@@ -742,7 +673,6 @@ function openDay(isoDate){
       const doneIds = new Set(Array.isArray(data.checks) ? data.checks : []);
       renderStrength(CURRENT_ITEMS, doneIds);
 
-      // ✅ TABATA auto
       const tabBlock = document.getElementById("tabataBlock");
       if(data.is_tabata && data.tabata_cfg && Array.isArray(data.items) && data.items.length){
         tabBlock.style.display = "";
@@ -822,13 +752,8 @@ function toggleItem(itemId, done){
 
   fetch("/athlete/check_item", { method:"POST", body: form })
     .then(r => r.json())
-    .then(j => {
-      if(!j.ok) throw new Error(j.error || "Error");
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Error guardando check: " + err.message);
-    });
+    .then(j => { if(!j.ok) throw new Error(j.error || "Error"); })
+    .catch(err => { console.error(err); alert("Error guardando check: " + err.message); });
 }
 
 function saveLog(){
@@ -847,26 +772,15 @@ function saveLog(){
     body: JSON.stringify(payload)
   })
   .then(r => r.json())
-  .then(j => {
-    if(!j.ok) throw new Error(j.error || "Error");
-    alert("✅ Guardado");
-  })
-  .catch(err => {
-    console.error(err);
-    alert("Error guardando: " + err.message);
-  });
+  .then(j => { if(!j.ok) throw new Error(j.error || "Error"); alert("✅ Guardado"); })
+  .catch(err => { console.error(err); alert("Error guardando: " + err.message); });
 }
 
 async function saveAvailability(){
   const noPuedo = document.getElementById("noPuedoToggle").checked;
   const comentario = document.getElementById("noPuedoText").value || "";
 
-  const payload = {
-    user_id: CURRENT_USER,
-    fecha: CURRENT_DAY,
-    no_puedo: noPuedo,
-    comentario: comentario
-  };
+  const payload = { user_id: CURRENT_USER, fecha: CURRENT_DAY, no_puedo: noPuedo, comentario };
 
   try{
     const res = await fetch("/athlete/save_availability", {
@@ -879,7 +793,7 @@ async function saveAvailability(){
 
     setAvailUI(noPuedo ? "no" : "si", comentario);
 
-    const cell = document.querySelector(\`.month-cell[data-date="\${CSS.escape(CURRENT_DAY)}"]\`);
+    const cell = document.querySelector(`.month-cell[data-date="${CSS.escape(CURRENT_DAY)}"]`);
     if(cell){
       if(noPuedo) cell.classList.add("blocked");
       else cell.classList.remove("blocked");
@@ -900,10 +814,7 @@ async function genSessionScript(){
     const res = await fetch("/ai/session_script", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        user_id: CURRENT_USER,
-        fecha: CURRENT_DAY
-      })
+      body: JSON.stringify({ user_id: CURRENT_USER, fecha: CURRENT_DAY })
     });
     const data = await res.json();
     if(!data.ok) throw new Error(data.error || "Error");
@@ -918,7 +829,7 @@ function escapeHtml(s){
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
     .replaceAll(">","&gt;")
-    .replaceAll('"',"quot;")
+    .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
 </script>

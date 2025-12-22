@@ -15,16 +15,18 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
 
   <!-- Tu CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}?v=901" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}?v=902" />
 
   {% block extra_css %}{% endblock %}
 </head>
 
-<body class="bg-black text-light">
+<!-- ✅ CLAVE: vr-body para que apliquen tus estilos -->
+<body class="vr-body bg-black text-light">
 
-  <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-secondary">
+  <!-- ✅ CLAVE: vr-navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-secondary vr-navbar">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('main.index') }}">
+      <a class="navbar-brand d-flex align-items-center gap-2 vr-brand" href="{{ url_for('main.index') }}">
         <img src="{{ url_for('static', filename='logo_blanco_vr_training.png') }}" alt="VR Training" style="height:28px;">
         <span style="font-weight:900; letter-spacing:.08em;">VR TRAINING</span>
       </a>
@@ -49,14 +51,15 @@
     </div>
   </nav>
 
-  <main class="py-3">
+  <!-- ✅ CLAVE: vr-main -->
+  <main class="py-3 vr-main">
     <div class="container">
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           <div class="mb-3">
             {% for category, msg in messages %}
-              <div class="alert alert-{{ category }} mb-2">{{ msg }}</div>
+              <div class="alert alert-{{ category }} mb-2 vr-alert">{{ msg }}</div>
             {% endfor %}
           </div>
         {% endif %}
@@ -67,7 +70,7 @@
     </div>
   </main>
 
-  <!-- Bootstrap JS (BUNDLE = incluye Popper + modal funciona) -->
+  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   {% block extra_js %}{% endblock %}

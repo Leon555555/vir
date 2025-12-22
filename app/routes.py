@@ -10,7 +10,6 @@ from flask import (
     flash, request, jsonify
 )
 from flask_login import login_user, logout_user, login_required, current_user
-from sqlalchemy import and_
 
 from app.extensions import db
 from app.models import (
@@ -42,15 +41,13 @@ def safe_parse_ymd(s: str, fallback: date | None = None) -> date:
 
 def month_grid(year: int, month: int) -> List[List[date | None]]:
     first_wd, days_in_month = monthrange(year, month)  # 0=lunes
-    # Alineamos a lunes
     day = 1
     grid: List[List[date | None]] = []
     week: List[date | None] = [None] * 7
 
-    # llenar offset
     col = first_wd
-    for _ in range(col):
-        week[_] = None
+    for i in range(col):
+        week[i] = None
 
     while day <= days_in_month:
         for c in range(col, 7):
@@ -114,10 +111,9 @@ def logout():
 @main_bp.route("/perfil")
 @login_required
 def perfil_redirect():
-    # Admin va al panel (si tu layout tiene panel)
+    # ✅ FIX a prueba de blueprint: redirigir por URL (no por endpoint)
     if admin_ok():
-        # tu coach blueprint expone /coach/dashboard
-        return redirect(url_for("coach.dashboard_entrenador"))
+        return redirect("/coach/dashboard")
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id, view="today"))
 
 
@@ -149,7 +145,7 @@ def perfil_usuario(user_id: int):
 
     # Objetivos
     week_goal = 5
-    # Semana actual
+
     fechas_semana = week_dates(hoy)
     done_week = set()
     logs_week = AthleteLog.query.filter(
@@ -162,9 +158,8 @@ def perfil_usuario(user_id: int):
         done_week.add(l.fecha)
 
     week_done = len(done_week)
-    streak = week_done  # simple (si querés, lo hacemos real luego)
+    streak = week_done  # simple
 
-    # Plan hoy
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
         plan_hoy = DiaPlan(user_id=user.id, fecha=hoy, plan_type="Descanso")
@@ -178,7 +173,6 @@ def perfil_usuario(user_id: int):
     if view == "week":
         fechas = week_dates(center)
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
-        # asegurar planes
         existing = DiaPlan.query.filter(
             DiaPlan.user_id == user.id,
             DiaPlan.fecha >= fechas[0],
@@ -202,7 +196,6 @@ def perfil_usuario(user_id: int):
         month_label = center.strftime("%B %Y").capitalize()
         grid = month_grid(y, m)
 
-        # fetch all plans in month
         start = date(y, m, 1)
         end = date(y, m, monthrange(y, m)[1])
         month_plans = DiaPlan.query.filter(
@@ -212,7 +205,6 @@ def perfil_usuario(user_id: int):
         ).all()
         planes_mes = {p.fecha: p for p in month_plans}
 
-        # asegurar planes
         for week in grid:
             for d in week:
                 if d and d not in planes_mes:
@@ -247,7 +239,7 @@ def perfil_usuario(user_id: int):
 
 
 # -------------------------------------------------------------
-# API: DAY DETAIL (ESTO HACE FUNCIONAR "Empezar" / "Ver detalle")
+# API: DAY DETAIL
 # -------------------------------------------------------------
 @main_bp.route("/api/day_detail")
 @login_required
@@ -269,26 +261,21 @@ def api_day_detail():
         db.session.add(plan)
         db.session.commit()
 
-    # log
     log = AthleteLog.query.filter_by(user_id=user_id, fecha=fecha).first()
     if not log:
         log = AthleteLog(user_id=user_id, fecha=fecha, did_train=False)
         db.session.add(log)
         db.session.commit()
 
-    # checks
     checks = AthleteCheck.query.filter_by(user_id=user_id, fecha=fecha, done=True).all()
     done_ids = [c.rutina_item_id for c in checks]
 
-    # Rutina/items
     rutina = None
     items_payload: List[Dict[str, Any]] = []
     is_tabata = False
     tabata_cfg = None
 
-    # Tu convención: cuando plan_type == fuerza y plan.main tiene "rutina id" o nombre
     if (plan.plan_type or "").lower() == "fuerza":
-        # si plan.main guarda un ID numérico
         rid = None
         try:
             rid = int((plan.main or "").strip())
@@ -298,12 +285,10 @@ def api_day_detail():
         if rid:
             rutina = Rutina.query.get(rid)
         else:
-            # fallback por nombre exacto
             if plan.main:
                 rutina = Rutina.query.filter(Rutina.nombre == plan.main).first()
 
         if rutina:
-            # Tabata: por tipo o por preset
             preset = getattr(rutina, "tabata_preset", None)
             if preset:
                 is_tabata = True
@@ -316,10 +301,8 @@ def api_day_detail():
             )
             for it in ritems:
                 video_src = ""
-                # 1) si el item tiene video_url directo
                 if it.video_url:
                     video_src = it.video_url
-                # 2) si tiene ejercicio vinculado con filename
                 elif it.ejercicio and it.ejercicio.video_filename:
                     video_src = url_for("static", filename=f"videos/{it.ejercicio.video_filename}")
 
@@ -423,7 +406,7 @@ def athlete_save_log():
 
 
 # -------------------------------------------------------------
-# ATHLETE: SAVE AVAILABILITY (bloqueo día)
+# ATHLETE: SAVE AVAILABILITY
 # -------------------------------------------------------------
 @main_bp.route("/athlete/save_availability", methods=["POST"])
 @login_required

@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 from flask import Blueprint, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
-strava_bp = Blueprint("strava", __name__)
+strava_bp = Blueprint("strava", __name__, url_prefix="/strava")
 
 @strava_bp.route("/connect")
 @login_required
@@ -36,6 +36,5 @@ def callback():
         flash("Strava: no llegó el code.", "danger")
         return redirect(url_for("main.perfil_usuario", user_id=current_user.id))
 
-    # ✅ Stub: no guardamos tokens todavía (pero no rompe)
     flash("✅ Strava callback recibido (pendiente guardar tokens).", "success")
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id))

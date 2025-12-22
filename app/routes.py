@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 
 import requests
 from werkzeug.utils import secure_filename
+from sqlalchemy import text
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
@@ -26,7 +27,6 @@ from app.models import (
 # BLUEPRINTS
 # =============================================================
 main_bp = Blueprint("main", __name__)
-# IMPORTANTE: url_prefix para que /strava/connect y /strava/callback existan
 strava_bp = Blueprint("strava", __name__, url_prefix="/strava")
 
 # =============================================================
@@ -149,6 +149,23 @@ def _set_if_attr(obj, key: str, value):
 
 
 # =============================================================
+# ADMIN DB FIX (TEMPORAL)
+# =============================================================
+@main_bp.route("/admin/db_fix_tabata", methods=["GET"])
+@login_required
+def admin_db_fix_tabata():
+    if not admin_ok():
+        return "Forbidden", 403
+    try:
+        db.session.execute(text("ALTER TABLE rutinas ADD COLUMN IF NOT EXISTS tabata_preset JSONB;"))
+        db.session.commit()
+        return "OK: columna tabata_preset creada", 200
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR: {e}", 500
+
+
+# =============================================================
 # AUTH
 # =============================================================
 @main_bp.route("/")
@@ -229,7 +246,7 @@ def perfil_usuario(user_id: int):
         done_week.add(l.fecha)
 
     week_done = len(done_week)
-    streak = week_done  # simple (después lo mejoramos)
+    streak = week_done  # simple
 
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
@@ -769,8 +786,6 @@ def ai_session_script():
 
 # =============================================================
 # STRAVA OAUTH (REAL)
-# - Mantiene url_for('strava.connect') y url_for('strava.callback')
-# - Guarda tokens en IntegrationAccount si existen columnas
 # =============================================================
 @strava_bp.route("/connect", endpoint="connect")
 @login_required
@@ -832,7 +847,6 @@ def strava_callback():
     athlete = data.get("athlete") or {}
     external_user_id = str(athlete.get("id") or "")
 
-    # Upsert IntegrationAccount (sin asumir columnas: setea solo si existen)
     acct = IntegrationAccount.query.filter_by(user_id=current_user.id, provider="strava").first()
     if not acct:
         acct = IntegrationAccount(user_id=current_user.id, provider="strava")

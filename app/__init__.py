@@ -1,39 +1,51 @@
 # app/__init__.py
 from __future__ import annotations
 
+import os
 from flask import Flask
-from flask_login import LoginManager
-
-from app.config import Config
-from app.extensions import db
-
-try:
-    from flask_migrate import Migrate
-except Exception:
-    Migrate = None
-
-
-login_manager = LoginManager()
-login_manager.login_view = "main.login"
+from app.extensions import db, login_manager
 
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.config.from_object(Config)
 
     # -------------------------
-    # Extensions
+    # CONFIG
+    # -------------------------
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-change-me")
+
+    # Render usa DATABASE_URL. SQLAlchemy prefiere postgresql+psycopg2
+    db_url = os.getenv("DATABASE_URL", "")
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+    if not db_url:
+        # fallback local
+        db_url = "sqlite:///local.db"
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    # -------------------------
+    # INIT EXTENSIONS
     # -------------------------
     db.init_app(app)
     login_manager.init_app(app)
 
-    if Migrate is not None:
-        Migrate(app, db)
+    # -------------------------
+    # BLUEPRINTS
+    # -------------------------
+    from app.routes import main_bp, strava_bp  # <- IMPORTANTÍSIMO
+
+    app.register_blueprint(main_bp)
+    app.register_blueprint(strava_bp)
 
     # -------------------------
-    # User loader
+    # USER LOADER
     # -------------------------
-    from app.models import User  # noqa
+    from app.models import User
 
     @login_manager.user_loader
     def load_user(user_id: str):
@@ -43,28 +55,10 @@ def create_app() -> Flask:
             return None
 
     # -------------------------
-    # Blueprints (todos en routes.py)
+    # DB AUTO CREATE (solo local)
     # -------------------------
-    from app.routes import main_bp, strava_bp  # <- CLAVE: existen y exportan
-
-    app.register_blueprint(main_bp)
-    app.register_blueprint(strava_bp)
-
-    # -------------------------
-    # Contexto global para templates (admin_ok)
-    # -------------------------
-    from flask_login import current_user
-
-    @app.context_processor
-    def inject_admin_ok():
-        admin_ok = False
-        try:
-            admin_ok = bool(
-                getattr(current_user, "is_authenticated", False)
-                and getattr(current_user, "is_admin", False)
-            )
-        except Exception:
-            admin_ok = False
-        return {"admin_ok": admin_ok}
+    if os.getenv("AUTO_CREATE_DB", "0") == "1":
+        with app.app_context():
+            db.create_all()
 
     return app

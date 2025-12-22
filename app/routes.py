@@ -148,6 +148,30 @@ def _set_if_attr(obj, key: str, value):
         setattr(obj, key, value)
 
 
+def parse_rutina_ref(main_field: str) -> Optional[int]:
+    """
+    Acepta:
+      - "RUTINA: 12"
+      - "12"
+      - " rutina:12 "
+    Devuelve int o None
+    """
+    s = (main_field or "").strip()
+    if not s:
+        return None
+    s_up = s.upper().replace(" ", "")
+    if s_up.startswith("RUTINA:"):
+        s_num = s_up.split("RUTINA:", 1)[1]
+        try:
+            return int(s_num)
+        except Exception:
+            return None
+    try:
+        return int(s)
+    except Exception:
+        return None
+
+
 # =============================================================
 # DB FIX (TABATA PRESET) - SEGURO
 # =============================================================
@@ -155,10 +179,9 @@ def _set_if_attr(obj, key: str, value):
 @login_required
 def admin_db_fix_tabata():
     """
-    Fix puntual para Render: crea la columna rutinas.tabata_preset si falta.
-    Seguridad:
-    - Solo admin
-    - Si ya está creada, responde OK y listo
+    Render fix: crea la columna rutinas.tabata_preset si falta.
+    Entrás logueado como admin y abrís:
+      /admin/db_fix_tabata
     """
     if not admin_ok():
         return "Acceso denegado", 403
@@ -169,7 +192,7 @@ def admin_db_fix_tabata():
             ADD COLUMN IF NOT EXISTS tabata_preset JSONB;
         """))
         db.session.commit()
-        return "OK: columna tabata_preset creada"
+        return "OK: columna tabata_preset creada (si faltaba)"
     except Exception as e:
         db.session.rollback()
         return f"ERROR: {str(e)}", 500
@@ -235,7 +258,6 @@ def perfil_usuario(user_id: int):
 
     center_str = (request.args.get("center") or "").strip()
     center = safe_parse_ymd(center_str, fallback=date.today())
-
     hoy = date.today()
 
     strava_account = getattr(user, "strava_account", None)
@@ -254,7 +276,7 @@ def perfil_usuario(user_id: int):
         done_week.add(l.fecha)
 
     week_done = len(done_week)
-    streak = week_done  # simple
+    streak = week_done  # simple (si querés racha real lo mejoramos después)
 
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
@@ -332,9 +354,10 @@ def dashboard_entrenador():
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
+    # OJO: si todavía no corriste /admin/db_fix_tabata, esto puede romper
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
     ejercicios = Ejercicio.query.order_by(Ejercicio.id.desc()).all()
-    atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.desc()).all()
+    atletas = User.query.filter(User.is_admin.is_(False)).order_by(User.id.desc()).all()
     available_videos = list_repo_videos()
 
     return render_template(
@@ -352,6 +375,107 @@ def dashboard_entrenador_alias():
     return dashboard_entrenador()
 
 
+# =============================================================
+# RUTINA BUILDER (FIX BuildError)
+# =============================================================
+@main_bp.route("/rutina/<int:rutina_id>/builder", methods=["GET"])
+@login_required
+def rutina_builder(rutina_id: int):
+    if not admin_ok():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+    ejercicios = Ejercicio.query.order_by(Ejercicio.nombre.asc()).all()
+    items = (
+        RutinaItem.query.filter_by(rutina_id=rutina.id)
+        .order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc())
+        .all()
+    )
+    return render_template(
+        "rutina_builder.html",
+        rutina=rutina,
+        ejercicios=ejercicios,
+        items=items,
+    )
+
+
+@main_bp.route("/rutina/<int:rutina_id>/items/add", methods=["POST"])
+@login_required
+def rutina_item_add(rutina_id: int):
+    if not admin_ok():
+        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+
+    nombre = (request.form.get("nombre") or "").strip()
+    ejercicio_id = request.form.get("ejercicio_id", type=int)
+    series = (request.form.get("series") or "").strip()
+    reps = (request.form.get("reps") or "").strip()
+    descanso = (request.form.get("descanso") or "").strip()
+    video_url = (request.form.get("video_url") or "").strip()
+
+    if not nombre:
+        return jsonify({"ok": False, "error": "Falta nombre"}), 400
+
+    max_pos = db.session.query(db.func.max(RutinaItem.posicion)).filter_by(rutina_id=rutina.id).scalar()
+    next_pos = int(max_pos or 0) + 1
+
+    it = RutinaItem(
+        rutina_id=rutina.id,
+        ejercicio_id=ejercicio_id if ejercicio_id else None,
+        nombre=nombre,
+        series=series or None,
+        reps=reps or None,
+        descanso=descanso or None,
+        video_url=video_url or None,
+        posicion=next_pos,
+    )
+    db.session.add(it)
+    db.session.commit()
+    return jsonify({"ok": True, "id": it.id})
+
+
+@main_bp.route("/rutina/items/<int:item_id>/delete", methods=["POST"])
+@login_required
+def rutina_item_delete(item_id: int):
+    if not admin_ok():
+        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+
+    it = RutinaItem.query.get_or_404(item_id)
+    db.session.delete(it)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@main_bp.route("/rutina/<int:rutina_id>/items/reorder", methods=["POST"])
+@login_required
+def rutina_items_reorder(rutina_id: int):
+    if not admin_ok():
+        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+
+    data = request.get_json(silent=True) or {}
+    order = data.get("order") or []
+    if not isinstance(order, list):
+        return jsonify({"ok": False, "error": "order inválido"}), 400
+
+    # order = [item_id1, item_id2, ...]
+    for idx, item_id in enumerate(order):
+        try:
+            item_id = int(item_id)
+        except Exception:
+            continue
+        it = RutinaItem.query.filter_by(id=item_id, rutina_id=rutina_id).first()
+        if it:
+            it.posicion = idx
+
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+# =============================================================
+# PLANIFICADOR
+# =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
 def coach_planificador():
@@ -359,7 +483,7 @@ def coach_planificador():
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
-    atletas = User.query.filter(User.email != "admin@vir.app").order_by(User.id.desc()).all()
+    atletas = User.query.filter(User.is_admin.is_(False)).order_by(User.id.desc()).all()
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
     user_id = request.args.get("user_id", type=int)
@@ -410,15 +534,14 @@ def save_day():
     plan_type = (request.form.get("plan_type") or "Descanso").strip()
     plan.plan_type = plan_type
 
+    plan.warmup = (request.form.get("warmup") or "").strip()
+    plan.finisher = (request.form.get("finisher") or "").strip()
+
     if plan_type.lower() == "fuerza":
         rutina_select = (request.form.get("rutina_select") or "").strip()
-        plan.main = rutina_select
-        plan.warmup = (request.form.get("warmup") or "").strip()
-        plan.finisher = (request.form.get("finisher") or "").strip()
+        plan.main = rutina_select  # ej: "RUTINA: 12"
     else:
-        plan.warmup = (request.form.get("warmup") or "").strip()
         plan.main = (request.form.get("main") or "").strip()
-        plan.finisher = (request.form.get("finisher") or "").strip()
 
     try:
         plan.propuesto_score = int(request.form.get("propuesto_score", 0))
@@ -515,7 +638,7 @@ def admin_nuevo_ejercicio():
     elif file and file.filename:
         try:
             video_filename = save_video_to_static(file)
-            flash("⚠️ Video subido al server (en Render gratis puede perderse). Ideal: seleccionar existente.", "warning")
+            flash("⚠️ Video subido al server (en Render puede perderse). Ideal: seleccionar existente.", "warning")
         except Exception as e:
             flash(f"Error subiendo video: {e}", "danger")
             return redirect(url_for("main.dashboard_entrenador"))
@@ -544,7 +667,7 @@ def admin_delete_user(user_id: int):
         return redirect(url_for("main.dashboard_entrenador"))
 
     user = User.query.get_or_404(user_id)
-    if user.email == "admin@vir.app":
+    if user.is_admin:
         flash("No se puede eliminar admin", "warning")
         return redirect(url_for("main.dashboard_entrenador"))
 
@@ -598,17 +721,9 @@ def api_day_detail():
     tabata_cfg = None
 
     if (plan.plan_type or "").lower() == "fuerza":
-        rid = None
-        try:
-            rid = int((plan.main or "").strip())
-        except Exception:
-            rid = None
-
+        rid = parse_rutina_ref(plan.main or "")
         if rid:
             rutina = Rutina.query.get(rid)
-        else:
-            if plan.main:
-                rutina = Rutina.query.filter(Rutina.nombre == plan.main).first()
 
         if rutina:
             preset = getattr(rutina, "tabata_preset", None)

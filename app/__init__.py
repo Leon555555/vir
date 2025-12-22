@@ -3,10 +3,15 @@ from __future__ import annotations
 
 from flask import Flask
 from flask_login import LoginManager
-from flask_migrate import Migrate
 
 from app.config import Config
 from app.extensions import db
+
+try:
+    from flask_migrate import Migrate
+except Exception:
+    Migrate = None
+
 
 login_manager = LoginManager()
 login_manager.login_view = "main.login"
@@ -17,16 +22,18 @@ def create_app() -> Flask:
     app.config.from_object(Config)
 
     # -------------------------
-    # EXTENSIONS
+    # Extensions
     # -------------------------
     db.init_app(app)
     login_manager.init_app(app)
-    Migrate(app, db)
+
+    if Migrate is not None:
+        Migrate(app, db)
 
     # -------------------------
-    # USER LOADER
+    # User loader
     # -------------------------
-    from app.models import User
+    from app.models import User  # noqa
 
     @login_manager.user_loader
     def load_user(user_id: str):
@@ -36,25 +43,28 @@ def create_app() -> Flask:
             return None
 
     # -------------------------
-    # BLUEPRINTS (TODOS EN routes.py)
+    # Blueprints (todos en routes.py)
     # -------------------------
-    from app.routes import main_bp, strava_bp
+    from app.routes import main_bp, strava_bp  # <- CLAVE: existen y exportan
 
     app.register_blueprint(main_bp)
-    app.register_blueprint(strava_bp, url_prefix="/strava")
+    app.register_blueprint(strava_bp)
 
     # -------------------------
-    # CONTEXTO GLOBAL
+    # Contexto global para templates (admin_ok)
     # -------------------------
     from flask_login import current_user
 
     @app.context_processor
     def inject_admin_ok():
-        return {
-            "admin_ok": bool(
+        admin_ok = False
+        try:
+            admin_ok = bool(
                 getattr(current_user, "is_authenticated", False)
                 and getattr(current_user, "is_admin", False)
             )
-        }
+        except Exception:
+            admin_ok = False
+        return {"admin_ok": admin_ok}
 
     return app

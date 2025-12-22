@@ -24,7 +24,7 @@ from app.models import (
 )
 
 # =============================================================
-# BLUEPRINTS
+# BLUEPRINTS (se quedan en este archivo, NO carpeta blueprints)
 # =============================================================
 main_bp = Blueprint("main", __name__)
 strava_bp = Blueprint("strava", __name__, url_prefix="/strava")
@@ -41,6 +41,7 @@ def admin_ok() -> bool:
 
 @main_bp.app_context_processor
 def inject_admin():
+    # Esto permite usar admin_ok en templates como variable
     return {"admin_ok": admin_ok()}
 
 
@@ -129,7 +130,9 @@ def save_video_to_static(file_storage) -> str:
 
     ext = os.path.splitext(filename.lower())[1]
     if ext not in ALLOWED_VIDEO_EXT:
-        raise ValueError(f"Extensión no permitida ({ext}). Permitidas: {', '.join(sorted(ALLOWED_VIDEO_EXT))}")
+        raise ValueError(
+            f"Extensión no permitida ({ext}). Permitidas: {', '.join(sorted(ALLOWED_VIDEO_EXT))}"
+        )
 
     folder = videos_dir()
     dest = os.path.join(folder, filename)
@@ -276,7 +279,7 @@ def perfil_usuario(user_id: int):
         done_week.add(l.fecha)
 
     week_done = len(done_week)
-    streak = week_done  # simple (si querés racha real lo mejoramos después)
+    streak = week_done  # simple
 
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
@@ -325,21 +328,17 @@ def perfil_usuario(user_id: int):
         view=view,
         hoy=hoy,
         center=center,
-
         plan_hoy=plan_hoy,
         streak=streak,
         week_done=week_done,
         week_goal=week_goal,
         done_week=done_week,
-
         fechas=fechas,
         planes=planes,
         semana_str=semana_str,
-
         month_label=month_label,
         month_grid=grid,
         planes_mes=planes_mes,
-
         strava_account=strava_account,
     )
 
@@ -354,7 +353,6 @@ def dashboard_entrenador():
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
-    # OJO: si todavía no corriste /admin/db_fix_tabata, esto puede romper
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
     ejercicios = Ejercicio.query.order_by(Ejercicio.id.desc()).all()
     atletas = User.query.filter(User.is_admin.is_(False)).order_by(User.id.desc()).all()
@@ -376,7 +374,10 @@ def dashboard_entrenador_alias():
 
 
 # =============================================================
-# RUTINA BUILDER (FIX BuildError)
+# RUTINA BUILDER
+# (tus templates usan: rutina_add_item, rutina_update_item,
+#  rutina_delete_item, rutina_reorder, rutina_tabata_player,
+#  rutina_tabata_settings_save)
 # =============================================================
 @main_bp.route("/rutina/<int:rutina_id>/builder", methods=["GET"])
 @login_required
@@ -402,55 +403,88 @@ def rutina_builder(rutina_id: int):
 
 @main_bp.route("/rutina/<int:rutina_id>/items/add", methods=["POST"])
 @login_required
-def rutina_item_add(rutina_id: int):
+def rutina_add_item(rutina_id: int):
     if not admin_ok():
-        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
 
     rutina = Rutina.query.get_or_404(rutina_id)
 
-    nombre = (request.form.get("nombre") or "").strip()
     ejercicio_id = request.form.get("ejercicio_id", type=int)
     series = (request.form.get("series") or "").strip()
     reps = (request.form.get("reps") or "").strip()
+    peso = (request.form.get("peso") or "").strip()
     descanso = (request.form.get("descanso") or "").strip()
-    video_url = (request.form.get("video_url") or "").strip()
+    nota = (request.form.get("nota") or "").strip()
 
-    if not nombre:
-        return jsonify({"ok": False, "error": "Falta nombre"}), 400
+    ej = Ejercicio.query.get(ejercicio_id) if ejercicio_id else None
+    if not ej:
+        flash("Ejercicio inválido", "danger")
+        return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
+    # siguiente posición
     max_pos = db.session.query(db.func.max(RutinaItem.posicion)).filter_by(rutina_id=rutina.id).scalar()
     next_pos = int(max_pos or 0) + 1
 
     it = RutinaItem(
         rutina_id=rutina.id,
-        ejercicio_id=ejercicio_id if ejercicio_id else None,
-        nombre=nombre,
+        ejercicio_id=ej.id,
+        nombre=ej.nombre,   # guardamos snapshot del nombre
         series=series or None,
         reps=reps or None,
+        peso=peso or None,
         descanso=descanso or None,
-        video_url=video_url or None,
+        nota=nota or None,
         posicion=next_pos,
+        # video_url: lo dejamos para casos custom; normalmente usa ejercicio.video_filename
     )
     db.session.add(it)
     db.session.commit()
-    return jsonify({"ok": True, "id": it.id})
+
+    flash("✅ Ejercicio añadido", "success")
+    return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
 
-@main_bp.route("/rutina/items/<int:item_id>/delete", methods=["POST"])
+@main_bp.route("/rutina/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
-def rutina_item_delete(item_id: int):
+def rutina_update_item(rutina_id: int, item_id: int):
     if not admin_ok():
-        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
 
-    it = RutinaItem.query.get_or_404(item_id)
+    rutina = Rutina.query.get_or_404(rutina_id)
+    it = RutinaItem.query.filter_by(id=item_id, rutina_id=rutina.id).first_or_404()
+
+    it.series = (request.form.get("series") or "").strip() or None
+    it.reps = (request.form.get("reps") or "").strip() or None
+    it.peso = (request.form.get("peso") or "").strip() or None
+    it.descanso = (request.form.get("descanso") or "").strip() or None
+    it.nota = (request.form.get("nota") or "").strip() or None
+
+    db.session.commit()
+    flash("✅ Cambios guardados", "success")
+    return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+
+
+@main_bp.route("/rutina/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
+@login_required
+def rutina_delete_item(rutina_id: int, item_id: int):
+    if not admin_ok():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+    it = RutinaItem.query.filter_by(id=item_id, rutina_id=rutina.id).first_or_404()
+
     db.session.delete(it)
     db.session.commit()
-    return jsonify({"ok": True})
+    flash("🗑️ Eliminado", "success")
+    return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
 
 @main_bp.route("/rutina/<int:rutina_id>/items/reorder", methods=["POST"])
 @login_required
-def rutina_items_reorder(rutina_id: int):
+def rutina_reorder(rutina_id: int):
     if not admin_ok():
         return jsonify({"ok": False, "error": "Acceso denegado"}), 403
 
@@ -459,7 +493,6 @@ def rutina_items_reorder(rutina_id: int):
     if not isinstance(order, list):
         return jsonify({"ok": False, "error": "order inválido"}), 400
 
-    # order = [item_id1, item_id2, ...]
     for idx, item_id in enumerate(order):
         try:
             item_id = int(item_id)
@@ -471,6 +504,231 @@ def rutina_items_reorder(rutina_id: int):
 
     db.session.commit()
     return jsonify({"ok": True})
+
+
+# =============================================================
+# TABATA: SETTINGS (tu rutina_builder y tu rutina_tabata_settings.html)
+# =============================================================
+def _tabata_default_cfg(items_count: int) -> Dict[str, Any]:
+    # tu builder usa "rounds" como "cantidad de ejercicios por vuelta".
+    # si no lo pasan, auto = items_count
+    return {
+        "title": "Tabata",
+        "work": 40,
+        "rest": 20,
+        "rounds": int(items_count or 10),
+        "sets": 1,
+        "rest_between_sets": 0,
+        "finisher_rest": 60,
+        "count_in": 3,
+        "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
+    }
+
+
+def _get_tabata_cfg(rutina: Rutina, items_count: int) -> Dict[str, Any]:
+    preset = getattr(rutina, "tabata_preset", None)
+    base = _tabata_default_cfg(items_count)
+    if isinstance(preset, dict):
+        base.update(preset)
+    return base
+
+
+def _save_tabata_cfg(rutina: Rutina, cfg: Dict[str, Any]) -> None:
+    rutina.tabata_preset = cfg
+    db.session.commit()
+
+
+@main_bp.route("/rutina/<int:rutina_id>/tabata/settings", methods=["GET"])
+@login_required
+def rutina_tabata_settings(rutina_id: int):
+    if not admin_ok():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+    items_count = RutinaItem.query.filter_by(rutina_id=rutina.id).count()
+    cfg = _get_tabata_cfg(rutina, items_count)
+
+    # Valores esperados por tu template rutina_tabata_settings.html
+    auto_rounds = items_count
+
+    tabata_work = int(cfg.get("work") or 40)
+    tabata_rest = int(cfg.get("rest") or 20)
+    tabata_rounds = int(cfg.get("rounds") or 0)
+    tabata_sets = int(cfg.get("sets") or 1)
+    tabata_rest_between_sets = int(cfg.get("rest_between_sets") or 0)
+    tabata_finisher_rest = int(cfg.get("finisher_rest") or 60)
+    tabata_count_in = int(cfg.get("count_in") or 3)
+
+    return render_template(
+        "rutina_tabata_settings.html",
+        rutina=rutina,
+        tabata_work=tabata_work,
+        tabata_rest=tabata_rest,
+        tabata_rounds=tabata_rounds,
+        tabata_sets=tabata_sets,
+        tabata_rest_between_sets=tabata_rest_between_sets,
+        tabata_finisher_rest=tabata_finisher_rest,
+        tabata_count_in=tabata_count_in,
+        auto_rounds=auto_rounds,
+    )
+
+
+@main_bp.route("/rutina/<int:rutina_id>/tabata/settings/save", methods=["POST"])
+@login_required
+def rutina_tabata_settings_save(rutina_id: int):
+    if not admin_ok():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+    items_count = RutinaItem.query.filter_by(rutina_id=rutina.id).count()
+    cfg = _get_tabata_cfg(rutina, items_count)
+
+    # ✅ Soporta ambos formularios:
+    # - builder: work/rest/rounds/recovery
+    # - settings page: tabata_work/tabata_rest/tabata_rounds/tabata_sets/...
+    def _int(name: str, alt: Optional[str] = None, default: int = 0) -> int:
+        v = request.form.get(name)
+        if (v is None or v == "") and alt:
+            v = request.form.get(alt)
+        try:
+            return int(v) if v is not None and v != "" else int(default)
+        except Exception:
+            return int(default)
+
+    # builder fields
+    work = _int("work", "tabata_work", default=int(cfg.get("work") or 40))
+    rest = _int("rest", "tabata_rest", default=int(cfg.get("rest") or 20))
+    rounds = _int("rounds", "tabata_rounds", default=int(cfg.get("rounds") or items_count or 10))
+
+    # builder "recovery" -> map a finisher_rest
+    recovery = _int("recovery", "tabata_finisher_rest", default=int(cfg.get("finisher_rest") or 60))
+
+    sets_ = _int("tabata_sets", None, default=int(cfg.get("sets") or 1))
+    rest_between_sets = _int("tabata_rest_between_sets", None, default=int(cfg.get("rest_between_sets") or 0))
+    count_in = _int("tabata_count_in", None, default=int(cfg.get("count_in") or 3))
+
+    # regla: si rounds = 0 => auto = items_count (como dice tu settings template)
+    if rounds <= 0:
+        rounds = int(items_count or 10)
+
+    cfg.update({
+        "work": max(5, work),
+        "rest": max(0, rest),
+        "rounds": max(1, rounds),
+        "sets": max(1, sets_),
+        "rest_between_sets": max(0, rest_between_sets),
+        "finisher_rest": max(0, recovery),
+        "count_in": max(0, min(30, count_in)),
+        "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
+    })
+
+    try:
+        _save_tabata_cfg(rutina, cfg)
+        flash("✅ Preset TABATA guardado", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error guardando Tabata: {e}", "danger")
+
+    # tu template settings dice "Guardar y abrir Tabata"
+    return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
+
+
+# =============================================================
+# TABATA PLAYER (tu tabata_player.html)
+# =============================================================
+@main_bp.route("/rutina/<int:rutina_id>/tabata", methods=["GET", "POST"])
+@login_required
+def rutina_tabata_player(rutina_id: int):
+    # En tu tabata_player.html existe un bloque que muestra config si "is_admin"
+    # Para no romperlo: is_admin=True si admin_ok()
+    if not (admin_ok() or current_user.is_authenticated):
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    rutina = Rutina.query.get_or_404(rutina_id)
+
+    ritems = (
+        RutinaItem.query
+        .filter_by(rutina_id=rutina.id)
+        .order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc())
+        .all()
+    )
+
+    cfg = _get_tabata_cfg(rutina, len(ritems))
+
+    # Si es POST acá, guardamos rápido (tu player también permite guardar)
+    if request.method == "POST":
+        if not admin_ok():
+            flash("Solo admin puede guardar", "danger")
+            return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
+
+        title = (request.form.get("title") or cfg.get("title") or "Tabata").strip()
+        work = int(request.form.get("work") or cfg.get("work") or 40)
+        rest = int(request.form.get("rest") or cfg.get("rest") or 20)
+        rounds = int(request.form.get("rounds") or cfg.get("rounds") or (len(ritems) or 10))
+        recovery = int(request.form.get("recovery") or cfg.get("finisher_rest") or 60)
+
+        if rounds <= 0:
+            rounds = len(ritems) or 10
+
+        cfg.update({
+            "title": title or "Tabata",
+            "work": max(5, work),
+            "rest": max(0, rest),
+            "rounds": max(1, rounds),
+            "finisher_rest": max(0, recovery),
+            "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
+        })
+
+        try:
+            _save_tabata_cfg(rutina, cfg)
+            flash("✅ Config Tabata guardada", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error guardando Tabata: {e}", "danger")
+
+        return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
+
+    # items_payload (lo usa tu tabata_player.html)
+    items_payload: List[Dict[str, Any]] = []
+    for it in ritems:
+        video_src = ""
+
+        # Si guardaste un URL custom en RutinaItem.video_url:
+        if getattr(it, "video_url", None):
+            # OJO: si video_url ya es URL completa (https://...), NO uses url_for static
+            # Si es ruta relativa tipo "videos/xxx.mp4" entonces sí
+            v = (it.video_url or "").strip()
+            if v.startswith("http://") or v.startswith("https://"):
+                video_src = v
+            else:
+                # si guardaste "videos/..." o "videos\..."
+                v = v.lstrip("/").replace("\\", "/")
+                video_src = url_for("static", filename=v)
+        elif getattr(it, "ejercicio", None) and getattr(it.ejercicio, "video_filename", None):
+            video_src = url_for("static", filename=f"videos/{it.ejercicio.video_filename}")
+
+        items_payload.append({
+            "id": it.id,
+            "nombre": it.nombre,
+            "nota": getattr(it, "nota", "") or "",
+            "video_src": video_src,
+        })
+
+    # Tu template espera cfg.work/rest/rounds/recovery
+    # Nosotros guardamos finisher_rest => lo exponemos como "recovery"
+    cfg_for_template = dict(cfg)
+    cfg_for_template["recovery"] = int(cfg.get("finisher_rest") or 60)
+
+    return render_template(
+        "tabata_player.html",
+        rutina=rutina,
+        cfg=cfg_for_template,
+        items_payload=items_payload,
+        is_admin=admin_ok(),
+    )
 
 
 # =============================================================
@@ -740,7 +998,12 @@ def api_day_detail():
             for it in ritems:
                 video_src = ""
                 if getattr(it, "video_url", None):
-                    video_src = it.video_url
+                    v = (it.video_url or "").strip()
+                    if v.startswith("http://") or v.startswith("https://"):
+                        video_src = v
+                    else:
+                        v = v.lstrip("/").replace("\\", "/")
+                        video_src = url_for("static", filename=v)
                 elif it.ejercicio and getattr(it.ejercicio, "video_filename", None):
                     video_src = url_for("static", filename=f"videos/{it.ejercicio.video_filename}")
 

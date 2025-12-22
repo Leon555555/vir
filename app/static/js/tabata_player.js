@@ -1,249 +1,304 @@
+// app/static/js/tabata_player.js
+
 (function () {
-  const items = Array.isArray(window.__TABATA_ITEMS__) ? window.__TABATA_ITEMS__ : [];
+  const data = window.TABATA_DATA || {};
+  const cfg = data.cfg || {};
+  const items = Array.isArray(data.items) ? data.items : [];
 
   const $ = (id) => document.getElementById(id);
 
-  const cfgWork = $("cfgWork");
-  const cfgRest = $("cfgRest");
-  const cfgRounds = $("cfgRounds");
-  const cfgRecovery = $("cfgRecovery");
-
-  const btnApply = $("btnApply");
-  const btnStart = $("btnStart");
-  const btnPause = $("btnPause");
-  const btnReset = $("btnReset");
-
-  const timerBig = $("timerBig");
-  const timerHint = $("timerHint");
-  const stateLabel = $("stateLabel");
-  const roundLabel = $("roundLabel");
-  const roundTotal = $("roundTotal");
-
-  const exTitle = $("exTitle");
-  const exNote = $("exNote");
-  const exVideo = $("exVideo");
-  const queue = $("queue");
-  const phaseBadge = $("phaseBadge");
-
-  function pad2(n) { return String(n).padStart(2, "0"); }
-  function mmss(s) {
-    s = Math.max(0, Math.floor(s));
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${pad2(m)}:${pad2(r)}`;
-  }
-
-  let config = {
-    work: parseInt(cfgWork.value || "40", 10),
-    rest: parseInt(cfgRest.value || "20", 10),
-    rounds: parseInt(cfgRounds.value || String(items.length || 10), 10),
-    recovery: parseInt(cfgRecovery.value || "60", 10),
+  const els = {
+    btnStart: $("btnStart"),
+    btnPause: $("btnPause"),
+    btnStop: $("btnStop"),
+    timer: $("timer"),
+    phaseLabel: $("phaseLabel"),
+    exerciseLabel: $("exerciseLabel"),
+    roundLabel: $("roundLabel"),
+    nextLabel: $("nextLabel"),
+    tabTitle: $("tabTitle"),
+    tabSubtitle: $("tabSubtitle"),
+    video: $("videoPlayer"),
   };
 
-  function sanitizeConfig() {
-    config.work = Math.max(5, parseInt(cfgWork.value || "40", 10));
-    config.rest = Math.max(0, parseInt(cfgRest.value || "20", 10));
-    config.rounds = Math.max(1, parseInt(cfgRounds.value || String(items.length || 10), 10));
-    config.recovery = Math.max(0, parseInt(cfgRecovery.value || "60", 10));
-    cfgWork.value = config.work;
-    cfgRest.value = config.rest;
-    cfgRounds.value = config.rounds;
-    cfgRecovery.value = config.recovery;
+  const state = {
+    running: false,
+    paused: false,
+    interval: null,
+    phase: "idle", // idle | count_in | work | rest | recovery | done
+    t: 0,
+    idx: 0,
+    round: 1,
+    totalRounds: Number(cfg.rounds || 1),
+    work: Number(cfg.work || 40),
+    rest: Number(cfg.rest || 20),
+    recovery: Number(cfg.recovery || 60),
+    countIn: Number(cfg.count_in || 0),
+    lastPhase: null,
+  };
+
+  function pad2(n) {
+    n = Math.max(0, parseInt(n || 0, 10));
+    return n < 10 ? `0${n}` : `${n}`;
   }
 
-  function getSeq() {
-    if (!items.length) return [];
-    const seq = [];
-    for (let i = 0; i < config.rounds; i++) {
-      seq.push(items[i % items.length]);
-    }
-    return seq;
+  function setTimer(v) {
+    els.timer.textContent = pad2(v);
   }
 
-  let seq = getSeq();
-  roundTotal.textContent = String(seq.length);
-
-  let phase = "idle"; // work | rest | recovery | done | idle
-  let idx = 0;
-  let remaining = 0;
-  let running = false;
-  let interval = null;
-
-  function setUIState() {
-    btnStart.disabled = running;
-    btnPause.disabled = !running;
-    btnReset.disabled = (phase === "idle");
+  function setPhase(text) {
+    els.phaseLabel.textContent = text;
   }
 
-  function escapeHtml(s) {
-    return String(s || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+  function currentItem() {
+    if (!items.length) return null;
+    const i = state.idx % items.length;
+    return items[i];
   }
 
-  function renderQueue() {
-    const next = [];
-    for (let i = idx; i < Math.min(idx + 5, seq.length); i++) {
-      next.push(`<span class="badge bg-secondary me-2 mb-2">${i + 1}. ${escapeHtml(seq[i].nombre || "—")}</span>`);
-    }
-    queue.innerHTML = next.length ? next.join("") : `<div class="text-soft">—</div>`;
-  }
-
-  function loadExercise(i) {
-    const it = seq[i];
+  function setExerciseUI() {
+    const it = currentItem();
     if (!it) {
-      exTitle.textContent = "—";
-      exNote.textContent = "";
-      exVideo.removeAttribute("src");
-      exVideo.load();
+      els.exerciseLabel.textContent = "—";
+      els.roundLabel.textContent = "—";
+      els.nextLabel.textContent = "Agregá ejercicios en el Builder";
       return;
     }
-    exTitle.textContent = it.nombre || "—";
-    exNote.textContent = it.nota || "";
-    if (it.video_src) {
-      try { exVideo.pause(); } catch(e) {}
-      exVideo.src = it.video_src;
-      exVideo.load();
-    } else {
-      exVideo.removeAttribute("src");
-      exVideo.load();
-    }
+    els.exerciseLabel.textContent = it.nombre || "Ejercicio";
+    els.roundLabel.textContent = `${state.round} / ${state.totalRounds}`;
   }
 
-  function setPhase(p, seconds) {
-    phase = p;
-    remaining = seconds;
-    timerBig.textContent = mmss(remaining);
+  function loadVideoForCurrent() {
+    const it = currentItem();
+    if (!it) return;
 
-    if (phase === "work") {
-      phaseBadge.textContent = "WORK";
-      phaseBadge.className = "badge bg-success";
-      timerHint.textContent = "Trabajo";
-      stateLabel.textContent = "Trabajando";
-    } else if (phase === "rest") {
-      phaseBadge.textContent = "REST";
-      phaseBadge.className = "badge bg-warning text-dark";
-      timerHint.textContent = "Descanso";
-      stateLabel.textContent = "Descansando";
-    } else if (phase === "recovery") {
-      phaseBadge.textContent = "RECOVERY";
-      phaseBadge.className = "badge bg-info";
-      timerHint.textContent = "Recuperación final";
-      stateLabel.textContent = "Recuperación";
-    } else if (phase === "done") {
-      phaseBadge.textContent = "DONE";
-      phaseBadge.className = "badge bg-secondary";
-      timerHint.textContent = "Finalizado";
-      stateLabel.textContent = "Terminado ✅";
-      timerBig.textContent = "00:00";
-    } else {
-      phaseBadge.textContent = "—";
-      phaseBadge.className = "badge bg-secondary";
-      timerHint.textContent = "Preparado";
-      stateLabel.textContent = "Listo";
-      timerBig.textContent = "00:00";
+    const src = (it.video_src || "").trim();
+    if (!src) {
+      // sin video, no rompemos
+      try { els.video.pause(); } catch(e) {}
+      els.video.removeAttribute("src");
+      els.video.load();
+      return;
     }
 
-    roundLabel.textContent = (phase === "recovery" || phase === "done")
-      ? String(seq.length)
-      : String(Math.min(idx + 1, seq.length));
-
-    renderQueue();
-    setUIState();
+    try { els.video.pause(); } catch(e) {}
+    els.video.src = src;
+    els.video.load();
   }
 
-  function stop() {
-    running = false;
-    if (interval) clearInterval(interval);
-    interval = null;
-    setUIState();
+  function preview(index0) {
+    if (!items.length) return;
+    state.idx = Math.max(0, parseInt(index0, 10) || 0);
+    setExerciseUI();
+    loadVideoForCurrent();
   }
 
-  function tick() {
-    if (!running) return;
+  function enableControls(running) {
+    els.btnStart.disabled = running;
+    els.btnPause.disabled = !running;
+    els.btnStop.disabled = !running;
+  }
 
-    remaining -= 1;
-    timerBig.textContent = mmss(remaining);
-
-    if (remaining <= 0) {
-      if (phase === "work") {
-        if (config.rest > 0) {
-          setPhase("rest", config.rest);
-        } else {
-          idx += 1;
-          if (idx >= seq.length) {
-            if (config.recovery > 0) setPhase("recovery", config.recovery);
-            else { setPhase("done", 0); stop(); }
-          } else {
-            loadExercise(idx);
-            setPhase("work", config.work);
-          }
-        }
-      } else if (phase === "rest") {
-        idx += 1;
-        if (idx >= seq.length) {
-          if (config.recovery > 0) setPhase("recovery", config.recovery);
-          else { setPhase("done", 0); stop(); }
-        } else {
-          loadExercise(idx);
-          setPhase("work", config.work);
-        }
-      } else if (phase === "recovery") {
-        setPhase("done", 0);
-        stop();
-      }
+  function stopInterval() {
+    if (state.interval) {
+      clearInterval(state.interval);
+      state.interval = null;
     }
-  }
-
-  function start() {
-    if (running) return;
-    running = true;
-
-    if (phase === "idle") {
-      idx = 0;
-      loadExercise(idx);
-      setPhase("work", config.work);
-    }
-
-    interval = setInterval(tick, 1000);
-    setUIState();
-  }
-
-  function pause() {
-    if (!running) return;
-    running = false;
-    if (interval) clearInterval(interval);
-    interval = null;
-    setUIState();
   }
 
   function reset() {
-    stop();
-    idx = 0;
-    seq = getSeq();
-    roundTotal.textContent = String(seq.length);
-    loadExercise(0);
-    setPhase("idle", 0);
+    stopInterval();
+    state.running = false;
+    state.paused = false;
+    state.phase = "idle";
+    state.t = 0;
+    state.idx = 0;
+    state.round = 1;
+    state.lastPhase = null;
+
+    enableControls(false);
+    setPhase("Listo");
+    setTimer(state.work);
+    setExerciseUI();
+    els.nextLabel.textContent = "—";
+
+    try { els.video.pause(); } catch(e) {}
   }
 
-  btnApply.addEventListener("click", () => {
-    sanitizeConfig();
-    seq = getSeq();
-    roundTotal.textContent = String(seq.length);
-    reset();
-  });
+  function nextPhase() {
+    // Secuencia:
+    // count_in -> work -> rest -> work -> ... -> recovery -> done
+    if (state.phase === "count_in") {
+      state.phase = "work";
+      state.t = state.work;
+      state.lastPhase = "work";
+      setPhase("💪 Trabaja");
+      setExerciseUI();
+      loadVideoForCurrent();
+      els.nextLabel.textContent = `Luego: descanso ${state.rest}s`;
+      return;
+    }
 
-  btnStart.addEventListener("click", start);
-  btnPause.addEventListener("click", pause);
-  btnReset.addEventListener("click", reset);
+    if (state.phase === "work") {
+      // termina un work, pasamos a rest o a recovery/done
+      if (state.rest > 0) {
+        state.phase = "rest";
+        state.t = state.rest;
+        state.lastPhase = "rest";
+        setPhase("🧘 Descansa");
+        els.nextLabel.textContent = `Luego: ${nextExerciseName()}`;
+      } else {
+        // sin rest => avanzamos directamente a siguiente work o fin
+        advanceExercise();
+        if (state.round > state.totalRounds) {
+          if (state.recovery > 0) {
+            state.phase = "recovery";
+            state.t = state.recovery;
+            setPhase("🧊 Recuperación");
+            els.nextLabel.textContent = "Finalizando…";
+          } else {
+            finish();
+          }
+        } else {
+          state.phase = "work";
+          state.t = state.work;
+          setPhase("💪 Trabaja");
+          setExerciseUI();
+          loadVideoForCurrent();
+          els.nextLabel.textContent = state.rest > 0 ? `Luego: descanso ${state.rest}s` : `Luego: ${nextExerciseName()}`;
+        }
+      }
+      return;
+    }
 
-  // init
-  sanitizeConfig();
-  seq = getSeq();
-  roundTotal.textContent = String(seq.length);
-  loadExercise(0);
-  setPhase("idle", 0);
+    if (state.phase === "rest") {
+      // terminamos descanso, avanzamos ejercicio + ronda
+      advanceExercise();
+      if (state.round > state.totalRounds) {
+        if (state.recovery > 0) {
+          state.phase = "recovery";
+          state.t = state.recovery;
+          setPhase("🧊 Recuperación");
+          els.nextLabel.textContent = "Finalizando…";
+        } else {
+          finish();
+        }
+      } else {
+        state.phase = "work";
+        state.t = state.work;
+        setPhase("💪 Trabaja");
+        setExerciseUI();
+        loadVideoForCurrent();
+        els.nextLabel.textContent = state.rest > 0 ? `Luego: descanso ${state.rest}s` : `Luego: ${nextExerciseName()}`;
+      }
+      return;
+    }
+
+    if (state.phase === "recovery") {
+      finish();
+      return;
+    }
+  }
+
+  function nextExerciseName() {
+    if (!items.length) return "—";
+    const nextIdx = (state.idx + 1) % items.length;
+    const it = items[nextIdx];
+    return `Luego: ${it?.nombre || "Ejercicio"}`;
+  }
+
+  function advanceExercise() {
+    state.idx += 1;
+    // si completamos vuelta (idx múltiplo de items.length) subimos ronda
+    if (items.length && state.idx % items.length === 0) {
+      state.round += 1;
+    }
+  }
+
+  function finish() {
+    stopInterval();
+    state.running = false;
+    state.paused = false;
+    state.phase = "done";
+    enableControls(false);
+    setPhase("🎉 Finalizado");
+    setTimer(0);
+    els.exerciseLabel.textContent = "—";
+    els.roundLabel.textContent = "—";
+    els.nextLabel.textContent = "Buen trabajo 💪";
+    try { els.video.pause(); } catch(e) {}
+  }
+
+  function tick() {
+    if (!state.running || state.paused) return;
+
+    if (state.t <= 0) {
+      nextPhase();
+      return;
+    }
+
+    state.t -= 1;
+    setTimer(state.t);
+  }
+
+  function start() {
+    if (!items.length) {
+      alert("Esta rutina no tiene ejercicios. Andá al Builder y agregalos.");
+      return;
+    }
+
+    state.running = true;
+    state.paused = false;
+    enableControls(true);
+
+    // inicio: count_in opcional
+    if (state.countIn > 0) {
+      state.phase = "count_in";
+      state.t = state.countIn;
+      setPhase("⏱️ Preparado");
+      els.nextLabel.textContent = `Luego: ${currentItem()?.nombre || "Ejercicio"} (${state.work}s)`;
+      setExerciseUI();
+      loadVideoForCurrent();
+      setTimer(state.t);
+    } else {
+      state.phase = "work";
+      state.t = state.work;
+      setPhase("💪 Trabaja");
+      setExerciseUI();
+      loadVideoForCurrent();
+      els.nextLabel.textContent = state.rest > 0 ? `Luego: descanso ${state.rest}s` : `Luego: ${nextExerciseName()}`;
+      setTimer(state.t);
+    }
+
+    stopInterval();
+    state.interval = setInterval(tick, 1000);
+  }
+
+  function togglePause() {
+    if (!state.running) return;
+    state.paused = !state.paused;
+    els.btnPause.innerHTML = state.paused
+      ? '<i class="bi bi-play-fill"></i> Reanudar'
+      : '<i class="bi bi-pause-fill"></i> Pausa';
+    setPhase(state.paused ? "⏸️ Pausado" : (state.phase === "rest" ? "🧘 Descansa" : "💪 Trabaja"));
+  }
+
+  // Exponemos preview para tu button onclick="TabataUI.preview(i)"
+  window.TabataUI = {
+    preview,
+    reset,
+  };
+
+  // Init UI
+  if (els.tabTitle) els.tabTitle.textContent = cfg.title || "Tabata";
+  if (els.tabSubtitle) {
+    els.tabSubtitle.textContent =
+      `${state.work}s trabajo · ${state.rest}s descanso · ${state.totalRounds} ronda(s) · recup ${state.recovery}s`;
+  }
+
+  els.btnStart?.addEventListener("click", start);
+  els.btnPause?.addEventListener("click", togglePause);
+  els.btnStop?.addEventListener("click", reset);
+
+  reset();
 })();

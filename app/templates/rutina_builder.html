@@ -19,7 +19,7 @@
         <div class="text-soft mt-1" style="max-width: 820px;">{{ rutina.descripcion }}</div>
       {% endif %}
 
-      {# ✅ TABATA CONFIG (si es tabata por tipo o nombre) #}
+      {# ✅ TABATA CONFIG #}
       {% set is_tabata = ('tabata' in (rutina.tipo or '')|lower) or ('tabata' in (rutina.nombre or '')|lower) %}
       {% if is_tabata %}
         <div class="card glass mt-3" style="max-width: 980px;">
@@ -113,9 +113,20 @@
 
                     <div class="rb-actions">
                       {% if item.video_url %}
+                        {# ✅ FIX: soporta https://... o ruta relativa tipo videos/x.mp4 #}
+                        {% set v = item.video_url.strip() %}
+                        {% set video_final = v if (v.startswith('http://') or v.startswith('https://')) else url_for('static', filename=v.lstrip('/')) %}
                         <button type="button"
                                 class="btn btn-sm btn-outline-info"
-                                data-video="{{ url_for('static', filename=item.video_url) }}"
+                                data-video="{{ video_final }}"
+                                data-title="{{ item.nombre|e }}"
+                                onclick="openVideo(this)">
+                          ▶ Ver video
+                        </button>
+                      {% elif item.ejercicio and item.ejercicio.video_filename %}
+                        <button type="button"
+                                class="btn btn-sm btn-outline-info"
+                                data-video="{{ url_for('static', filename='videos/' ~ item.ejercicio.video_filename) }}"
                                 data-title="{{ item.nombre|e }}"
                                 onclick="openVideo(this)">
                           ▶ Ver video

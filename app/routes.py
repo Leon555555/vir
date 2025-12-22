@@ -9,13 +9,13 @@ from urllib.parse import urlencode
 
 import requests
 from werkzeug.utils import secure_filename
-from sqlalchemy import text
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
     flash, request, jsonify, current_app
 )
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy import text
 
 from app.extensions import db
 from app.models import (
@@ -149,20 +149,30 @@ def _set_if_attr(obj, key: str, value):
 
 
 # =============================================================
-# ADMIN DB FIX (TEMPORAL)
+# DB FIX (TABATA PRESET) - SEGURO
 # =============================================================
-@main_bp.route("/admin/db_fix_tabata", methods=["GET"])
+@main_bp.route("/admin/db_fix_tabata")
 @login_required
 def admin_db_fix_tabata():
+    """
+    Fix puntual para Render: crea la columna rutinas.tabata_preset si falta.
+    Seguridad:
+    - Solo admin
+    - Si ya está creada, responde OK y listo
+    """
     if not admin_ok():
-        return "Forbidden", 403
+        return "Acceso denegado", 403
+
     try:
-        db.session.execute(text("ALTER TABLE rutinas ADD COLUMN IF NOT EXISTS tabata_preset JSONB;"))
+        db.session.execute(text("""
+            ALTER TABLE rutinas
+            ADD COLUMN IF NOT EXISTS tabata_preset JSONB;
+        """))
         db.session.commit()
-        return "OK: columna tabata_preset creada", 200
+        return "OK: columna tabata_preset creada"
     except Exception as e:
         db.session.rollback()
-        return f"ERROR: {e}", 500
+        return f"ERROR: {str(e)}", 500
 
 
 # =============================================================
@@ -228,10 +238,8 @@ def perfil_usuario(user_id: int):
 
     hoy = date.today()
 
-    # Strava: puede ser None si no está conectada
     strava_account = getattr(user, "strava_account", None)
 
-    # Objetivo semanal simple
     week_goal = 5
 
     fechas_semana = week_dates(hoy)

@@ -6,23 +6,19 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
 
-# JSONB para Postgres (si no existe, fallback a Text)
 try:
     from sqlalchemy.dialects.postgresql import JSONB
 except Exception:
     JSONB = None
 
 
-# -------------------------------------------------------------
-# STRAVA / INTEGRATIONS
-# -------------------------------------------------------------
 class IntegrationAccount(db.Model):
     __tablename__ = "integration_accounts"
 
     id = db.Column(db.Integer, primary_key=True)
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    provider = db.Column(db.String(40), nullable=False, index=True)  # "strava"
+    provider = db.Column(db.String(40), nullable=False, index=True)
     external_user_id = db.Column(db.String(80), nullable=True)
 
     access_token = db.Column(db.Text, nullable=True)
@@ -37,9 +33,6 @@ class IntegrationAccount(db.Model):
     )
 
 
-# -------------------------------------------------------------
-# USERS / AUTH
-# -------------------------------------------------------------
 class User(db.Model, UserMixin):
     __tablename__ = "users"
 
@@ -78,9 +71,6 @@ class User(db.Model, UserMixin):
         return check_password_hash(self.password_hash, password)
 
 
-# -------------------------------------------------------------
-# PLAN / LOGS
-# -------------------------------------------------------------
 class DiaPlan(db.Model):
     __tablename__ = "dia_plan"
 
@@ -141,9 +131,6 @@ class AthleteCheck(db.Model):
     )
 
 
-# -------------------------------------------------------------
-# Rutinas / Ejercicios / Items
-# -------------------------------------------------------------
 class Rutina(db.Model):
     __tablename__ = "rutinas"
 
@@ -153,7 +140,6 @@ class Rutina(db.Model):
     descripcion = db.Column(db.String(255), nullable=True)
     created_by = db.Column(db.Integer, nullable=True)
 
-    # ✅ TABATA preset: {"work":40,"rest":20,"rounds":8,"sets":1,"count_in":3,"rest_between_sets":60,"finisher_rest":60}
     if JSONB is not None:
         tabata_preset = db.Column(JSONB, nullable=True)
     else:

@@ -275,38 +275,40 @@
                 </div>
               </div>
 
-              <!-- ✅ TABATA (PREVIEW → START → PLAYER) -->
+              <!-- TABATA -->
               <div id="tabataBlock" class="glass p-3 mb-3" style="border-radius:18px; display:none;">
 
-                <!-- PREVIEW -->
+                <!-- PREVIEW (lista + botón) -->
                 <div id="tabataPreview" style="display:none;">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                     <div>
                       <div class="mini-title" style="letter-spacing:.14em;">TABATA</div>
-                      <div class="text-strong" id="tabataPreviewTitle" style="font-weight:900;">—</div>
-                      <div class="text-muted" id="tabataPreviewMeta" style="font-weight:800;">—</div>
+                      <div class="text-strong" id="tabataTitlePreview" style="font-weight:900;">—</div>
+                      <div class="text-muted" id="tabataMetaPreview" style="font-weight:800;">—</div>
                     </div>
+                    <div class="text-strong" style="font-weight:900; font-size:1.25rem;">
+                      <span id="tabataTotalPreview">—</span>
+                    </div>
+                  </div>
 
-                    <button class="btn btn-warning text-dark" type="button"
-                            onclick="tabataStartFromPreview()"
-                            style="font-weight:900; border-radius:14px;">
-                      ⚡ Empezar Tabata
+                  <div class="mt-3 glass p-3" style="border-radius:16px;">
+                    <div class="fw-bold mb-2" style="letter-spacing:.10em;text-transform:uppercase;">Lista de ejercicios</div>
+                    <div id="tabataListPreview" class="d-grid" style="gap:10px;"></div>
+                  </div>
+
+                  <div class="d-grid mt-3">
+                    <button class="btn btn-info" type="button" onclick="tabataStartFromPreview()">
+                      ▶ EMPEZAR TABATA
                     </button>
                   </div>
 
-                  <div class="mt-3">
-                    <div class="text-muted" style="letter-spacing:.12em;text-transform:uppercase;font-weight:900;">
-                      Lista de ejercicios
-                    </div>
-                    <div id="tabataExerciseList" class="mt-2"></div>
-                  </div>
-
-                  <div class="text-muted mt-3" style="font-size:.9rem;">
-                    Tocá <b>Empezar</b> y arranca con cuenta atrás + videos.
+                  <div class="text-muted mt-2" style="font-size:.9rem;">
+                    Al empezar: reproduce cada video en bucle durante todo el tiempo de trabajo.
+                    Beeps en los últimos 3s (trabajo y descanso).
                   </div>
                 </div>
 
-                <!-- PLAYER -->
+                <!-- PLAYER (reloj + fase + video/reloj descanso) -->
                 <div id="tabataPlayer" style="display:none;">
                   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
@@ -334,7 +336,7 @@
                   </div>
 
                   <div class="text-muted mt-2" style="font-size:.9rem;">
-                    En descansos aparece reloj + cuenta atrás.
+                    En descanso aparece reloj + cuenta atrás.
                   </div>
                 </div>
 
@@ -407,9 +409,6 @@
 .month-cell.blocked .daynum{ color: rgba(255,255,255,.95) !important; }
 
 .vr-days span{ color: rgba(255,255,255,.78); font-weight: 900; letter-spacing:.08em;}
-
-#tabataPreview .btn-warning{ box-shadow: 0 12px 30px rgba(0,0,0,.35); }
-#tabataExerciseList .glass{ background: rgba(255,255,255,.04) !important; }
 </style>
 {% endblock %}
 
@@ -426,7 +425,49 @@ if(typeof bootstrap === "undefined"){
 }
 
 /* =========================
-   TABATA PLAYER (modal)
+   BEEPS (últimos 3 segundos)
+========================= */
+let AUDIO_CTX = null;
+
+function ensureAudio(){
+  if(!AUDIO_CTX){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    AUDIO_CTX = AC ? new AC() : null;
+  }
+  if(AUDIO_CTX && AUDIO_CTX.state === "suspended"){
+    AUDIO_CTX.resume().catch(()=>{});
+  }
+}
+
+function beep(freq=880, ms=120, gain=0.12){
+  if(!AUDIO_CTX) return;
+
+  const t0 = AUDIO_CTX.currentTime;
+  const osc = AUDIO_CTX.createOscillator();
+  const g = AUDIO_CTX.createGain();
+
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + ms/1000);
+
+  osc.connect(g);
+  g.connect(AUDIO_CTX.destination);
+
+  osc.start(t0);
+  osc.stop(t0 + ms/1000 + 0.02);
+}
+
+function play3sBeep(t){
+  if(t === 3) beep(880, 120, 0.12);   // pi
+  if(t === 2) beep(988, 120, 0.12);   // pii
+  if(t === 1) beep(1108, 160, 0.14);  // ppiii
+}
+
+/* =========================
+   TABATA PLAYER
 ========================= */
 let TABATA = {
   active: false,
@@ -446,11 +487,14 @@ function fmt(s){
   return `${m}:${ss}`;
 }
 function tabataUI(title, phase){
-  document.getElementById("tabataTitle").textContent = title || "TABATA";
-  document.getElementById("tabataPhase").textContent = phase || "";
+  const elT = document.getElementById("tabataTitle");
+  const elP = document.getElementById("tabataPhase");
+  if(elT) elT.textContent = title || "TABATA";
+  if(elP) elP.textContent = phase || "";
 }
 function tabataSetTimer(seconds){
-  document.getElementById("tabataTimer").textContent = fmt(seconds);
+  const el = document.getElementById("tabataTimer");
+  if(el) el.textContent = fmt(seconds);
 }
 function tabataClearInterval(){
   if(TABATA.interval){
@@ -460,6 +504,7 @@ function tabataClearInterval(){
 }
 function showTabataClock(seconds){
   const vis = document.getElementById("tabataVisual");
+  if(!vis) return;
   vis.innerHTML = `
     <div class="glass p-4" style="border-radius:16px; text-align:center;">
       <div style="font-size:54px; margin-bottom:8px;">⏱️</div>
@@ -470,6 +515,7 @@ function showTabataClock(seconds){
 }
 function ensureTabataVideo(){
   const vis = document.getElementById("tabataVisual");
+  if(!vis) return;
   if(!document.getElementById("tabataVideo")){
     vis.innerHTML = `
       <video id="tabataVideo" class="w-100" controls playsinline webkit-playsinline preload="metadata"
@@ -479,6 +525,65 @@ function ensureTabataVideo(){
   }
 }
 
+/* ==========
+   PREVIEW UI
+========== */
+function renderTabataPreview(){
+  const prev = document.getElementById("tabataPreview");
+  const player = document.getElementById("tabataPlayer");
+  const list = document.getElementById("tabataListPreview");
+  const title = document.getElementById("tabataTitlePreview");
+  const meta = document.getElementById("tabataMetaPreview");
+  const total = document.getElementById("tabataTotalPreview");
+
+  if(!prev || !player || !list) return;
+
+  prev.style.display = "";
+  player.style.display = "none";
+
+  const cfg = TABATA.cfg || {};
+  const rounds = cfg.rounds ?? (TABATA.items?.length || 0);
+  const sets = cfg.sets ?? 1;
+  const work = cfg.work ?? 40;
+  const rest = cfg.rest ?? 20;
+
+  if(title) title.textContent = (cfg.title || "Tabata");
+  if(meta) meta.textContent = `${work}s trabajo · ${rest}s descanso · ${rounds} ejercicios · ${sets} set(s)`;
+  if(total) total.textContent = `${TABATA.items.length} ejercicios`;
+
+  list.innerHTML = "";
+  TABATA.items.forEach((it, i) => {
+    const div = document.createElement("div");
+    div.className = "glass p-2";
+    div.style.borderRadius = "14px";
+    div.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="fw-bold">${i+1}. ${escapeHtml(it.nombre || "Ejercicio")}</div>
+        <div class="text-muted" style="font-weight:900;">${work}s</div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function tabataStartFromPreview(){
+  // ✅ gesto de usuario: habilita audio (iOS) y beeps
+  ensureAudio();
+
+  const prev = document.getElementById("tabataPreview");
+  const player = document.getElementById("tabataPlayer");
+  if(prev) prev.style.display = "none";
+  if(player) player.style.display = "";
+
+  tabataStop();                 // resetea bien
+  TABATA.phase = "count_in";
+  TABATA.t = (TABATA.cfg?.count_in ?? 3);
+  tabataPlay();
+}
+
+/* ==========
+   CONTROLES
+========== */
 function tabataStop(){
   TABATA.active = false;
   TABATA.phase = "idle";
@@ -491,6 +596,7 @@ function tabataStop(){
 
   const v = document.getElementById("tabataVideo");
   if(v){
+    v.loop = false;
     try{ v.pause(); }catch(e){}
     v.removeAttribute("src");
     v.load();
@@ -510,8 +616,12 @@ function tabataPause(){
   TABATA.active = false;
   tabataClearInterval();
   const v = document.getElementById("tabataVideo");
-  if(v){ try{ v.pause(); }catch(e){} }
+  if(v){
+    v.loop = false;
+    try{ v.pause(); }catch(e){}
+  }
 }
+
 function tabataApplyWork(){
   const it = TABATA.items[TABATA.idx];
   const name = it?.nombre || "Ejercicio";
@@ -520,22 +630,31 @@ function tabataApplyWork(){
   ensureTabataVideo();
   const v = document.getElementById("tabataVideo");
   const src = it?.video_src || "";
+
+  // ✅ LOOP: si el video dura 5s y trabajo 40s, se repite hasta completar
+  if(v) v.loop = true;
+
   if(v && src){
     if(v.src !== src){
       v.src = src;
       v.load();
     }
-    setTimeout(()=>{ try{ v.play(); }catch(e){} }, 100);
+    setTimeout(()=>{ try{ v.play(); }catch(e){} }, 120);
   }
   tabataSetTimer(TABATA.t);
 }
+
 function tabataApplyRest(label){
+  // ✅ corta loop del video al salir de TRABAJO
+  const v = document.getElementById("tabataVideo");
+  if(v){ v.loop = false; }
+
   tabataUI("RECUPERACIÓN", label || "DESCANSO");
   tabataSetTimer(TABATA.t);
   showTabataClock(TABATA.t);
-  const v = document.getElementById("tabataVideo");
   if(v){ try{ v.pause(); }catch(e){} }
 }
+
 function tabataAdvance(){
   if(TABATA.phase === "count_in"){
     TABATA.phase = "work";
@@ -588,6 +707,7 @@ function tabataAdvance(){
     return;
   }
 }
+
 function tabataTickStart(){
   tabataClearInterval();
 
@@ -603,80 +723,60 @@ function tabataTickStart(){
 
   TABATA.interval = setInterval(()=>{
     if(!TABATA.active) return;
+
     TABATA.t -= 1;
+
+    // ✅ BEEPS: últimos 3 segundos en trabajo y descanso (y en cualquier fase activa)
+    if(TABATA.t === 3 || TABATA.t === 2 || TABATA.t === 1){
+      play3sBeep(TABATA.t);
+    }
+
     tabataSetTimer(TABATA.t);
 
     if(TABATA.phase !== "work"){
       showTabataClock(TABATA.t);
     }
+
     if(TABATA.t <= 0){
       tabataAdvance();
     }
   }, 1000);
 }
+
 function tabataNext(){
   if(!TABATA.cfg || !TABATA.items.length) return;
+
   TABATA.phase = "work";
   TABATA.t = TABATA.cfg.work ?? 40;
   TABATA.idx = (TABATA.idx + 1) % TABATA.items.length;
+
   tabataApplyWork();
   tabataTickStart();
 }
 
 /* =========================
-   TABATA PREVIEW (lista + botón)
-========================= */
-function renderTabataPreview(cfg, items){
-  const prev = document.getElementById("tabataPreview");
-  const player = document.getElementById("tabataPlayer");
-
-  prev.style.display = "";
-  player.style.display = "none";
-
-  const title = (cfg?.title || "TABATA");
-  const work = cfg?.work ?? 40;
-  const rest = cfg?.rest ?? 20;
-  const rounds = cfg?.rounds ?? items.length;
-  const sets = cfg?.sets ?? 1;
-
-  document.getElementById("tabataPreviewTitle").textContent = title;
-  document.getElementById("tabataPreviewMeta").textContent =
-    `${rounds} rondas · ${sets} set(s) · ${work}s ON / ${rest}s OFF`;
-
-  const list = document.getElementById("tabataExerciseList");
-  list.innerHTML = "";
-
-  items.slice(0, rounds).forEach((it, i) => {
-    const row = document.createElement("div");
-    row.className = "glass p-2 mb-2";
-    row.style.borderRadius = "14px";
-    row.style.border = "1px solid rgba(255,255,255,.10)";
-    row.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center">
-        <div style="font-weight:900;">
-          <span style="opacity:.75; margin-right:8px;">${String(i+1).padStart(2,"0")}</span>
-          ${escapeHtml(it?.nombre || "Ejercicio")}
-        </div>
-        <div class="text-muted" style="font-weight:900;">${work}s</div>
-      </div>
-    `;
-    list.appendChild(row);
-  });
-}
-
-function tabataStartFromPreview(){
-  document.getElementById("tabataPreview").style.display = "none";
-  document.getElementById("tabataPlayer").style.display = "";
-
-  tabataStop();
-  TABATA.phase = "count_in";
-  TABATA.t = (TABATA.cfg?.count_in ?? 3);
-  tabataPlay();
-}
-
-/* =========================
    HELPERS
 ========================= */
+function posterDataUrl(title){
+  const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
+    <defs>
+      <linearGradient id="g" x1="0" x2="1">
+        <stop offset="0" stop-color="#0b0f12"/>
+        <stop offset="1" stop-color="#050608"/>
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#g)"/>
+    <rect x="40" y="40" width="1200" height="640" rx="36" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.16)"/>
+    <circle cx="640" cy="360" r="62" fill="rgba(34,211,238,0.18)" stroke="rgba(34,211,238,0.45)" stroke-width="6"/>
+    <polygon points="625,330 625,390 680,360" fill="rgba(255,255,255,0.85)"/>
+    <text x="80" y="130" font-size="46" fill="rgba(255,255,255,0.92)" font-family="Arial" font-weight="700">${safe}</text>
+    <text x="80" y="180" font-size="26" fill="rgba(255,255,255,0.60)" font-family="Arial">VR Training</text>
+  </svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
 function setAvailUI(puede, comentario){
   const toggle = document.getElementById("noPuedoToggle");
   const text = document.getElementById("noPuedoText");
@@ -714,8 +814,10 @@ function openDay(isoDate){
 
   tabataStop();
   document.getElementById("tabataBlock").style.display = "none";
-  document.getElementById("tabataPreview").style.display = "none";
-  document.getElementById("tabataPlayer").style.display = "none";
+  const prev = document.getElementById("tabataPreview");
+  const player = document.getElementById("tabataPlayer");
+  if(prev) prev.style.display = "none";
+  if(player) player.style.display = "none";
   setAvailUI("si", "");
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
@@ -745,13 +847,11 @@ function openDay(isoDate){
       const tabBlock = document.getElementById("tabataBlock");
       if(data.is_tabata && data.tabata_cfg && Array.isArray(data.items) && data.items.length){
         tabBlock.style.display = "";
-
         TABATA.cfg = data.tabata_cfg;
         TABATA.items = data.items;
 
-        tabataStop();
-        renderTabataPreview(TABATA.cfg, TABATA.items); // ✅ PREVIEW (no auto-play)
-
+        // 🔥 muestra preview con lista + botón empezar (no auto-start)
+        renderTabataPreview();
       }else{
         tabBlock.style.display = "none";
         tabataStop();
@@ -776,6 +876,7 @@ function renderStrength(items, doneIds){
 
     const checked = doneIds.has(it.id) ? "checked" : "";
     const vidSrc = it.video_src || "";
+    const poster = posterDataUrl(it.nombre);
 
     col.innerHTML = `
       <div class="exercise-card">
@@ -799,7 +900,7 @@ function renderStrength(items, doneIds){
 
         <div class="exercise-video">
           ${vidSrc ? `
-            <video controls playsinline webkit-playsinline preload="metadata">
+            <video controls playsinline webkit-playsinline preload="metadata" poster="${poster}">
               <source src="${vidSrc}" type="video/mp4">
             </video>
           ` : `<div class="text-muted">Sin video</div>`}

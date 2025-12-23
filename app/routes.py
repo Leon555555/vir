@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 from datetime import date, datetime, timedelta
 from calendar import monthrange
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from urllib.parse import urlencode
 
 import requests
@@ -187,50 +187,39 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
 
 
 # =============================================================
-# ✅ NUEVO: PARSER DE BLOQUES EN plan.main (soporta varios TABATA/RUN/FREE)
+# ✅ PARSER DE BLOQUES EN plan.main (soporta varios TABATA/RUN/FREE)
 # =============================================================
 def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
-    """
-    Devuelve lista de bloques base:
-      [{"type":"tabata|fuerza|run|free|note", "raw":"...", "label":"..."}]
-    Se parsea por líneas (una línea = un bloque).
-    """
     lines = [l.strip() for l in (main_text or "").splitlines() if l.strip()]
     out: List[Dict[str, str]] = []
     for line in lines:
         up = line.upper()
 
-        # TABATA
         if up.startswith("TABATA:"):
             payload = line.split(":", 1)[1].strip()
             out.append({"type": "tabata", "raw": payload, "label": "TABATA"})
             continue
 
-        # FUERZA
         if up.startswith("FUERZA:"):
             payload = line.split(":", 1)[1].strip()
             out.append({"type": "fuerza", "raw": payload, "label": "FUERZA"})
             continue
 
-        # RUN
         if up.startswith("RUN:"):
             payload = line.split(":", 1)[1].strip()
             out.append({"type": "run", "raw": payload, "label": "RUN"})
             continue
 
-        # FREE
         if up.startswith("FREE:"):
             payload = line.split(":", 1)[1].strip()
             out.append({"type": "free", "raw": payload, "label": "FREE"})
             continue
 
-        # NOTE
         if up.startswith("NOTE:") or up.startswith("NOTA:"):
             payload = line.split(":", 1)[1].strip()
             out.append({"type": "note", "raw": payload, "label": "NOTA"})
             continue
 
-        # Inferencia:
         rid = parse_rutina_ref(line)
         if rid:
             out.append({"type": "fuerza", "raw": f"RUTINA:{rid}", "label": "FUERZA"})
@@ -279,7 +268,7 @@ def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
 
 
 # =============================================================
-# DB FIX (TABATA PRESET) - SEGURO
+# DB FIXES
 # =============================================================
 @main_bp.route("/admin/db_fix_tabata")
 @login_required
@@ -294,6 +283,25 @@ def admin_db_fix_tabata():
         """))
         db.session.commit()
         return "OK: columna tabata_preset creada (si faltaba)"
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR: {str(e)}", 500
+
+
+# ✅ ESTE ES EL FIX QUE TE ROMPÍA EL PLANIFICADOR (dia_plan.blocks)
+@main_bp.route("/admin/db_fix_dia_plan_blocks")
+@login_required
+def admin_db_fix_dia_plan_blocks():
+    if not admin_ok():
+        return "Acceso denegado", 403
+
+    try:
+        db.session.execute(text("""
+            ALTER TABLE dia_plan
+            ADD COLUMN IF NOT EXISTS blocks JSONB;
+        """))
+        db.session.commit()
+        return "OK: columna dia_plan.blocks creada (si faltaba)"
     except Exception as e:
         db.session.rollback()
         return f"ERROR: {str(e)}", 500
@@ -361,20 +369,19 @@ def perfil_usuario(user_id: int):
     center = safe_parse_ymd(center_str, fallback=date.today())
     hoy = date.today()
 
-    strava_account = getattr(user, "strava_account", None)
+    # ✅ Strava desde IntegrationAccount (tu modelo real)
+    strava_account = IntegrationAccount.query.filter_by(user_id=user.id, provider="strava").first()
 
     week_goal = 5
 
     fechas_semana = week_dates(hoy)
-    done_week = set()
     logs_week = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha >= fechas_semana[0],
         AthleteLog.fecha <= fechas_semana[-1],
         AthleteLog.did_train.is_(True),
     ).all()
-    for l in logs_week:
-        done_week.add(l.fecha)
+    done_week = {l.fecha for l in logs_week}
 
     week_done = len(done_week)
     streak = week_done  # simple
@@ -456,9 +463,12 @@ def dashboard_entrenador():
     atletas = User.query.filter(User.is_admin.is_(False)).order_by(User.id.desc()).all()
     available_videos = list_repo_videos()
 
+    # ✅ alias para que “si el template esperaba otro nombre”, igual aparezca
     return render_template(
         "panel_entrenador.html",
         rutinas=rutinas,
+        rutinas_creadas=rutinas,
+        banco_rutinas=rutinas,
         ejercicios=ejercicios,
         atletas=atletas,
         available_videos=available_videos,
@@ -472,7 +482,7 @@ def dashboard_entrenador_alias():
 
 
 # =============================================================
-# ✅ NUEVO: ELIMINAR VIDEO DESDE BANCO (ADMIN)
+# ✅ ELIMINAR VIDEO (ADMIN)
 # =============================================================
 @main_bp.route("/admin/videos/delete", methods=["POST"])
 @login_required
@@ -633,7 +643,7 @@ def rutina_reorder(rutina_id: int):
 
 
 # =============================================================
-# TABATA SETTINGS + PLAYER (tu lógica actual)
+# TABATA SETTINGS + PLAYER
 # =============================================================
 def _tabata_default_cfg(items_count: int) -> Dict[str, Any]:
     return {
@@ -898,7 +908,6 @@ def save_day():
     plan.warmup = (request.form.get("warmup") or "").strip()
     plan.finisher = (request.form.get("finisher") or "").strip()
 
-    # 🔥 No tocamos tu lógica: si es Fuerza, guardamos rutina_select; si no, main libre.
     if plan_type.lower() == "fuerza":
         rutina_select = (request.form.get("rutina_select") or "").strip()
         plan.main = rutina_select
@@ -1046,7 +1055,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# ✅ API: DAY DETAIL (MODAL) — AHORA DEVUELVE "blocks" (varios Tabatas)
+# API: DAY DETAIL (MODAL)
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -1077,10 +1086,8 @@ def api_day_detail():
     checks = AthleteCheck.query.filter_by(user_id=user_id, fecha=fecha, done=True).all()
     done_ids = [c.rutina_item_id for c in checks]
 
-    # ---- blocks desde plan.main (y fallback a comportamiento anterior)
     blocks_src = _split_blocks_from_main(plan.main or "")
 
-    # Fallback: si main está vacío pero es fuerza, intentamos parsear rutina directa
     if not blocks_src and (plan.plan_type or "").lower() == "fuerza" and (plan.main or "").strip():
         blocks_src = [{"type": "fuerza", "raw": plan.main.strip(), "label": "FUERZA"}]
 
@@ -1094,24 +1101,11 @@ def api_day_detail():
         btype = b["type"]
         raw = (b["raw"] or "").strip()
 
-        # TABATA: apunta a Rutina
         if btype == "tabata":
-            rid = parse_rutina_ref(raw.replace("RUTINA:", "RUTINA:"))
-            # también soporta "RUTINA:12" directo
-            if not rid and raw.upper().startswith("RUTINA:"):
-                rid = parse_rutina_ref(raw)
-            if not rid:
-                # si pusieron TABATA:12
-                rid = parse_rutina_ref(raw)
-
+            rid = parse_rutina_ref(raw)
             rutina = Rutina.query.get(rid) if rid else None
             if not rutina:
-                blocks.append({
-                    "type": "tabata",
-                    "ok": False,
-                    "title": "Tabata",
-                    "error": "Rutina no encontrada",
-                })
+                blocks.append({"type": "tabata", "ok": False, "title": "Tabata", "error": "Rutina no encontrada"})
                 continue
 
             items = _items_payload_for_rutina(rutina.id)
@@ -1127,26 +1121,18 @@ def api_day_detail():
                 "settings_url": url_for("main.rutina_tabata_settings", rutina_id=rutina.id) if admin_ok() else "",
             })
 
-            # legacy (primer tabata para compatibilidad vieja)
             if legacy_rutina is None:
                 legacy_rutina = rutina
                 legacy_is_tabata = True
                 legacy_tabata_cfg = cfg
                 legacy_items_payload = items
-
             continue
 
-        # FUERZA: rutina lista de ejercicios (no tabata)
         if btype == "fuerza":
             rid = parse_rutina_ref(raw)
             rutina = Rutina.query.get(rid) if rid else None
             if not rutina:
-                blocks.append({
-                    "type": "fuerza",
-                    "ok": False,
-                    "title": "Fuerza",
-                    "error": "Rutina no encontrada",
-                })
+                blocks.append({"type": "fuerza", "ok": False, "title": "Fuerza", "error": "Rutina no encontrada"})
                 continue
 
             items = _items_payload_for_rutina(rutina.id)
@@ -1161,16 +1147,10 @@ def api_day_detail():
             if legacy_rutina is None:
                 legacy_rutina = rutina
                 legacy_items_payload = items
-
             continue
 
-        # RUN/FREE/NOTE: texto bonito
         if btype in ("run", "free", "note"):
-            blocks.append({
-                "type": btype,
-                "ok": True,
-                "text": raw,
-            })
+            blocks.append({"type": btype, "ok": True, "text": raw})
             continue
 
     return jsonify({
@@ -1183,9 +1163,7 @@ def api_day_detail():
             "puede_entrenar": plan.puede_entrenar,
             "comentario_atleta": plan.comentario_atleta,
         },
-        # NUEVO
         "blocks": blocks,
-        # LEGACY (por si algo viejo lo usaba)
         "rutina": ({"id": legacy_rutina.id, "nombre": legacy_rutina.nombre} if legacy_rutina else None),
         "items": legacy_items_payload,
         "checks": done_ids,

@@ -1,12 +1,13 @@
 {% extends "layout.html" %}
-{% block title %}Panel entrenador{% endblock %}
+{% block title %}Panel entrenador — VR Training{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
   <div>
     <div class="section-title">PANEL ENTRENADOR</div>
     <div class="text-soft">Rutinas · Banco de ejercicios · Atletas</div>
   </div>
+
   <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador') }}">
     <i class="bi bi-calendar3"></i> Planificador
   </a>
@@ -14,191 +15,156 @@
 
 <div class="row g-3">
 
-  <!-- ✅ CREAR ATLETA -->
-  <div class="col-lg-6">
+  <!-- CREAR ATLETA -->
+  <div class="col-12 col-lg-6">
     <div class="card glass lift">
-      <div class="card-header">
-        <strong>➕ Crear atleta</strong>
-      </div>
+      <div class="card-header"><strong>➕ Crear atleta</strong></div>
       <div class="card-body">
-        <form method="post" action="{{ url_for('main.admin_nuevo_atleta') }}" class="row g-2">
-          <div class="col-md-6">
-            <label class="form-label">Nombre</label>
-            <input class="form-control" name="nombre" placeholder="Ej: Bichito" required>
+        <form method="post" action="{{ url_for('main.admin_nuevo_atleta') }}">
+          <div class="row g-2">
+            <div class="col-12 col-md-6">
+              <input class="form-control" name="nombre" placeholder="Nombre" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <input class="form-control" name="email" placeholder="Email" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <input class="form-control" name="grupo" placeholder="Grupo (opcional)">
+            </div>
+            <div class="col-12 col-md-6">
+              <input class="form-control" name="password" placeholder="Password" required>
+            </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Email</label>
-            <input class="form-control" type="email" name="email" placeholder="bichi@vir.app" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Grupo</label>
-            <input class="form-control" name="grupo" placeholder="Ej: UA Running">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Contraseña</label>
-            <input class="form-control" type="password" name="password" required>
-          </div>
-          <div class="col-12 mt-2">
-            <button class="btn btn-info">
-              <i class="bi bi-person-plus"></i> Crear atleta
-            </button>
-          </div>
+          <button class="btn btn-info w-100 mt-3" type="submit">Crear atleta</button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ✅ CREAR RUTINA -->
-  <div class="col-lg-6">
+  <!-- CREAR RUTINA -->
+  <div class="col-12 col-lg-6">
     <div class="card glass lift">
-      <div class="card-header"><strong>📦 Crear rutina</strong></div>
+      <div class="card-header"><strong>📚 Crear rutina</strong></div>
       <div class="card-body">
-        <form method="post" action="{{ url_for('main.crear_rutina') }}" class="row g-2">
-          <div class="col-md-6">
-            <label class="form-label">Nombre</label>
-            <input class="form-control" name="nombre" placeholder="Full body A" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Tipo</label>
-            <input class="form-control" name="tipo" placeholder="Fuerza / Run / Bike">
-          </div>
-          <div class="col-12">
-            <label class="form-label">Descripción</label>
-            <input class="form-control" name="descripcion" placeholder="Notas/objetivo…">
-          </div>
-          <div class="col-12 mt-2">
-            <button class="btn btn-primary">
-              <i class="bi bi-plus-circle"></i> Crear rutina
-            </button>
-          </div>
+        <form method="post" action="{{ url_for('main.crear_rutina') }}">
+          <input class="form-control mb-2" name="nombre" placeholder="Nombre de la rutina" required>
+          <input class="form-control mb-2" name="tipo" placeholder="Tipo (Fuerza/Cardio/Mobility)">
+          <textarea class="form-control mb-2" name="descripcion" placeholder="Descripción (opcional)"></textarea>
+          <button class="btn btn-outline-info w-100" type="submit">Crear rutina</button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ✅ CREAR EJERCICIO (BANCO) -->
-  <div class="col-lg-6">
+  <!-- CREAR EJERCICIO -->
+  <div class="col-12">
     <div class="card glass lift">
-      <div class="card-header"><strong>🎥 Crear ejercicio (banco)</strong></div>
+      <div class="card-header"><strong>🏦 Banco de ejercicios — Crear ejercicio</strong></div>
       <div class="card-body">
-        <form method="post" action="{{ url_for('main.admin_nuevo_ejercicio') }}" enctype="multipart/form-data" class="row g-2">
-          <div class="col-md-6">
-            <label class="form-label">Nombre</label>
-            <input class="form-control" name="nombre" placeholder="Sentadilla sin peso" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Categoría</label>
-            <input class="form-control" name="categoria" placeholder="Pierna / Espalda / etc">
-          </div>
-          <div class="col-12">
-            <label class="form-label">Descripción</label>
-            <input class="form-control" name="descripcion" placeholder="Tips técnicos…">
-          </div>
+        <form method="post" action="{{ url_for('main.admin_nuevo_ejercicio') }}" enctype="multipart/form-data">
+          <div class="row g-2">
+            <div class="col-12 col-md-4">
+              <input class="form-control" name="nombre" placeholder="Nombre del ejercicio" required>
+            </div>
+            <div class="col-12 col-md-4">
+              <input class="form-control" name="categoria" placeholder="Categoría (Piernas/Fuerza/Cardio...)">
+            </div>
+            <div class="col-12 col-md-4">
+              <input class="form-control" name="descripcion" placeholder="Descripción (opcional)">
+            </div>
 
-          <!-- ✅ OPCIÓN GRATIS: elegir video existente -->
-          <div class="col-12">
-            <label class="form-label">Seleccionar video existente (RECOMENDADO en Render)</label>
-            <select class="form-select" name="video_existing">
-              <option value="">— Elegir archivo en /static/videos —</option>
-              {% for fn in (available_videos or []) %}
-                <option value="{{ fn }}">{{ fn }}</option>
-              {% endfor %}
-            </select>
-            <div class="text-soft mt-1" style="font-size:.9rem;">
-              Para que sea gratis y estable, subí los .mp4 a <code>app/static/videos</code> y hacé deploy.
+            <div class="col-12 col-md-6 mt-2">
+              <label class="form-label text-muted mb-1">Elegir video existente (recomendado)</label>
+              <select class="form-select" name="video_existing">
+                <option value="">— Seleccionar —</option>
+                {% for v in available_videos %}
+                  <option value="{{ v }}">{{ v }}</option>
+                {% endfor %}
+              </select>
+              <div class="text-muted mt-1" style="font-size:.9rem;">
+                Los videos deben estar en <code>/static/videos</code>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6 mt-2">
+              <label class="form-label text-muted mb-1">O subir video (Render puede perderlo)</label>
+              <input class="form-control" type="file" name="video" accept="video/*">
             </div>
           </div>
 
-          <!-- opcional: upload (local / temporal) -->
-          <div class="col-12">
-            <label class="form-label">O subir video (solo local / temporal)</label>
-            <input class="form-control" type="file" name="video" accept="video/*">
-          </div>
-
-          <div class="col-12 mt-2">
-            <button class="btn btn-info">
-              <i class="bi bi-upload"></i> Crear en banco
-            </button>
-          </div>
+          <button class="btn btn-info w-100 mt-3" type="submit">Crear ejercicio</button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ✅ LISTA RUTINAS -->
-  <div class="col-lg-6">
+  <!-- LISTA EJERCICIOS -->
+  <div class="col-12">
     <div class="card glass lift">
-      <div class="card-header"><strong>📚 Rutinas</strong></div>
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <strong>📦 Banco de ejercicios</strong>
+        <span class="text-muted">Total: {{ ejercicios|length }}</span>
+      </div>
+
       <div class="card-body">
-        {% if rutinas %}
-          <div class="d-grid gap-2">
-            {% for r in rutinas %}
-              <div class="glass p-3" style="border-radius:18px;">
-                <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
-                  <div>
-                    <div class="text-strong">{{ r.nombre }}</div>
-                    <div class="text-soft" style="font-size:.92rem;">
-                      <span class="badge bg-secondary">{{ r.tipo or "—" }}</span>
-                      {% if r.descripcion %} · {{ r.descripcion }}{% endif %}
+        {% if ejercicios|length == 0 %}
+          <div class="text-muted">No hay ejercicios cargados todavía.</div>
+        {% else %}
+          <div class="row g-3">
+            {% for e in ejercicios %}
+              <div class="col-12 col-lg-6">
+                <div class="glass p-3" style="border-radius:18px;border:1px solid rgba(255,255,255,.10);">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div style="font-weight:900;font-size:1.05rem;">{{ e.nombre }}</div>
+                      <div class="text-muted" style="font-size:.92rem;">
+                        {{ e.categoria or "—" }}
+                        {% if e.descripcion %} · {{ e.descripcion }}{% endif %}
+                      </div>
                     </div>
+
+                    {% if e.video_filename %}
+                      <span class="badge bg-success">VIDEO</span>
+                    {% else %}
+                      <span class="badge bg-secondary">SIN VIDEO</span>
+                    {% endif %}
                   </div>
-                  <a class="btn btn-sm btn-outline-info" href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
-                    <i class="bi bi-sliders"></i> Builder
-                  </a>
+
+                  {% if e.video_filename %}
+                    <div class="mt-2">
+                      <video class="w-100" controls playsinline webkit-playsinline preload="metadata"
+                             style="border-radius:16px;border:1px solid rgba(255,255,255,.12);background:#000;max-height:260px;object-fit:cover;">
+                        <source src="{{ url_for('static', filename='videos/' ~ e.video_filename) }}" type="video/mp4">
+                      </video>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-2 flex-wrap">
+                      <a class="btn btn-outline-info btn-sm"
+                         href="{{ url_for('static', filename='videos/' ~ e.video_filename) }}"
+                         target="_blank">
+                        ▶ Ver en pestaña
+                      </a>
+
+                      <!-- ✅ ELIMINAR VIDEO -->
+                      <form method="post" action="{{ url_for('main.admin_delete_video') }}"
+                            onsubmit="return confirm('¿Eliminar el video {{ e.video_filename }}? Se borra el archivo de /static/videos y se limpia la DB.');">
+                        <input type="hidden" name="filename" value="{{ e.video_filename }}">
+                        <button class="btn btn-outline-danger btn-sm" type="submit">
+                          🗑️ Eliminar video
+                        </button>
+                      </form>
+                    </div>
+
+                    <div class="text-muted mt-2" style="font-size:.85rem;">
+                      Archivo: <code>{{ e.video_filename }}</code>
+                    </div>
+                  {% else %}
+                    <div class="text-muted mt-2">Este ejercicio no tiene video asignado.</div>
+                  {% endif %}
                 </div>
               </div>
             {% endfor %}
           </div>
-        {% else %}
-          <div class="empty-state">No hay rutinas todavía.</div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- ✅ LISTA ATLETAS -->
-  <div class="col-12">
-    <div class="card glass lift">
-      <div class="card-header"><strong>👥 Atletas</strong></div>
-      <div class="card-body">
-        {% if atletas %}
-          <div class="table-responsive">
-            <table class="table table-dark table-borderless align-middle mb-0">
-              <thead>
-                <tr class="text-soft">
-                  <th>Nombre</th>
-                  <th>Email</th>
-                  <th>Grupo</th>
-                  <th class="text-end">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for a in atletas %}
-                  <tr>
-                    <td class="text-strong">{{ a.nombre }}</td>
-                    <td class="text-soft">{{ a.email }}</td>
-                    <td><span class="badge bg-secondary">{{ a.grupo or "—" }}</span></td>
-                    <td class="text-end">
-                      <a class="btn btn-sm btn-outline-info" href="{{ url_for('main.perfil_usuario', user_id=a.id) }}">
-                        <i class="bi bi-person"></i> Ver perfil
-                      </a>
-
-                      <form method="post"
-                            action="{{ url_for('main.admin_delete_user', user_id=a.id) }}"
-                            class="d-inline"
-                            onsubmit="return confirm('¿Eliminar atleta y sus datos?');">
-                        <button class="btn btn-sm btn-outline-danger" type="submit">
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <div class="empty-state">No hay atletas.</div>
         {% endif %}
       </div>
     </div>

@@ -24,7 +24,7 @@ from app.models import (
 )
 
 # =============================================================
-# BLUEPRINTS
+# BLUEPRINTS (se quedan en este archivo, NO carpeta blueprints)
 # =============================================================
 main_bp = Blueprint("main", __name__)
 strava_bp = Blueprint("strava", __name__, url_prefix="/strava")
@@ -145,19 +145,39 @@ def save_video_to_static(file_storage) -> str:
     return filename
 
 
+def delete_video_from_static(filename: str) -> None:
+    """
+    Borra un video REAL de app/static/videos.
+    Seguridad:
+    - secure_filename
+    - valida extensión
+    - valida que exista en list_repo_videos()
+    """
+    safe = secure_filename(filename or "")
+    if not safe:
+        raise ValueError("Nombre inválido")
+
+    ext = os.path.splitext(safe.lower())[1]
+    if ext not in ALLOWED_VIDEO_EXT:
+        raise ValueError("Extensión no permitida")
+
+    # solo si realmente existe en la carpeta
+    if safe not in list_repo_videos():
+        raise FileNotFoundError("No existe ese archivo en /static/videos")
+
+    path = os.path.join(videos_dir(), safe)
+    if not os.path.isfile(path):
+        raise FileNotFoundError("Archivo no encontrado")
+
+    os.remove(path)
+
+
 def _set_if_attr(obj, key: str, value):
     if hasattr(obj, key):
         setattr(obj, key, value)
 
 
 def parse_rutina_ref(main_field: str) -> Optional[int]:
-    """
-    Acepta:
-      - "RUTINA: 12"
-      - "12"
-      - " rutina:12 "
-    Devuelve int o None
-    """
     s = (main_field or "").strip()
     if not s:
         return None
@@ -175,7 +195,7 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
 
 
 # =============================================================
-# DB FIX (TABATA PRESET)
+# DB FIX (TABATA PRESET) - SEGURO
 # =============================================================
 @main_bp.route("/admin/db_fix_tabata")
 @login_required
@@ -257,7 +277,6 @@ def perfil_usuario(user_id: int):
     center = safe_parse_ymd(center_str, fallback=date.today())
     hoy = date.today()
 
-    # Integración Strava (si tu modelo usa backref/relación)
     strava_account = getattr(user, "strava_account", None)
 
     week_goal = 5
@@ -366,6 +385,45 @@ def dashboard_entrenador():
 @login_required
 def dashboard_entrenador_alias():
     return dashboard_entrenador()
+
+
+# =============================================================
+# ✅ NUEVO: ELIMINAR VIDEO DESDE BANCO (ADMIN)
+# =============================================================
+@main_bp.route("/admin/videos/delete", methods=["POST"])
+@login_required
+def admin_delete_video():
+    """
+    Elimina el archivo de /static/videos y limpia referencias en DB:
+      - Ejercicio.video_filename == filename  -> "" (vacío)
+    """
+    if not admin_ok():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    filename = (request.form.get("filename") or "").strip()
+    if not filename:
+        flash("Falta filename", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    try:
+        # 1) borrar archivo físico
+        delete_video_from_static(filename)
+
+        # 2) limpiar DB (ejercicios que lo usaban)
+        affected = Ejercicio.query.filter(Ejercicio.video_filename == filename).all()
+        for e in affected:
+            e.video_filename = ""  # o None si tu modelo lo permite
+        db.session.commit()
+
+        flash(f"🗑️ Video eliminado: {filename} (refs DB: {len(affected)})", "success")
+    except FileNotFoundError:
+        flash("Ese video no existe en /static/videos", "warning")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error eliminando video: {e}", "danger")
+
+    return redirect(url_for("main.dashboard_entrenador"))
 
 
 # =============================================================
@@ -497,7 +555,7 @@ def rutina_reorder(rutina_id: int):
 
 
 # =============================================================
-# TABATA CONFIG HELPERS
+# TABATA SETTINGS + PLAYER (lo que ya tenías)
 # =============================================================
 def _tabata_default_cfg(items_count: int) -> Dict[str, Any]:
     return {
@@ -526,9 +584,6 @@ def _save_tabata_cfg(rutina: Rutina, cfg: Dict[str, Any]) -> None:
     db.session.commit()
 
 
-# =============================================================
-# TABATA SETTINGS
-# =============================================================
 @main_bp.route("/rutina/<int:rutina_id>/tabata/settings", methods=["GET"])
 @login_required
 def rutina_tabata_settings(rutina_id: int):
@@ -617,9 +672,6 @@ def rutina_tabata_settings_save(rutina_id: int):
     return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
 
 
-# =============================================================
-# TABATA PLAYER (ADMIN / TEST)
-# =============================================================
 @main_bp.route("/rutina/<int:rutina_id>/tabata", methods=["GET", "POST"])
 @login_required
 def rutina_tabata_player(rutina_id: int):
@@ -682,7 +734,8 @@ def rutina_tabata_player(rutina_id: int):
                 v = v.lstrip("/").replace("\\", "/")
                 video_src = url_for("static", filename=v)
         elif getattr(it, "ejercicio", None) and getattr(it.ejercicio, "video_filename", None):
-            video_src = url_for("static", filename=f"videos/{it.ejercicio.video_filename}")
+            if it.ejercicio.video_filename:
+                video_src = url_for("static", filename=f"videos/{it.ejercicio.video_filename}")
 
         items_payload.append({
             "id": it.id,
@@ -769,7 +822,7 @@ def save_day():
 
     if plan_type.lower() == "fuerza":
         rutina_select = (request.form.get("rutina_select") or "").strip()
-        plan.main = rutina_select  # ej: "RUTINA: 12"
+        plan.main = rutina_select
     else:
         plan.main = (request.form.get("main") or "").strip()
 
@@ -914,7 +967,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# API: DAY DETAIL (MODAL + TABATA)  ✅ PREVIEW + BOTÓN
+# API: DAY DETAIL (MODAL + TABATA)
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -948,7 +1001,7 @@ def api_day_detail():
     rutina = None
     items_payload: List[Dict[str, Any]] = []
     is_tabata = False
-    tabata_cfg: Optional[Dict[str, Any]] = None
+    tabata_cfg = None
 
     if (plan.plan_type or "").lower() == "fuerza":
         rid = parse_rutina_ref(plan.main or "")
@@ -956,21 +1009,16 @@ def api_day_detail():
             rutina = Rutina.query.get(rid)
 
         if rutina:
+            preset = getattr(rutina, "tabata_preset", None)
+            if preset:
+                is_tabata = True
+                tabata_cfg = preset
+
             ritems = (
                 RutinaItem.query.filter_by(rutina_id=rutina.id)
                 .order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc())
                 .all()
             )
-
-            # ✅ Tabata si:
-            # - rutina.tabata_preset existe, o
-            # - rutina.tipo/nombre contiene tabata (por seguridad)
-            preset = getattr(rutina, "tabata_preset", None)
-            is_tabata = bool(preset) or ("tabata" in (rutina.tipo or "").lower()) or ("tabata" in (rutina.nombre or "").lower())
-
-            if is_tabata:
-                # devolvemos config completa con defaults siempre
-                tabata_cfg = _get_tabata_cfg(rutina, len(ritems))
 
             for it in ritems:
                 video_src = ""
@@ -982,7 +1030,8 @@ def api_day_detail():
                         v = v.lstrip("/").replace("\\", "/")
                         video_src = url_for("static", filename=v)
                 elif it.ejercicio and getattr(it.ejercicio, "video_filename", None):
-                    video_src = url_for("static", filename=f"videos/{it.ejercicio.video_filename}")
+                    if it.ejercicio.video_filename:
+                        video_src = url_for("static", filename=f"videos/{it.ejercicio.video_filename}")
 
                 items_payload.append({
                     "id": it.id,

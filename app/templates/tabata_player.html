@@ -77,6 +77,11 @@
         </video>
       </div>
 
+      <div class="text-muted mt-2" style="font-size:.92rem;">
+        ✅ El video se repite automáticamente durante el trabajo.  
+        🔊 Beeps en 3–2–1 antes de cambiar de fase.
+      </div>
+
     </div>
   </div>
 
@@ -116,7 +121,7 @@
 
         <div class="text-muted mt-2" style="font-size:.92rem;">
           Ejemplo: 10 ejercicios · 40" trabajo · 20" descanso · recuperación final 60".
-          Los 10 ejercicios los cargás en el Builder (ordenados).
+          Los ejercicios los cargás en el Builder (ordenados).
         </div>
       </form>
     </div>
@@ -161,5 +166,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/tabata_player.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='js/tabata_player.js') }}?v=2"></script>
 {% endblock %}

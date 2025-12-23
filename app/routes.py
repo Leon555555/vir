@@ -24,7 +24,7 @@ from app.models import (
 )
 
 # =============================================================
-# BLUEPRINTS (se quedan en este archivo, NO carpeta blueprints)
+# BLUEPRINTS
 # =============================================================
 main_bp = Blueprint("main", __name__)
 strava_bp = Blueprint("strava", __name__, url_prefix="/strava")
@@ -41,7 +41,6 @@ def admin_ok() -> bool:
 
 @main_bp.app_context_processor
 def inject_admin():
-    # Esto permite usar admin_ok en templates como variable
     return {"admin_ok": admin_ok()}
 
 
@@ -176,43 +175,11 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
 
 
 # =============================================================
-# TABATA HELPERS (marcar días)
-# =============================================================
-def _rutina_tabata_map(rutina_ids: List[int]) -> Dict[int, bool]:
-    """
-    Devuelve {rutina_id: True/False} según si tiene tabata_preset.
-    """
-    if not rutina_ids:
-        return {}
-    rows = Rutina.query.filter(Rutina.id.in_(rutina_ids)).all()
-    out: Dict[int, bool] = {}
-    for r in rows:
-        out[r.id] = bool(getattr(r, "tabata_preset", None))
-    return out
-
-
-def _plan_is_tabata(plan: DiaPlan, rutina_tabata: Dict[int, bool]) -> bool:
-    if not plan:
-        return False
-    if (plan.plan_type or "").lower() != "fuerza":
-        return False
-    rid = parse_rutina_ref(plan.main or "")
-    if not rid:
-        return False
-    return bool(rutina_tabata.get(rid, False))
-
-
-# =============================================================
-# DB FIX (TABATA PRESET) - SEGURO
+# DB FIX (TABATA PRESET)
 # =============================================================
 @main_bp.route("/admin/db_fix_tabata")
 @login_required
 def admin_db_fix_tabata():
-    """
-    Render fix: crea la columna rutinas.tabata_preset si falta.
-    Entrás logueado como admin y abrís:
-      /admin/db_fix_tabata
-    """
     if not admin_ok():
         return "Acceso denegado", 403
 
@@ -290,6 +257,7 @@ def perfil_usuario(user_id: int):
     center = safe_parse_ymd(center_str, fallback=date.today())
     hoy = date.today()
 
+    # Integración Strava (si tu modelo usa backref/relación)
     strava_account = getattr(user, "strava_account", None)
 
     week_goal = 5
@@ -318,33 +286,15 @@ def perfil_usuario(user_id: int):
     fechas: List[date] = []
     planes: Dict[date, DiaPlan] = {}
     semana_str = ""
-    tabata_days = set()
-
     if view == "week":
         fechas = week_dates(center)
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
         planes = ensure_week_plans(user.id, fechas)
 
-        rutina_ids = []
-        for f in fechas:
-            p = planes.get(f)
-            if p and (p.plan_type or "").lower() == "fuerza":
-                rid = parse_rutina_ref(p.main or "")
-                if rid:
-                    rutina_ids.append(rid)
-
-        rutina_tabata = _rutina_tabata_map(list(set(rutina_ids)))
-        for f in fechas:
-            p = planes.get(f)
-            if _plan_is_tabata(p, rutina_tabata):
-                tabata_days.add(f)
-
     # MONTH VIEW
     month_label = ""
     grid: List[List[Optional[date]]] = []
     planes_mes: Dict[date, DiaPlan] = {}
-    tabata_days_month = set()
-
     if view == "month":
         y, m = center.year, center.month
         month_label = center.strftime("%B %Y").capitalize()
@@ -367,18 +317,6 @@ def perfil_usuario(user_id: int):
                     planes_mes[d] = p
         db.session.commit()
 
-        rutina_ids = []
-        for d, p in planes_mes.items():
-            if p and (p.plan_type or "").lower() == "fuerza":
-                rid = parse_rutina_ref(p.main or "")
-                if rid:
-                    rutina_ids.append(rid)
-
-        rutina_tabata = _rutina_tabata_map(list(set(rutina_ids)))
-        for d, p in planes_mes.items():
-            if _plan_is_tabata(p, rutina_tabata):
-                tabata_days_month.add(d)
-
     return render_template(
         "perfil.html",
         user=user,
@@ -397,8 +335,6 @@ def perfil_usuario(user_id: int):
         month_grid=grid,
         planes_mes=planes_mes,
         strava_account=strava_account,
-        tabata_days=tabata_days,
-        tabata_days_month=tabata_days_month,
     )
 
 
@@ -561,7 +497,7 @@ def rutina_reorder(rutina_id: int):
 
 
 # =============================================================
-# TABATA: SETTINGS
+# TABATA CONFIG HELPERS
 # =============================================================
 def _tabata_default_cfg(items_count: int) -> Dict[str, Any]:
     return {
@@ -590,6 +526,9 @@ def _save_tabata_cfg(rutina: Rutina, cfg: Dict[str, Any]) -> None:
     db.session.commit()
 
 
+# =============================================================
+# TABATA SETTINGS
+# =============================================================
 @main_bp.route("/rutina/<int:rutina_id>/tabata/settings", methods=["GET"])
 @login_required
 def rutina_tabata_settings(rutina_id: int):
@@ -679,7 +618,7 @@ def rutina_tabata_settings_save(rutina_id: int):
 
 
 # =============================================================
-# TABATA PLAYER
+# TABATA PLAYER (ADMIN / TEST)
 # =============================================================
 @main_bp.route("/rutina/<int:rutina_id>/tabata", methods=["GET", "POST"])
 @login_required
@@ -975,7 +914,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# API: DAY DETAIL (MODAL + TABATA)
+# API: DAY DETAIL (MODAL + TABATA)  ✅ PREVIEW + BOTÓN
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -1009,7 +948,7 @@ def api_day_detail():
     rutina = None
     items_payload: List[Dict[str, Any]] = []
     is_tabata = False
-    tabata_cfg = None
+    tabata_cfg: Optional[Dict[str, Any]] = None
 
     if (plan.plan_type or "").lower() == "fuerza":
         rid = parse_rutina_ref(plan.main or "")
@@ -1017,16 +956,21 @@ def api_day_detail():
             rutina = Rutina.query.get(rid)
 
         if rutina:
-            preset = getattr(rutina, "tabata_preset", None)
-            if preset:
-                is_tabata = True
-                tabata_cfg = preset
-
             ritems = (
                 RutinaItem.query.filter_by(rutina_id=rutina.id)
                 .order_by(RutinaItem.posicion.asc(), RutinaItem.id.asc())
                 .all()
             )
+
+            # ✅ Tabata si:
+            # - rutina.tabata_preset existe, o
+            # - rutina.tipo/nombre contiene tabata (por seguridad)
+            preset = getattr(rutina, "tabata_preset", None)
+            is_tabata = bool(preset) or ("tabata" in (rutina.tipo or "").lower()) or ("tabata" in (rutina.nombre or "").lower())
+
+            if is_tabata:
+                # devolvemos config completa con defaults siempre
+                tabata_cfg = _get_tabata_cfg(rutina, len(ritems))
 
             for it in ritems:
                 video_src = ""

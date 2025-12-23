@@ -101,23 +101,12 @@
       {% for f in fechas %}
         {% set p = planes[f] %}
         {% set done = (f in done_week) %}
-        {% set is_tabata_day = (f in tabata_days) %}
         <div class="col-md-6 col-lg-4">
-          <div class="card glass p-3 lift {% if is_tabata_day %}tabata-day{% endif %}">
+          <div class="card glass p-3 lift">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div class="fw-bold" style="letter-spacing:.08em;">{{ f.strftime('%a %d/%m')|upper }}</div>
-
-              <span class="badge
-                {% if done %}bg-success
-                {% elif is_tabata_day %}bg-warning text-dark
-                {% else %}bg-secondary{% endif %}">
-                {% if done %}
-                  HECHO
-                {% elif is_tabata_day %}
-                  ⚡ TABATA
-                {% else %}
-                  {{ p.plan_type }}
-                {% endif %}
+              <span class="badge {% if done %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if done %}HECHO{% else %}{{ p.plan_type }}{% endif %}
               </span>
             </div>
 
@@ -130,9 +119,8 @@
             </div>
 
             <div class="d-grid mt-3">
-              <button class="btn {% if is_tabata_day %}btn-warning text-dark{% else %}btn-outline-info{% endif %}"
-                      type="button" onclick="openDay('{{ f.isoformat() }}')">
-                {% if is_tabata_day %}⚡ Ver Tabata{% else %}Ver detalle{% endif %}
+              <button class="btn btn-outline-info" type="button" onclick="openDay('{{ f.isoformat() }}')">
+                Ver detalle
               </button>
             </div>
           </div>
@@ -165,16 +153,10 @@
             {% if d %}
               {% set pm = planes_mes[d] %}
               {% set blocked = ((pm.puede_entrenar or 'si') == 'no') %}
-              {% set is_tabata_day = (d in tabata_days_month) %}
-              <div class="month-cell
-                   {% if blocked %}blocked{% endif %}
-                   {% if is_tabata_day %}tabata-day{% endif %}"
+              <div class="month-cell {% if blocked %}blocked{% endif %}"
                    data-date="{{ d.isoformat() }}"
                    onclick="openDay('{{ d.isoformat() }}')">
                 <div class="daynum">{{ d.day }}</div>
-                {% if is_tabata_day %}
-                  <div class="tabata-bolt">⚡</div>
-                {% endif %}
               </div>
             {% else %}
               <div class="month-cell empty"></div>
@@ -293,36 +275,69 @@
                 </div>
               </div>
 
-              <!-- TABATA -->
+              <!-- ✅ TABATA (PREVIEW → START → PLAYER) -->
               <div id="tabataBlock" class="glass p-3 mb-3" style="border-radius:18px; display:none;">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                  <div>
-                    <div class="mini-title" style="letter-spacing:.14em;">TABATA</div>
-                    <div class="text-strong" id="tabataTitle" style="font-weight:900;">—</div>
-                    <div class="text-muted" id="tabataPhase" style="font-weight:800;">—</div>
+
+                <!-- PREVIEW -->
+                <div id="tabataPreview" style="display:none;">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="mini-title" style="letter-spacing:.14em;">TABATA</div>
+                      <div class="text-strong" id="tabataPreviewTitle" style="font-weight:900;">—</div>
+                      <div class="text-muted" id="tabataPreviewMeta" style="font-weight:800;">—</div>
+                    </div>
+
+                    <button class="btn btn-warning text-dark" type="button"
+                            onclick="tabataStartFromPreview()"
+                            style="font-weight:900; border-radius:14px;">
+                      ⚡ Empezar Tabata
+                    </button>
                   </div>
 
-                  <div class="text-strong" style="font-weight:900; font-size:1.25rem;">
-                    <span id="tabataTimer">00:00</span>
+                  <div class="mt-3">
+                    <div class="text-muted" style="letter-spacing:.12em;text-transform:uppercase;font-weight:900;">
+                      Lista de ejercicios
+                    </div>
+                    <div id="tabataExerciseList" class="mt-2"></div>
+                  </div>
+
+                  <div class="text-muted mt-3" style="font-size:.9rem;">
+                    Tocá <b>Empezar</b> y arranca con cuenta atrás + videos.
                   </div>
                 </div>
 
-                <div class="mt-3" id="tabataVisual">
-                  <video id="tabataVideo" class="w-100" controls playsinline webkit-playsinline preload="metadata"
-                         style="border-radius:16px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.35); min-height:240px; object-fit:cover;">
-                  </video>
+                <!-- PLAYER -->
+                <div id="tabataPlayer" style="display:none;">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="mini-title" style="letter-spacing:.14em;">TABATA</div>
+                      <div class="text-strong" id="tabataTitle" style="font-weight:900;">—</div>
+                      <div class="text-muted" id="tabataPhase" style="font-weight:800;">—</div>
+                    </div>
+
+                    <div class="text-strong" style="font-weight:900; font-size:1.25rem;">
+                      <span id="tabataTimer">00:00</span>
+                    </div>
+                  </div>
+
+                  <div class="mt-3" id="tabataVisual">
+                    <video id="tabataVideo" class="w-100" controls playsinline webkit-playsinline preload="metadata"
+                           style="border-radius:16px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.35); min-height:240px; object-fit:cover;">
+                    </video>
+                  </div>
+
+                  <div class="d-flex gap-2 mt-3 flex-wrap">
+                    <button class="btn btn-outline-info btn-sm" type="button" onclick="tabataPlay()">▶ Play</button>
+                    <button class="btn btn-outline-light btn-sm" type="button" onclick="tabataPause()">⏸ Pausa</button>
+                    <button class="btn btn-outline-warning btn-sm" type="button" onclick="tabataNext()">⏭ Siguiente</button>
+                    <button class="btn btn-outline-danger btn-sm" type="button" onclick="tabataStop()">⏹ Stop</button>
+                  </div>
+
+                  <div class="text-muted mt-2" style="font-size:.9rem;">
+                    En descansos aparece reloj + cuenta atrás.
+                  </div>
                 </div>
 
-                <div class="d-flex gap-2 mt-3 flex-wrap">
-                  <button class="btn btn-outline-info btn-sm" type="button" onclick="tabataPlay()">▶ Play</button>
-                  <button class="btn btn-outline-light btn-sm" type="button" onclick="tabataPause()">⏸ Pausa</button>
-                  <button class="btn btn-outline-warning btn-sm" type="button" onclick="tabataNext()">⏭ Siguiente</button>
-                  <button class="btn btn-outline-danger btn-sm" type="button" onclick="tabataStop()">⏹ Stop</button>
-                </div>
-
-                <div class="text-muted mt-2" style="font-size:.9rem;">
-                  Empieza automáticamente en <b>3s</b>. En descansos aparece reloj + cuenta atrás.
-                </div>
               </div>
 
               <div id="strengthItems" class="row g-3"></div>
@@ -385,7 +400,7 @@
 .done-pill .form-check-label{ color: rgba(255,255,255,.70); font-weight: 800; }
 
 .month-head{ color: rgba(255,255,255,.72) !important; }
-.month-cell{ background: rgba(0,0,0,.42) !important; position: relative; }
+.month-cell{ background: rgba(0,0,0,.42) !important; }
 .month-cell .daynum{ color: rgba(255,255,255,.92) !important; }
 
 .month-cell.blocked{ background: rgba(255, 59, 48, 0.18) !important; border: 1px solid rgba(255, 59, 48, 0.55) !important; box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset; }
@@ -393,41 +408,8 @@
 
 .vr-days span{ color: rgba(255,255,255,.78); font-weight: 900; letter-spacing:.08em;}
 
-/* =========================
-   TABATA DAY STYLE (SEMANA + MES)
-========================= */
-.tabata-day{
-  position: relative;
-  border: 1px solid rgba(255, 193, 7, 0.35) !important;
-  box-shadow:
-    0 0 0 1px rgba(255, 193, 7, 0.12) inset,
-    0 14px 40px rgba(0,0,0,.45);
-  background:
-    radial-gradient(circle at 20% 15%, rgba(255,193,7,0.18) 0%, rgba(255,255,255,0.03) 35%, rgba(0,0,0,0.40) 100%) !important;
-}
-
-.tabata-day::after{
-  content:"TABATA";
-  position:absolute;
-  top:10px;
-  right:12px;
-  font-weight: 900;
-  letter-spacing:.18em;
-  font-size:.70rem;
-  color: rgba(255, 193, 7, 0.88);
-  opacity: .95;
-  pointer-events:none;
-}
-
-/* bolt en mes */
-.month-cell .tabata-bolt{
-  position:absolute;
-  right:8px;
-  bottom:6px;
-  font-size: 16px;
-  opacity:.95;
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
-}
+#tabataPreview .btn-warning{ box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+#tabataExerciseList .glass{ background: rgba(255,255,255,.04) !important; }
 </style>
 {% endblock %}
 
@@ -444,7 +426,7 @@ if(typeof bootstrap === "undefined"){
 }
 
 /* =========================
-   TABATA PLAYER
+   TABATA PLAYER (modal)
 ========================= */
 let TABATA = {
   active: false,
@@ -642,28 +624,59 @@ function tabataNext(){
 }
 
 /* =========================
-   HELPERS
+   TABATA PREVIEW (lista + botón)
 ========================= */
-function posterDataUrl(title){
-  const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const svg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
-    <defs>
-      <linearGradient id="g" x1="0" x2="1">
-        <stop offset="0" stop-color="#0b0f12"/>
-        <stop offset="1" stop-color="#050608"/>
-      </linearGradient>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#g)"/>
-    <rect x="40" y="40" width="1200" height="640" rx="36" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.16)"/>
-    <circle cx="640" cy="360" r="62" fill="rgba(34,211,238,0.18)" stroke="rgba(34,211,238,0.45)" stroke-width="6"/>
-    <polygon points="625,330 625,390 680,360" fill="rgba(255,255,255,0.85)"/>
-    <text x="80" y="130" font-size="46" fill="rgba(255,255,255,0.92)" font-family="Arial" font-weight="700">${safe}</text>
-    <text x="80" y="180" font-size="26" fill="rgba(255,255,255,0.60)" font-family="Arial">VR Training</text>
-  </svg>`;
-  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+function renderTabataPreview(cfg, items){
+  const prev = document.getElementById("tabataPreview");
+  const player = document.getElementById("tabataPlayer");
+
+  prev.style.display = "";
+  player.style.display = "none";
+
+  const title = (cfg?.title || "TABATA");
+  const work = cfg?.work ?? 40;
+  const rest = cfg?.rest ?? 20;
+  const rounds = cfg?.rounds ?? items.length;
+  const sets = cfg?.sets ?? 1;
+
+  document.getElementById("tabataPreviewTitle").textContent = title;
+  document.getElementById("tabataPreviewMeta").textContent =
+    `${rounds} rondas · ${sets} set(s) · ${work}s ON / ${rest}s OFF`;
+
+  const list = document.getElementById("tabataExerciseList");
+  list.innerHTML = "";
+
+  items.slice(0, rounds).forEach((it, i) => {
+    const row = document.createElement("div");
+    row.className = "glass p-2 mb-2";
+    row.style.borderRadius = "14px";
+    row.style.border = "1px solid rgba(255,255,255,.10)";
+    row.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <div style="font-weight:900;">
+          <span style="opacity:.75; margin-right:8px;">${String(i+1).padStart(2,"0")}</span>
+          ${escapeHtml(it?.nombre || "Ejercicio")}
+        </div>
+        <div class="text-muted" style="font-weight:900;">${work}s</div>
+      </div>
+    `;
+    list.appendChild(row);
+  });
 }
 
+function tabataStartFromPreview(){
+  document.getElementById("tabataPreview").style.display = "none";
+  document.getElementById("tabataPlayer").style.display = "";
+
+  tabataStop();
+  TABATA.phase = "count_in";
+  TABATA.t = (TABATA.cfg?.count_in ?? 3);
+  tabataPlay();
+}
+
+/* =========================
+   HELPERS
+========================= */
 function setAvailUI(puede, comentario){
   const toggle = document.getElementById("noPuedoToggle");
   const text = document.getElementById("noPuedoText");
@@ -701,6 +714,8 @@ function openDay(isoDate){
 
   tabataStop();
   document.getElementById("tabataBlock").style.display = "none";
+  document.getElementById("tabataPreview").style.display = "none";
+  document.getElementById("tabataPlayer").style.display = "none";
   setAvailUI("si", "");
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
@@ -730,14 +745,13 @@ function openDay(isoDate){
       const tabBlock = document.getElementById("tabataBlock");
       if(data.is_tabata && data.tabata_cfg && Array.isArray(data.items) && data.items.length){
         tabBlock.style.display = "";
+
         TABATA.cfg = data.tabata_cfg;
         TABATA.items = data.items;
 
         tabataStop();
-        TABATA.phase = "count_in";
-        TABATA.t = (TABATA.cfg.count_in ?? 3);
+        renderTabataPreview(TABATA.cfg, TABATA.items); // ✅ PREVIEW (no auto-play)
 
-        setTimeout(()=> tabataPlay(), 50);
       }else{
         tabBlock.style.display = "none";
         tabataStop();
@@ -762,7 +776,6 @@ function renderStrength(items, doneIds){
 
     const checked = doneIds.has(it.id) ? "checked" : "";
     const vidSrc = it.video_src || "";
-    const poster = posterDataUrl(it.nombre);
 
     col.innerHTML = `
       <div class="exercise-card">
@@ -786,7 +799,7 @@ function renderStrength(items, doneIds){
 
         <div class="exercise-video">
           ${vidSrc ? `
-            <video controls playsinline webkit-playsinline preload="metadata" poster="${poster}">
+            <video controls playsinline webkit-playsinline preload="metadata">
               <source src="${vidSrc}" type="video/mp4">
             </video>
           ` : `<div class="text-muted">Sin video</div>`}

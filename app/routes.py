@@ -176,6 +176,33 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
 
 
 # =============================================================
+# TABATA HELPERS (marcar días)
+# =============================================================
+def _rutina_tabata_map(rutina_ids: List[int]) -> Dict[int, bool]:
+    """
+    Devuelve {rutina_id: True/False} según si tiene tabata_preset.
+    """
+    if not rutina_ids:
+        return {}
+    rows = Rutina.query.filter(Rutina.id.in_(rutina_ids)).all()
+    out: Dict[int, bool] = {}
+    for r in rows:
+        out[r.id] = bool(getattr(r, "tabata_preset", None))
+    return out
+
+
+def _plan_is_tabata(plan: DiaPlan, rutina_tabata: Dict[int, bool]) -> bool:
+    if not plan:
+        return False
+    if (plan.plan_type or "").lower() != "fuerza":
+        return False
+    rid = parse_rutina_ref(plan.main or "")
+    if not rid:
+        return False
+    return bool(rutina_tabata.get(rid, False))
+
+
+# =============================================================
 # DB FIX (TABATA PRESET) - SEGURO
 # =============================================================
 @main_bp.route("/admin/db_fix_tabata")
@@ -291,15 +318,33 @@ def perfil_usuario(user_id: int):
     fechas: List[date] = []
     planes: Dict[date, DiaPlan] = {}
     semana_str = ""
+    tabata_days = set()
+
     if view == "week":
         fechas = week_dates(center)
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
         planes = ensure_week_plans(user.id, fechas)
 
+        rutina_ids = []
+        for f in fechas:
+            p = planes.get(f)
+            if p and (p.plan_type or "").lower() == "fuerza":
+                rid = parse_rutina_ref(p.main or "")
+                if rid:
+                    rutina_ids.append(rid)
+
+        rutina_tabata = _rutina_tabata_map(list(set(rutina_ids)))
+        for f in fechas:
+            p = planes.get(f)
+            if _plan_is_tabata(p, rutina_tabata):
+                tabata_days.add(f)
+
     # MONTH VIEW
     month_label = ""
     grid: List[List[Optional[date]]] = []
     planes_mes: Dict[date, DiaPlan] = {}
+    tabata_days_month = set()
+
     if view == "month":
         y, m = center.year, center.month
         month_label = center.strftime("%B %Y").capitalize()
@@ -322,6 +367,18 @@ def perfil_usuario(user_id: int):
                     planes_mes[d] = p
         db.session.commit()
 
+        rutina_ids = []
+        for d, p in planes_mes.items():
+            if p and (p.plan_type or "").lower() == "fuerza":
+                rid = parse_rutina_ref(p.main or "")
+                if rid:
+                    rutina_ids.append(rid)
+
+        rutina_tabata = _rutina_tabata_map(list(set(rutina_ids)))
+        for d, p in planes_mes.items():
+            if _plan_is_tabata(p, rutina_tabata):
+                tabata_days_month.add(d)
+
     return render_template(
         "perfil.html",
         user=user,
@@ -340,6 +397,8 @@ def perfil_usuario(user_id: int):
         month_grid=grid,
         planes_mes=planes_mes,
         strava_account=strava_account,
+        tabata_days=tabata_days,
+        tabata_days_month=tabata_days_month,
     )
 
 
@@ -375,9 +434,6 @@ def dashboard_entrenador_alias():
 
 # =============================================================
 # RUTINA BUILDER
-# (tus templates usan: rutina_add_item, rutina_update_item,
-#  rutina_delete_item, rutina_reorder, rutina_tabata_player,
-#  rutina_tabata_settings_save)
 # =============================================================
 @main_bp.route("/rutina/<int:rutina_id>/builder", methods=["GET"])
 @login_required
@@ -422,21 +478,19 @@ def rutina_add_item(rutina_id: int):
         flash("Ejercicio inválido", "danger")
         return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
-    # siguiente posición
     max_pos = db.session.query(db.func.max(RutinaItem.posicion)).filter_by(rutina_id=rutina.id).scalar()
     next_pos = int(max_pos or 0) + 1
 
     it = RutinaItem(
         rutina_id=rutina.id,
         ejercicio_id=ej.id,
-        nombre=ej.nombre,   # guardamos snapshot del nombre
+        nombre=ej.nombre,
         series=series or None,
         reps=reps or None,
         peso=peso or None,
         descanso=descanso or None,
         nota=nota or None,
         posicion=next_pos,
-        # video_url: lo dejamos para casos custom; normalmente usa ejercicio.video_filename
     )
     db.session.add(it)
     db.session.commit()
@@ -507,11 +561,9 @@ def rutina_reorder(rutina_id: int):
 
 
 # =============================================================
-# TABATA: SETTINGS (tu rutina_builder y tu rutina_tabata_settings.html)
+# TABATA: SETTINGS
 # =============================================================
 def _tabata_default_cfg(items_count: int) -> Dict[str, Any]:
-    # tu builder usa "rounds" como "cantidad de ejercicios por vuelta".
-    # si no lo pasan, auto = items_count
     return {
         "title": "Tabata",
         "work": 40,
@@ -549,7 +601,6 @@ def rutina_tabata_settings(rutina_id: int):
     items_count = RutinaItem.query.filter_by(rutina_id=rutina.id).count()
     cfg = _get_tabata_cfg(rutina, items_count)
 
-    # Valores esperados por tu template rutina_tabata_settings.html
     auto_rounds = items_count
 
     tabata_work = int(cfg.get("work") or 40)
@@ -585,9 +636,6 @@ def rutina_tabata_settings_save(rutina_id: int):
     items_count = RutinaItem.query.filter_by(rutina_id=rutina.id).count()
     cfg = _get_tabata_cfg(rutina, items_count)
 
-    # ✅ Soporta ambos formularios:
-    # - builder: work/rest/rounds/recovery
-    # - settings page: tabata_work/tabata_rest/tabata_rounds/tabata_sets/...
     def _int(name: str, alt: Optional[str] = None, default: int = 0) -> int:
         v = request.form.get(name)
         if (v is None or v == "") and alt:
@@ -597,19 +645,15 @@ def rutina_tabata_settings_save(rutina_id: int):
         except Exception:
             return int(default)
 
-    # builder fields
     work = _int("work", "tabata_work", default=int(cfg.get("work") or 40))
     rest = _int("rest", "tabata_rest", default=int(cfg.get("rest") or 20))
     rounds = _int("rounds", "tabata_rounds", default=int(cfg.get("rounds") or items_count or 10))
-
-    # builder "recovery" -> map a finisher_rest
     recovery = _int("recovery", "tabata_finisher_rest", default=int(cfg.get("finisher_rest") or 60))
 
     sets_ = _int("tabata_sets", None, default=int(cfg.get("sets") or 1))
     rest_between_sets = _int("tabata_rest_between_sets", None, default=int(cfg.get("rest_between_sets") or 0))
     count_in = _int("tabata_count_in", None, default=int(cfg.get("count_in") or 3))
 
-    # regla: si rounds = 0 => auto = items_count (como dice tu settings template)
     if rounds <= 0:
         rounds = int(items_count or 10)
 
@@ -631,18 +675,15 @@ def rutina_tabata_settings_save(rutina_id: int):
         db.session.rollback()
         flash(f"Error guardando Tabata: {e}", "danger")
 
-    # tu template settings dice "Guardar y abrir Tabata"
     return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
 
 
 # =============================================================
-# TABATA PLAYER (tu tabata_player.html)
+# TABATA PLAYER
 # =============================================================
 @main_bp.route("/rutina/<int:rutina_id>/tabata", methods=["GET", "POST"])
 @login_required
 def rutina_tabata_player(rutina_id: int):
-    # En tu tabata_player.html existe un bloque que muestra config si "is_admin"
-    # Para no romperlo: is_admin=True si admin_ok()
     if not (admin_ok() or current_user.is_authenticated):
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
@@ -658,7 +699,6 @@ def rutina_tabata_player(rutina_id: int):
 
     cfg = _get_tabata_cfg(rutina, len(ritems))
 
-    # Si es POST acá, guardamos rápido (tu player también permite guardar)
     if request.method == "POST":
         if not admin_ok():
             flash("Solo admin puede guardar", "danger")
@@ -691,20 +731,15 @@ def rutina_tabata_player(rutina_id: int):
 
         return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
 
-    # items_payload (lo usa tu tabata_player.html)
     items_payload: List[Dict[str, Any]] = []
     for it in ritems:
         video_src = ""
 
-        # Si guardaste un URL custom en RutinaItem.video_url:
         if getattr(it, "video_url", None):
-            # OJO: si video_url ya es URL completa (https://...), NO uses url_for static
-            # Si es ruta relativa tipo "videos/xxx.mp4" entonces sí
             v = (it.video_url or "").strip()
             if v.startswith("http://") or v.startswith("https://"):
                 video_src = v
             else:
-                # si guardaste "videos/..." o "videos\..."
                 v = v.lstrip("/").replace("\\", "/")
                 video_src = url_for("static", filename=v)
         elif getattr(it, "ejercicio", None) and getattr(it.ejercicio, "video_filename", None):
@@ -717,8 +752,6 @@ def rutina_tabata_player(rutina_id: int):
             "video_src": video_src,
         })
 
-    # Tu template espera cfg.work/rest/rounds/recovery
-    # Nosotros guardamos finisher_rest => lo exponemos como "recovery"
     cfg_for_template = dict(cfg)
     cfg_for_template["recovery"] = int(cfg.get("finisher_rest") or 60)
 

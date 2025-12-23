@@ -101,12 +101,23 @@
       {% for f in fechas %}
         {% set p = planes[f] %}
         {% set done = (f in done_week) %}
+        {% set is_tabata_day = (f in tabata_days) %}
         <div class="col-md-6 col-lg-4">
-          <div class="card glass p-3 lift">
+          <div class="card glass p-3 lift {% if is_tabata_day %}tabata-day{% endif %}">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div class="fw-bold" style="letter-spacing:.08em;">{{ f.strftime('%a %d/%m')|upper }}</div>
-              <span class="badge {% if done %}bg-success{% else %}bg-secondary{% endif %}">
-                {% if done %}HECHO{% else %}{{ p.plan_type }}{% endif %}
+
+              <span class="badge
+                {% if done %}bg-success
+                {% elif is_tabata_day %}bg-warning text-dark
+                {% else %}bg-secondary{% endif %}">
+                {% if done %}
+                  HECHO
+                {% elif is_tabata_day %}
+                  ⚡ TABATA
+                {% else %}
+                  {{ p.plan_type }}
+                {% endif %}
               </span>
             </div>
 
@@ -119,8 +130,9 @@
             </div>
 
             <div class="d-grid mt-3">
-              <button class="btn btn-outline-info" type="button" onclick="openDay('{{ f.isoformat() }}')">
-                Ver detalle
+              <button class="btn {% if is_tabata_day %}btn-warning text-dark{% else %}btn-outline-info{% endif %}"
+                      type="button" onclick="openDay('{{ f.isoformat() }}')">
+                {% if is_tabata_day %}⚡ Ver Tabata{% else %}Ver detalle{% endif %}
               </button>
             </div>
           </div>
@@ -153,10 +165,16 @@
             {% if d %}
               {% set pm = planes_mes[d] %}
               {% set blocked = ((pm.puede_entrenar or 'si') == 'no') %}
-              <div class="month-cell {% if blocked %}blocked{% endif %}"
+              {% set is_tabata_day = (d in tabata_days_month) %}
+              <div class="month-cell
+                   {% if blocked %}blocked{% endif %}
+                   {% if is_tabata_day %}tabata-day{% endif %}"
                    data-date="{{ d.isoformat() }}"
                    onclick="openDay('{{ d.isoformat() }}')">
                 <div class="daynum">{{ d.day }}</div>
+                {% if is_tabata_day %}
+                  <div class="tabata-bolt">⚡</div>
+                {% endif %}
               </div>
             {% else %}
               <div class="month-cell empty"></div>
@@ -367,13 +385,49 @@
 .done-pill .form-check-label{ color: rgba(255,255,255,.70); font-weight: 800; }
 
 .month-head{ color: rgba(255,255,255,.72) !important; }
-.month-cell{ background: rgba(0,0,0,.42) !important; }
+.month-cell{ background: rgba(0,0,0,.42) !important; position: relative; }
 .month-cell .daynum{ color: rgba(255,255,255,.92) !important; }
 
 .month-cell.blocked{ background: rgba(255, 59, 48, 0.18) !important; border: 1px solid rgba(255, 59, 48, 0.55) !important; box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset; }
 .month-cell.blocked .daynum{ color: rgba(255,255,255,.95) !important; }
 
 .vr-days span{ color: rgba(255,255,255,.78); font-weight: 900; letter-spacing:.08em;}
+
+/* =========================
+   TABATA DAY STYLE (SEMANA + MES)
+========================= */
+.tabata-day{
+  position: relative;
+  border: 1px solid rgba(255, 193, 7, 0.35) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 193, 7, 0.12) inset,
+    0 14px 40px rgba(0,0,0,.45);
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255,193,7,0.18) 0%, rgba(255,255,255,0.03) 35%, rgba(0,0,0,0.40) 100%) !important;
+}
+
+.tabata-day::after{
+  content:"TABATA";
+  position:absolute;
+  top:10px;
+  right:12px;
+  font-weight: 900;
+  letter-spacing:.18em;
+  font-size:.70rem;
+  color: rgba(255, 193, 7, 0.88);
+  opacity: .95;
+  pointer-events:none;
+}
+
+/* bolt en mes */
+.month-cell .tabata-bolt{
+  position:absolute;
+  right:8px;
+  bottom:6px;
+  font-size: 16px;
+  opacity:.95;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
+}
 </style>
 {% endblock %}
 

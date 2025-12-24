@@ -27,6 +27,15 @@
     </div>
 
     <div class="d-flex gap-2 align-items-center flex-wrap">
+      {% if admin_ok %}
+        <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador', user_id=user.id) }}">
+          <i class="bi bi-calendar3"></i> Planificar
+        </a>
+      {% endif %}
+      <a class="btn btn-outline-light" href="{{ url_for('main.perfil_redirect') }}">
+        <i class="bi bi-arrow-left"></i> Volver
+      </a>
+
       <div class="mini-stat">
         <div class="mini-title">RACHA</div>
         <div class="mini-value">🔥 {{ streak }}</div>
@@ -275,7 +284,7 @@
                 </div>
               </div>
 
-              <!-- ✅ NUEVO: BLOQUES DEL DÍA -->
+              <!-- ✅ BLOQUES DEL DÍA (mejorados) -->
               <div class="glass p-3 mb-3" style="border-radius:18px;">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div class="mini-title" style="letter-spacing:.14em;">BLOQUES DEL DÍA</div>
@@ -284,7 +293,7 @@
                 <div id="dayBlocks" class="d-grid" style="gap:12px;"></div>
               </div>
 
-              <!-- Fuerza items (si hay) -->
+              <!-- Fuerza items (según bloque seleccionado) -->
               <div id="strengthItems" class="row g-3"></div>
 
               <div class="mt-3">
@@ -389,7 +398,10 @@
 let DAY_MODAL = null;
 let CURRENT_DAY = null;
 let CURRENT_USER = {{ user.id }};
-let CURRENT_ITEMS = [];
+
+let CURRENT_PAYLOAD = null;
+let FUERZA_BLOCKS = [];   // [{idx, rutina, items}]
+let CURRENT_CHECKS = new Set();
 
 if(typeof bootstrap === "undefined"){
   console.error("Bootstrap JS no está cargado. Revisá layout.html");
@@ -423,7 +435,37 @@ function escapeHtml(s){
 }
 
 /* =========================
-   NUEVO: RENDER BLOQUES
+   BADGES (del segundo)
+========================= */
+function badgeHtml(type){
+  const t = (type||"").toUpperCase();
+  const map = {
+    "TABATA": "bg-danger",
+    "FUERZA": "bg-info",
+    "RUN": "bg-success",
+    "BIKE": "bg-warning text-dark",
+    "SWIM": "bg-primary",
+    "FREE": "bg-secondary",
+    "NOTE": "bg-light text-dark"
+  };
+  const cls = map[t] || "bg-secondary";
+  return `<span class="badge ${cls}" style="font-weight:900; letter-spacing:.06em;">${escapeHtml(t||"BLOQUE")}</span>`;
+}
+
+function typeLabel(type){
+  const t = (type||"").toLowerCase();
+  if(t === "tabata") return "TABATA";
+  if(t === "fuerza") return "FUERZA";
+  if(t === "run") return "RUN";
+  if(t === "bike") return "BIKE";
+  if(t === "swim") return "SWIM";
+  if(t === "free") return "FREE";
+  if(t === "note") return "NOTE";
+  return (type||"BLOQUE").toUpperCase();
+}
+
+/* =========================
+   BLOQUES (mejorado)
 ========================= */
 function renderBlocks(blocks){
   const wrap = document.getElementById("dayBlocks");
@@ -438,18 +480,19 @@ function renderBlocks(blocks){
     return;
   }
 
-  arr.forEach((b) => {
+  arr.forEach((b, idx) => {
     const type = (b.type || "").toLowerCase();
     const ok = b.ok !== false;
 
     // iconos
     let icon = "bi-grid";
-    let label = "Bloque";
-    if(type === "tabata"){ icon = "bi-lightning-charge-fill"; label = "TABATA"; }
-    if(type === "run"){ icon = "bi-person-running"; label = "RUN"; }
-    if(type === "free"){ icon = "bi-wind"; label = "FREE"; }
-    if(type === "note"){ icon = "bi-chat-left-text"; label = "NOTA"; }
-    if(type === "fuerza"){ icon = "bi-barbell"; label = "FUERZA"; }
+    if(type === "tabata"){ icon = "bi-lightning-charge-fill"; }
+    if(type === "run"){ icon = "bi-person-running"; }
+    if(type === "bike"){ icon = "bi-bicycle"; }
+    if(type === "swim"){ icon = "bi-water"; }
+    if(type === "free"){ icon = "bi-wind"; }
+    if(type === "note"){ icon = "bi-chat-left-text"; }
+    if(type === "fuerza"){ icon = "bi-barbell"; }
 
     const div = document.createElement("div");
     div.className = "block-card";
@@ -460,17 +503,18 @@ function renderBlocks(blocks){
           <div class="d-flex gap-2">
             <div class="block-icon"><i class="bi ${icon} text-warning"></i></div>
             <div>
-              <div class="block-title">${label}</div>
+              <div class="block-title">${typeLabel(b.type)}</div>
               <div class="block-sub text-warning">${escapeHtml(b.error || "Bloque inválido")}</div>
             </div>
           </div>
+          ${badgeHtml(typeLabel(b.type))}
         </div>
       `;
       wrap.appendChild(div);
       return;
     }
 
-    // TABATA: botón grande (puede haber varios)
+    // TABATA (con Reproducir + Settings)
     if(type === "tabata"){
       const rname = b.rutina?.nombre || "Tabata";
       const work = b.cfg?.work ?? 40;
@@ -478,6 +522,7 @@ function renderBlocks(blocks){
       const rounds = b.cfg?.rounds ?? (Array.isArray(b.items) ? b.items.length : 0);
       const sets = b.cfg?.sets ?? 1;
       const startUrl = b.start_url || "#";
+      const settingsUrl = b.settings_url || "";
 
       div.innerHTML = `
         <div class="block-head">
@@ -488,7 +533,7 @@ function renderBlocks(blocks){
               <div class="block-sub">${work}s trabajo · ${rest}s descanso · ${rounds} ejercicios · ${sets} set(s)</div>
             </div>
           </div>
-          <span class="badge bg-info">TABATA</span>
+          ${badgeHtml("TABATA")}
         </div>
 
         <div class="mt-2 glass p-2" style="border-radius:14px;">
@@ -504,60 +549,87 @@ function renderBlocks(blocks){
           </div>
         </div>
 
-        <div class="d-grid mt-3">
-          <a class="btn btn-info btn-lg" href="${startUrl}" target="_blank" rel="noopener">
-            ▶ EMPEZAR TABATA
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+          <a class="btn btn-danger btn-lg" href="${startUrl}" target="_blank" rel="noopener">
+            ▶ Reproducir
           </a>
+          ${settingsUrl ? `
+            <a class="btn btn-outline-warning btn-lg" href="${settingsUrl}" target="_blank" rel="noopener">
+              ⚙️ Settings
+            </a>` : ``}
         </div>
       `;
       wrap.appendChild(div);
       return;
     }
 
-    // RUN / FREE / NOTE: texto bonito con iconos
-    if(type === "run" || type === "free" || type === "note"){
+    // RUN / BIKE / SWIM / FREE / NOTE
+    if(type === "run" || type === "bike" || type === "swim" || type === "free" || type === "note"){
       const text = b.text || "—";
       div.innerHTML = `
         <div class="block-head">
           <div class="d-flex gap-2">
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
-              <div class="block-title">${label}</div>
+              <div class="block-title">${typeLabel(b.type)}</div>
               <div class="block-sub">${escapeHtml(text)}</div>
             </div>
           </div>
-          <span class="badge bg-secondary">${label}</span>
+          ${badgeHtml(typeLabel(b.type))}
         </div>
       `;
       wrap.appendChild(div);
       return;
     }
 
-    // FUERZA: avisa que debajo aparecen los ejercicios (si hay)
+    // FUERZA (con Builder + Ver ejercicios)
     if(type === "fuerza"){
       const rname = b.rutina?.nombre || "Fuerza";
+      const builderUrl = b.builder_url || "";
       div.innerHTML = `
         <div class="block-head">
           <div class="d-flex gap-2">
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
-              <div class="block-sub">Ejercicios y videos abajo</div>
+              <div class="block-sub">Tocá “Ver ejercicios” para mostrar los videos</div>
             </div>
           </div>
-          <span class="badge bg-secondary">FUERZA</span>
+          ${badgeHtml("FUERZA")}
+        </div>
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+          ${builderUrl ? `
+            <a class="btn btn-outline-info" href="${builderUrl}" target="_blank" rel="noopener">
+              Builder
+            </a>` : ``}
+          <button class="btn btn-outline-light" type="button" onclick="showForceItems(${idx})">
+            Ver ejercicios
+          </button>
         </div>
       `;
       wrap.appendChild(div);
       return;
     }
 
+    // default
+    div.innerHTML = `
+      <div class="block-head">
+        <div class="d-flex gap-2">
+          <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
+          <div>
+            <div class="block-title">${typeLabel(b.type)}</div>
+            <div class="block-sub">${escapeHtml(b.text || "")}</div>
+          </div>
+        </div>
+        ${badgeHtml(typeLabel(b.type))}
+      </div>
+    `;
     wrap.appendChild(div);
   });
 }
 
 /* =========================
-   FUERZA: render items (igual que antes)
+   FUERZA: poster + render
 ========================= */
 function posterDataUrl(title){
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -582,13 +654,15 @@ function posterDataUrl(title){
 function renderStrength(items, doneIds){
   const wrap = document.getElementById("strengthItems");
   wrap.innerHTML = "";
-  if(!items.length) return;
+  if(!items || !items.length){
+    return;
+  }
 
   items.forEach(it => {
     const col = document.createElement("div");
     col.className = "col-12";
 
-    const checked = doneIds.has(it.id) ? "checked" : "";
+    const checked = doneIds.has(String(it.id)) ? "checked" : "";
     const vidSrc = it.video_src || "";
     const poster = posterDataUrl(it.nombre);
 
@@ -600,6 +674,7 @@ function renderStrength(items, doneIds){
             <div class="exercise-meta">
               ${escapeHtml(it.series || "")}${it.series ? " · " : ""}${escapeHtml(it.reps || "")}
               ${it.descanso ? (" · Desc " + escapeHtml(it.descanso)) : ""}
+              ${it.nota ? (" · " + escapeHtml(it.nota)) : ""}
             </div>
           </div>
 
@@ -625,6 +700,17 @@ function renderStrength(items, doneIds){
   });
 }
 
+function showForceItems(blockIndex){
+  // usa el payload actual
+  const b = (CURRENT_PAYLOAD && Array.isArray(CURRENT_PAYLOAD.blocks)) ? CURRENT_PAYLOAD.blocks[blockIndex] : null;
+  const items = (b && b.ok && Array.isArray(b.items)) ? b.items : [];
+  renderStrength(items, CURRENT_CHECKS);
+
+  // scrollea suave a ejercicios
+  const el = document.getElementById("strengthItems");
+  if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
 /* =========================
    MODAL OPEN
 ========================= */
@@ -639,6 +725,10 @@ function openDay(isoDate){
     DAY_MODAL = new bootstrap.Modal(document.getElementById("dayModal"));
   }
 
+  CURRENT_PAYLOAD = null;
+  FUERZA_BLOCKS = [];
+  CURRENT_CHECKS = new Set();
+
   document.getElementById("dayModalDate").textContent = isoDate;
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
@@ -651,8 +741,9 @@ function openDay(isoDate){
     .then(r => r.json())
     .then(data => {
       if(!data.ok) throw new Error(data.error || "Error");
-      const p = data.plan || {};
+      CURRENT_PAYLOAD = data;
 
+      const p = data.plan || {};
       document.getElementById("dayModalTitle").textContent = (data.rutina?.nombre ? data.rutina.nombre : "Detalle del día");
       document.getElementById("dayModalType").textContent = p.plan_type || "—";
 
@@ -667,20 +758,27 @@ function openDay(isoDate){
       document.getElementById("doneMain").value = data.log?.main_done || "";
       document.getElementById("doneFinisher").value = data.log?.finisher_done || "";
 
-      // ✅ BLOQUES
+      // checks
+      CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
+
+      // bloques
       renderBlocks(data.blocks || []);
 
-      // ✅ Fuerza: junta todos los items de bloques fuerza y los muestra abajo
+      // fuerza: preparar lista y mostrar el primer bloque por defecto
       const blocks = Array.isArray(data.blocks) ? data.blocks : [];
-      const fuerzaItems = [];
-      blocks.forEach(b => {
-        if((b.type||"").toLowerCase() === "fuerza" && b.ok && Array.isArray(b.items)){
-          b.items.forEach(x => fuerzaItems.push(x));
+      let firstForceIdx = null;
+      blocks.forEach((b, idx) => {
+        if((b.type||"").toLowerCase() === "fuerza" && b.ok && Array.isArray(b.items) && b.items.length){
+          FUERZA_BLOCKS.push({ idx, items: b.items, rutina: b.rutina || {} });
+          if(firstForceIdx === null) firstForceIdx = idx;
         }
       });
 
-      const doneIds = new Set(Array.isArray(data.checks) ? data.checks : []);
-      renderStrength(fuerzaItems, doneIds);
+      if(firstForceIdx !== null){
+        showForceItems(firstForceIdx);
+      }else{
+        document.getElementById("strengthItems").innerHTML = "";
+      }
 
       DAY_MODAL.show();
     })
@@ -702,7 +800,12 @@ function toggleItem(itemId, done){
 
   fetch("/athlete/check_item", { method:"POST", body: form })
     .then(r => r.json())
-    .then(j => { if(!j.ok) throw new Error(j.error || "Error"); })
+    .then(j => {
+      if(!j.ok) throw new Error(j.error || "Error");
+      // mantener set local
+      if(done) CURRENT_CHECKS.add(String(itemId));
+      else CURRENT_CHECKS.delete(String(itemId));
+    })
     .catch(err => { console.error(err); alert("Error guardando check: " + err.message); });
 }
 

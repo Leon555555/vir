@@ -16,6 +16,7 @@ from flask import (
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import text
+from sqlalchemy.orm import load_only
 
 from app.extensions import db
 from app.models import (
@@ -24,7 +25,7 @@ from app.models import (
 )
 
 # =============================================================
-# BLUEPRINTS (se quedan en este archivo, NO carpeta blueprints)
+# BLUEPRINTS
 # =============================================================
 main_bp = Blueprint("main", __name__)
 strava_bp = Blueprint("strava", __name__, url_prefix="/strava")
@@ -81,22 +82,6 @@ def month_grid(year: int, month: int) -> List[List[Optional[date]]]:
         col = 0
 
     return grid
-
-
-def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
-    existing = DiaPlan.query.filter(
-        DiaPlan.user_id == user_id,
-        DiaPlan.fecha >= fechas[0],
-        DiaPlan.fecha <= fechas[-1],
-    ).all()
-    by_date = {p.fecha: p for p in existing}
-    for f in fechas:
-        if f not in by_date:
-            p = DiaPlan(user_id=user_id, fecha=f, plan_type="Descanso")
-            db.session.add(p)
-            by_date[f] = p
-    db.session.commit()
-    return by_date
 
 
 def videos_dir() -> str:
@@ -187,7 +172,7 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
 
 
 # =============================================================
-# ✅ PARSER DE BLOQUES EN plan.main (soporta varios TABATA/RUN/FREE)
+# ✅ PARSER DE BLOQUES DESDE plan.main (una línea = un bloque)
 # =============================================================
 def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
     lines = [l.strip() for l in (main_text or "").splitlines() if l.strip()]
@@ -210,6 +195,16 @@ def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
             out.append({"type": "run", "raw": payload, "label": "RUN"})
             continue
 
+        if up.startswith("BIKE:"):
+            payload = line.split(":", 1)[1].strip()
+            out.append({"type": "bike", "raw": payload, "label": "BIKE"})
+            continue
+
+        if up.startswith("SWIM:") or up.startswith("NATACION:") or up.startswith("NATACIÓN:"):
+            payload = line.split(":", 1)[1].strip()
+            out.append({"type": "swim", "raw": payload, "label": "SWIM"})
+            continue
+
         if up.startswith("FREE:"):
             payload = line.split(":", 1)[1].strip()
             out.append({"type": "free", "raw": payload, "label": "FREE"})
@@ -220,11 +215,13 @@ def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
             out.append({"type": "note", "raw": payload, "label": "NOTA"})
             continue
 
+        # inferencia: si es un número => rutina fuerza
         rid = parse_rutina_ref(line)
         if rid:
             out.append({"type": "fuerza", "raw": f"RUTINA:{rid}", "label": "FUERZA"})
         else:
             out.append({"type": "free", "raw": line, "label": "FREE"})
+
     return out
 
 
@@ -268,7 +265,61 @@ def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
 
 
 # =============================================================
-# DB FIXES
+# ✅ DB FIX: dia_plan.blocks (si tu modelo lo tiene)
+# =============================================================
+@main_bp.route("/admin/db_fix_diaplan_blocks")
+@login_required
+def admin_db_fix_diaplan_blocks():
+    if not admin_ok():
+        return "Acceso denegado", 403
+    try:
+        db.session.execute(text("""
+            ALTER TABLE dia_plan
+            ADD COLUMN IF NOT EXISTS blocks JSONB;
+        """))
+        db.session.commit()
+        return "OK: dia_plan.blocks creado (si faltaba)."
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR: {e}", 500
+
+
+def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
+    """
+    ✅ Evita crashear si tu modelo DiaPlan tiene un atributo 'blocks' pero la DB todavía no lo tiene.
+    Carga solo columnas seguras con load_only (no selecciona blocks).
+    """
+    q = DiaPlan.query.options(load_only(
+        DiaPlan.id,
+        DiaPlan.user_id,
+        DiaPlan.fecha,
+        DiaPlan.plan_type,
+        DiaPlan.warmup,
+        DiaPlan.main,
+        DiaPlan.finisher,
+        DiaPlan.puede_entrenar,
+        DiaPlan.comentario_atleta,
+        DiaPlan.propuesto_score,
+    ))
+
+    existing = q.filter(
+        DiaPlan.user_id == user_id,
+        DiaPlan.fecha >= fechas[0],
+        DiaPlan.fecha <= fechas[-1],
+    ).all()
+
+    by_date = {p.fecha: p for p in existing}
+    for f in fechas:
+        if f not in by_date:
+            p = DiaPlan(user_id=user_id, fecha=f, plan_type="Descanso")
+            db.session.add(p)
+            by_date[f] = p
+    db.session.commit()
+    return by_date
+
+
+# =============================================================
+# DB FIX (TABATA PRESET) - SEGURO
 # =============================================================
 @main_bp.route("/admin/db_fix_tabata")
 @login_required
@@ -283,25 +334,6 @@ def admin_db_fix_tabata():
         """))
         db.session.commit()
         return "OK: columna tabata_preset creada (si faltaba)"
-    except Exception as e:
-        db.session.rollback()
-        return f"ERROR: {str(e)}", 500
-
-
-# ✅ ESTE ES EL FIX QUE TE ROMPÍA EL PLANIFICADOR (dia_plan.blocks)
-@main_bp.route("/admin/db_fix_dia_plan_blocks")
-@login_required
-def admin_db_fix_dia_plan_blocks():
-    if not admin_ok():
-        return "Acceso denegado", 403
-
-    try:
-        db.session.execute(text("""
-            ALTER TABLE dia_plan
-            ADD COLUMN IF NOT EXISTS blocks JSONB;
-        """))
-        db.session.commit()
-        return "OK: columna dia_plan.blocks creada (si faltaba)"
     except Exception as e:
         db.session.rollback()
         return f"ERROR: {str(e)}", 500
@@ -369,22 +401,22 @@ def perfil_usuario(user_id: int):
     center = safe_parse_ymd(center_str, fallback=date.today())
     hoy = date.today()
 
-    # ✅ Strava desde IntegrationAccount (tu modelo real)
-    strava_account = IntegrationAccount.query.filter_by(user_id=user.id, provider="strava").first()
+    strava_account = getattr(user, "strava_account", None)
 
     week_goal = 5
-
     fechas_semana = week_dates(hoy)
+    done_week = set()
     logs_week = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha >= fechas_semana[0],
         AthleteLog.fecha <= fechas_semana[-1],
         AthleteLog.did_train.is_(True),
     ).all()
-    done_week = {l.fecha for l in logs_week}
+    for l in logs_week:
+        done_week.add(l.fecha)
 
     week_done = len(done_week)
-    streak = week_done  # simple
+    streak = week_done
 
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
@@ -392,7 +424,6 @@ def perfil_usuario(user_id: int):
         db.session.add(plan_hoy)
         db.session.commit()
 
-    # WEEK VIEW
     fechas: List[date] = []
     planes: Dict[date, DiaPlan] = {}
     semana_str = ""
@@ -401,7 +432,6 @@ def perfil_usuario(user_id: int):
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
         planes = ensure_week_plans(user.id, fechas)
 
-    # MONTH VIEW
     month_label = ""
     grid: List[List[Optional[date]]] = []
     planes_mes: Dict[date, DiaPlan] = {}
@@ -463,12 +493,9 @@ def dashboard_entrenador():
     atletas = User.query.filter(User.is_admin.is_(False)).order_by(User.id.desc()).all()
     available_videos = list_repo_videos()
 
-    # ✅ alias para que “si el template esperaba otro nombre”, igual aparezca
     return render_template(
         "panel_entrenador.html",
         rutinas=rutinas,
-        rutinas_creadas=rutinas,
-        banco_rutinas=rutinas,
         ejercicios=ejercicios,
         atletas=atletas,
         available_videos=available_videos,
@@ -482,7 +509,7 @@ def dashboard_entrenador_alias():
 
 
 # =============================================================
-# ✅ ELIMINAR VIDEO (ADMIN)
+# ELIMINAR VIDEO DESDE BANCO (ADMIN)
 # =============================================================
 @main_bp.route("/admin/videos/delete", methods=["POST"])
 @login_required
@@ -904,15 +931,32 @@ def save_day():
 
     plan_type = (request.form.get("plan_type") or "Descanso").strip()
     plan.plan_type = plan_type
-
     plan.warmup = (request.form.get("warmup") or "").strip()
     plan.finisher = (request.form.get("finisher") or "").strip()
 
-    if plan_type.lower() == "fuerza":
-        rutina_select = (request.form.get("rutina_select") or "").strip()
-        plan.main = rutina_select
-    else:
-        plan.main = (request.form.get("main") or "").strip()
+    # ✅ 4 slots => main por líneas
+    lines: List[str] = []
+    for i in range(1, 5):
+        btype = (request.form.get(f"b{i}_type") or "").strip().upper()
+        rid = (request.form.get(f"b{i}_rutina") or "").strip()
+        txt = (request.form.get(f"b{i}_text") or "").strip()
+
+        if not btype:
+            continue
+
+        allowed = {"TABATA", "FUERZA", "RUN", "BIKE", "SWIM", "FREE", "NOTE"}
+        if btype not in allowed:
+            continue
+
+        if btype in {"TABATA", "FUERZA"}:
+            if rid:
+                lines.append(f"{btype}:RUTINA:{rid}")
+        else:
+            if txt:
+                lines.append(f"{btype}:{txt}")
+
+    manual_main = (request.form.get("main") or "").strip()
+    plan.main = "\n".join(lines) if lines else manual_main
 
     try:
         plan.propuesto_score = int(request.form.get("propuesto_score", 0))
@@ -1055,7 +1099,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# API: DAY DETAIL (MODAL)
+# ✅ API: DAY DETAIL — DEVUELVE blocks
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -1087,25 +1131,27 @@ def api_day_detail():
     done_ids = [c.rutina_item_id for c in checks]
 
     blocks_src = _split_blocks_from_main(plan.main or "")
-
-    if not blocks_src and (plan.plan_type or "").lower() == "fuerza" and (plan.main or "").strip():
-        blocks_src = [{"type": "fuerza", "raw": plan.main.strip(), "label": "FUERZA"}]
-
     blocks: List[Dict[str, Any]] = []
+
     legacy_items_payload: List[Dict[str, Any]] = []
+    legacy_rutina = None
     legacy_is_tabata = False
     legacy_tabata_cfg = None
-    legacy_rutina = None
 
     for b in blocks_src:
         btype = b["type"]
         raw = (b["raw"] or "").strip()
 
         if btype == "tabata":
-            rid = parse_rutina_ref(raw)
+            rid = None
+            if raw.upper().startswith("RUTINA:"):
+                rid = parse_rutina_ref(raw)
+            if not rid:
+                rid = parse_rutina_ref(raw)
+
             rutina = Rutina.query.get(rid) if rid else None
             if not rutina:
-                blocks.append({"type": "tabata", "ok": False, "title": "Tabata", "error": "Rutina no encontrada"})
+                blocks.append({"type": "tabata", "ok": False, "error": "Rutina no encontrada"})
                 continue
 
             items = _items_payload_for_rutina(rutina.id)
@@ -1126,13 +1172,14 @@ def api_day_detail():
                 legacy_is_tabata = True
                 legacy_tabata_cfg = cfg
                 legacy_items_payload = items
+
             continue
 
         if btype == "fuerza":
             rid = parse_rutina_ref(raw)
             rutina = Rutina.query.get(rid) if rid else None
             if not rutina:
-                blocks.append({"type": "fuerza", "ok": False, "title": "Fuerza", "error": "Rutina no encontrada"})
+                blocks.append({"type": "fuerza", "ok": False, "error": "Rutina no encontrada"})
                 continue
 
             items = _items_payload_for_rutina(rutina.id)
@@ -1147,9 +1194,10 @@ def api_day_detail():
             if legacy_rutina is None:
                 legacy_rutina = rutina
                 legacy_items_payload = items
+
             continue
 
-        if btype in ("run", "free", "note"):
+        if btype in ("run", "bike", "swim", "free", "note"):
             blocks.append({"type": btype, "ok": True, "text": raw})
             continue
 
@@ -1268,48 +1316,7 @@ def athlete_save_availability():
 
 
 # =============================================================
-# AI: session script
-# =============================================================
-@main_bp.route("/ai/session_script", methods=["POST"])
-@login_required
-def ai_session_script():
-    data = request.get_json(silent=True) or {}
-    user_id = int(data.get("user_id") or 0)
-    fecha_str = (data.get("fecha") or "").strip()
-
-    if not user_id or not fecha_str:
-        return jsonify({"ok": False, "error": "Faltan datos"}), 400
-
-    if not (admin_ok() or current_user.id == user_id):
-        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
-
-    fecha = safe_parse_ymd(fecha_str, fallback=date.today())
-    plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
-    if not plan:
-        return jsonify({"ok": True, "script": "Día sin plan. Recuperación y movilidad suave 20–30’."})
-
-    lines: List[str] = []
-    lines.append(f"📅 {fecha.strftime('%d/%m/%Y')} · {plan.plan_type or 'Entreno'}")
-    lines.append("")
-    if plan.warmup:
-        lines.append("🔥 Activación")
-        lines.append(plan.warmup.strip())
-        lines.append("")
-    if plan.main:
-        lines.append("💪 Bloque principal")
-        lines.append(plan.main.strip())
-        lines.append("")
-    if plan.finisher:
-        lines.append("🧊 Enfriamiento")
-        lines.append(plan.finisher.strip())
-        lines.append("")
-    lines.append("✅ Tip: hidratación + 5’ de respiración al final.")
-
-    return jsonify({"ok": True, "script": "\n".join(lines)})
-
-
-# =============================================================
-# STRAVA OAUTH (REAL)
+# STRAVA OAUTH (opcional)
 # =============================================================
 @strava_bp.route("/connect", endpoint="connect")
 @login_required

@@ -224,6 +224,7 @@
                 <h5 class="modal-title mb-0" id="dayModalTitle">Detalle</h5>
                 <span class="day-chip" id="dayModalType">—</span>
               </div>
+              <div class="text-muted mt-1" style="font-size:.95rem;">Lo que toca hoy.</div>
             </div>
 
             <div class="d-flex align-items-center gap-3 flex-wrap">
@@ -234,36 +235,34 @@
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
           </div>
-
-          <!-- CTA discreto para “No puedo” (solo muestra el panel si lo abrís o si ya está bloqueado) -->
-          <div class="mt-2 d-flex justify-content-end">
-            <button id="toggleAvailBtn" type="button" class="btn btn-sm btn-outline-danger" onclick="toggleAvailabilityBox()">
-              <i class="bi bi-slash-circle"></i> No puedo entrenar
-            </button>
-          </div>
         </div>
       </div>
 
       <div class="modal-body">
         <div class="row g-3">
 
-          <!-- IZQUIERDA: ACTIVACIÓN / ENFRIAMIENTO (solo si existen) + AVAIL (oculto por defecto) -->
+          <!-- IZQUIERDA: SOLO LO QUE EXISTE -->
           <div class="col-lg-4">
-            <div class="day-section" id="planSection">
+            <div class="day-section">
               <div class="day-section-title">Plan</div>
 
-              <div class="plan-card" id="warmupWrap" style="display:none;">
+              <div id="planWarmupWrap" class="plan-card d-none">
                 <div class="plan-k">Activación</div>
                 <div class="plan-v" id="planWarmup">—</div>
               </div>
 
-              <div class="plan-card" id="finisherWrap" style="display:none;">
+              <div id="planMainWrap" class="plan-card d-none">
+                <div class="plan-k">Principal</div>
+                <div class="plan-v" id="planMain">—</div>
+              </div>
+
+              <div id="planFinisherWrap" class="plan-card d-none">
                 <div class="plan-k">Enfriamiento</div>
                 <div class="plan-v" id="planFinisher">—</div>
               </div>
 
-              <!-- Disponibilidad (solo aparece si lo abre el atleta o si ya está bloqueado) -->
-              <div class="avail-box mt-2" id="availBox" style="display:none;">
+              <!-- DISPONIBILIDAD: OCULTA POR DEFECTO (solo aparece si está bloqueado o si el atleta abre) -->
+              <div id="availWrap" class="avail-box mt-2 d-none">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div class="day-section-title" style="margin:0;">Disponibilidad</div>
                   <span id="availBadge" class="badge bg-secondary">—</span>
@@ -271,11 +270,11 @@
 
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="noPuedoToggle">
-                  <label class="form-check-label text-muted" for="noPuedoToggle">No puedo entrenar este día</label>
+                  <label class="form-check-label text-muted" for="noPuedoToggle">No puedo entrenar</label>
                 </div>
 
                 <textarea class="form-control mt-2" id="noPuedoText"
-                          placeholder="Ej: viaje / lesión / trabajo (corto)"></textarea>
+                          placeholder="Motivo (corto)"></textarea>
 
                 <button class="btn btn-outline-danger w-100 mt-2" type="button" onclick="saveAvailability()">
                   Guardar
@@ -286,12 +285,16 @@
                 </div>
               </div>
 
+              <!-- BOTÓN PEQUEÑO PARA ABRIR DISPONIBILIDAD (solo si aún NO está bloqueado) -->
+              <button id="openAvailBtn" class="btn btn-outline-light w-100 mt-2 d-none" type="button" onclick="openAvailability()">
+                <i class="bi bi-slash-circle"></i> No puedo entrenar
+              </button>
+
             </div>
           </div>
 
-          <!-- DERECHA: SOLO LO QUE TIENE QUE HACER -->
+          <!-- DERECHA: BLOQUES + CHECK + VIDEOS (SIN DUPLICAR) -->
           <div class="col-lg-8">
-
             <div class="day-section">
               <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                 <div>
@@ -305,18 +308,10 @@
               </div>
             </div>
 
-            <div class="day-section mt-3" id="strengthSection" style="display:none;">
-              <div class="day-section-title">Ejercicios (Fuerza)</div>
-              <div id="strengthItems" class="row g-3"></div>
-            </div>
-
-            <!-- ✅ LOG SIMPLE: un solo campo -->
+            <!-- QUE HICISTE: 1 SOLO CAMPO -->
             <div class="day-section mt-3">
               <div class="day-section-title">Qué hiciste</div>
-
-              <textarea class="form-control mb-2" id="doneText"
-                        placeholder="Contá qué hiciste hoy (rápido y simple)..."></textarea>
-
+              <textarea class="form-control" id="doneText" rows="4" placeholder="Contá qué hiciste hoy (rápido)..."></textarea>
               <button class="btn btn-primary w-100 mt-2" onclick="saveLog()">
                 💾 Guardar
               </button>
@@ -347,7 +342,6 @@
   border: 1px solid rgba(255, 59, 48, 0.55) !important;
   box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset;
 }
-.month-cell.blocked .daynum{ color: rgba(255,255,255,.95) !important; }
 
 .vr-days span{ color: rgba(255,255,255,.78); font-weight: 900; letter-spacing:.08em; }
 
@@ -430,55 +424,31 @@
 }
 .block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
 
-.block-list{
-  margin-top: 10px;
-  border-radius: 14px;
+.exercise-mini{
   border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.20);
+  background: rgba(0,0,0,.18);
+  border-radius: 16px;
   padding: 10px;
+  margin-top: 10px;
 }
-.block-list-title{
-  font-weight: 950;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  font-size: .74rem;
-  color: rgba(255,255,255,.65);
-  margin-bottom: 8px;
-}
-.block-row{
+.exercise-row{
   display:flex;
   justify-content: space-between;
-  align-items:center;
   gap:10px;
-  padding: 6px 0;
+  padding: 8px 0;
   border-bottom: 1px dashed rgba(255,255,255,.10);
 }
-.block-row:last-child{ border-bottom: 0; }
-
-.exercise-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
-  overflow:hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-}
-.exercise-head{
-  padding: 10px 12px;
-  display:flex;
-  justify-content: space-between;
-  align-items:flex-start;
-  gap:10px;
-}
-.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
-.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); }
-.exercise-video{ padding: 10px 12px 12px; }
+.exercise-row:last-child{ border-bottom: 0; }
+.exercise-name{ font-weight: 900; }
+.exercise-meta{ color: rgba(255,255,255,.70); font-weight: 800; font-size: .92rem; }
 .exercise-video video{
   width:100%;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.14);
   background: rgba(0,0,0,.35);
-  min-height: 220px;
+  min-height: 200px;
   object-fit: cover;
+  margin-top: 8px;
 }
 </style>
 {% endblock %}
@@ -488,7 +458,6 @@
 let DAY_MODAL = null;
 let CURRENT_DAY = null;
 let CURRENT_USER = {{ user.id|int }};
-
 let CURRENT_PAYLOAD = null;
 let CURRENT_CHECKS = new Set();
 
@@ -500,65 +469,23 @@ function escapeHtml(s){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-
 function decodeHtmlEntities(s){
   const txt = document.createElement("textarea");
   txt.innerHTML = String(s||"");
   return txt.value;
 }
-
 function cleanText(s){
   let out = decodeHtmlEntities(s);
-  if(out.includes("&") || out.includes("&#")){
-    out = decodeHtmlEntities(out);
-  }
+  if(out.includes("&") || out.includes("&#")) out = decodeHtmlEntities(out);
   return out;
 }
-
-function isBlankish(s){
-  const t = String(s||"").trim();
-  if(!t) return true;
-  return ["none","null","undefined","-","—"].includes(t.toLowerCase());
+function hasMeaningfulText(s){
+  const t = (s ?? "").toString().trim();
+  if(!t) return false;
+  if(t.toLowerCase() === "none") return false;
+  return true;
 }
 
-/* =========================
-   AVAIL UI (OCULTO x DEFECTO)
-========================= */
-function setAvailUI(puede, comentario){
-  const toggle = document.getElementById("noPuedoToggle");
-  const text = document.getElementById("noPuedoText");
-  const badge = document.getElementById("availBadge");
-
-  const blocked = (puede === "no");
-  toggle.checked = blocked;
-  text.value = comentario || "";
-
-  if(blocked){
-    badge.className = "badge bg-danger";
-    badge.textContent = "BLOQUEADO";
-  }else{
-    badge.className = "badge bg-success";
-    badge.textContent = "OK";
-  }
-}
-
-function toggleAvailabilityBox(forceShow=null){
-  const box = document.getElementById("availBox");
-  const visible = box.style.display !== "none";
-  if(forceShow === true){
-    box.style.display = "block";
-    return;
-  }
-  if(forceShow === false){
-    box.style.display = "none";
-    return;
-  }
-  box.style.display = visible ? "none" : "block";
-}
-
-/* =========================
-   BADGES / LABELS
-========================= */
 function badgeHtml(type){
   const t = (type||"").toUpperCase();
   const map = {
@@ -573,7 +500,6 @@ function badgeHtml(type){
   const cls = map[t] || "bg-secondary";
   return `<span class="badge ${cls}" style="font-weight:900; letter-spacing:.06em;">${escapeHtml(t||"BLOQUE")}</span>`;
 }
-
 function typeLabel(type){
   const t = (type||"").toLowerCase();
   if(t === "tabata") return "TABATA";
@@ -586,19 +512,116 @@ function typeLabel(type){
   return (type||"BLOQUE").toUpperCase();
 }
 
-/* =========================
-   BLOQUES (LO QUE TOCA HOY)
-========================= */
+function setAvailUI(puede, comentario){
+  const wrap = document.getElementById("availWrap");
+  const openBtn = document.getElementById("openAvailBtn");
+  const toggle = document.getElementById("noPuedoToggle");
+  const text = document.getElementById("noPuedoText");
+  const badge = document.getElementById("availBadge");
+
+  const blocked = (puede === "no");
+  toggle.checked = blocked;
+  text.value = comentario || "";
+
+  if(blocked){
+    wrap.classList.remove("d-none");     // si está bloqueado, se ve
+    openBtn.classList.add("d-none");    // no muestro botón "No puedo entrenar"
+    badge.className = "badge bg-danger";
+    badge.textContent = "BLOQUEADO";
+  }else{
+    wrap.classList.add("d-none");       // por defecto oculto
+    openBtn.classList.remove("d-none"); // muestro el botón para abrirlo si quiere
+    badge.className = "badge bg-success";
+    badge.textContent = "OK";
+  }
+}
+
+function openAvailability(){
+  const wrap = document.getElementById("availWrap");
+  const openBtn = document.getElementById("openAvailBtn");
+  wrap.classList.remove("d-none");
+  openBtn.classList.add("d-none");
+  // no marcamos bloqueado aún; eso solo cuando el usuario lo activa y guarda
+}
+
+function posterDataUrl(title){
+  const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
+    <defs>
+      <linearGradient id="g" x1="0" x2="1">
+        <stop offset="0" stop-color="#0b0f12"/>
+        <stop offset="1" stop-color="#050608"/>
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#g)"/>
+    <rect x="40" y="40" width="1200" height="640" rx="36" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.16)"/>
+    <circle cx="640" cy="360" r="62" fill="rgba(34,211,238,0.18)" stroke="rgba(34,211,238,0.45)" stroke-width="6"/>
+    <polygon points="625,330 625,390 680,360" fill="rgba(255,255,255,0.85)"/>
+    <text x="80" y="130" font-size="46" fill="rgba(255,255,255,0.92)" font-family="Arial" font-weight="700">${safe}</text>
+    <text x="80" y="180" font-size="26" fill="rgba(255,255,255,0.60)" font-family="Arial">VR Training</text>
+  </svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+function strengthItemsHtml(items){
+  const arr = Array.isArray(items) ? items : [];
+  if(!arr.length) return `<div class="text-muted">No hay ejercicios cargados.</div>`;
+
+  return `
+    <div class="exercise-mini">
+      ${arr.map(it => {
+        const id = String(it.id);
+        const checked = CURRENT_CHECKS.has(id) ? "checked" : "";
+        const name = escapeHtml(cleanText(it.nombre || "Ejercicio"));
+        const metaParts = [];
+        if(it.series) metaParts.push(escapeHtml(it.series));
+        if(it.reps) metaParts.push(escapeHtml(it.reps));
+        if(it.descanso) metaParts.push("Desc " + escapeHtml(it.descanso));
+        if(it.nota) metaParts.push(escapeHtml(cleanText(it.nota)));
+        const meta = metaParts.join(" · ");
+
+        const vidSrc = it.video_src || "";
+        const poster = posterDataUrl(it.nombre);
+
+        return `
+          <div class="exercise-row">
+            <div style="min-width:0;">
+              <div class="exercise-name">${name}</div>
+              <div class="exercise-meta">${meta || ""}</div>
+              ${vidSrc ? `
+                <div class="exercise-video">
+                  <video controls playsinline webkit-playsinline preload="metadata" poster="${poster}">
+                    <source src="${vidSrc}" type="video/mp4">
+                  </video>
+                </div>
+              ` : `<div class="text-muted mt-1">Sin video</div>`}
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" ${checked}
+                       onchange="toggleItem(${it.id}, this.checked)">
+              </div>
+              <div class="text-muted" style="font-weight:900;letter-spacing:.08em;">HECHO</div>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function renderBlocks(blocks){
   const wrap = document.getElementById("dayBlocks");
   const meta = document.getElementById("blocksMeta");
   wrap.innerHTML = "";
 
   const arr = Array.isArray(blocks) ? blocks : [];
-  meta.textContent = arr.length ? `${arr.length} bloque(s)` : "Sin bloques";
+  meta.textContent = arr.length ? `${arr.length} bloque(s)` : "—";
 
   if(!arr.length){
-    wrap.innerHTML = `<div class="text-muted">Hoy no hay bloques definidos.</div>`;
+    wrap.innerHTML = `<div class="text-muted">No hay bloques definidos.</div>`;
     return;
   }
 
@@ -642,7 +665,6 @@ function renderBlocks(blocks){
       const rounds = b.cfg?.rounds ?? (Array.isArray(b.items) ? b.items.length : 0);
       const sets = b.cfg?.sets ?? 1;
       const startUrl = b.start_url || "#";
-      const settingsUrl = b.settings_url || "";
 
       div.innerHTML = `
         <div class="block-head">
@@ -650,20 +672,14 @@ function renderBlocks(blocks){
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
-              <div class="block-sub">${work}s trabajo · ${rest}s descanso · ${rounds} ejercicios · ${sets} set(s)</div>
+              <div class="block-sub">${work}s · ${rest}s · ${rounds} ejercicios · ${sets} set(s)</div>
             </div>
           </div>
           ${badgeHtml("TABATA")}
         </div>
 
         <div class="block-actions">
-          <a class="btn btn-danger" href="${startUrl}" target="_blank" rel="noopener">
-            ▶ Reproducir
-          </a>
-          ${settingsUrl ? `
-            <a class="btn btn-outline-warning" href="${settingsUrl}" target="_blank" rel="noopener">
-              ⚙️ Settings
-            </a>` : ``}
+          <a class="btn btn-danger" href="${startUrl}" target="_blank" rel="noopener">▶ Reproducir</a>
         </div>
       `;
       wrap.appendChild(div);
@@ -690,26 +706,30 @@ function renderBlocks(blocks){
 
     if(type === "fuerza"){
       const rname = cleanText(b.rutina?.nombre || "Fuerza");
-      const builderUrl = b.builder_url || "";
+      const collapseId = `force_${idx}`;
+      const hasItems = Array.isArray(b.items) && b.items.length;
+
       div.innerHTML = `
         <div class="block-head">
           <div class="block-left">
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
-              <div class="block-sub">Abrí “Ver ejercicios” para ver los videos</div>
+              <div class="block-sub">${hasItems ? "Ejercicios con video y check." : "Sin ejercicios cargados."}</div>
             </div>
           </div>
           ${badgeHtml("FUERZA")}
         </div>
+
         <div class="block-actions">
-          ${builderUrl ? `
-            <a class="btn btn-outline-info" href="${builderUrl}" target="_blank" rel="noopener">
-              Builder
-            </a>` : ``}
-          <button class="btn btn-outline-light" type="button" onclick="showForceItems(${idx})">
+          <button class="btn btn-outline-light" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false">
             Ver ejercicios
           </button>
+        </div>
+
+        <div class="collapse mt-2" id="${collapseId}">
+          ${strengthItemsHtml(b.items || [])}
         </div>
       `;
       wrap.appendChild(div);
@@ -733,95 +753,7 @@ function renderBlocks(blocks){
 }
 
 /* =========================
-   FUERZA (VIDEOS)
-========================= */
-function posterDataUrl(title){
-  const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const svg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
-    <defs>
-      <linearGradient id="g" x1="0" x2="1">
-        <stop offset="0" stop-color="#0b0f12"/>
-        <stop offset="1" stop-color="#050608"/>
-      </linearGradient>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#g)"/>
-    <rect x="40" y="40" width="1200" height="640" rx="36" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.16)"/>
-    <circle cx="640" cy="360" r="62" fill="rgba(34,211,238,0.18)" stroke="rgba(34,211,238,0.45)" stroke-width="6"/>
-    <polygon points="625,330 625,390 680,360" fill="rgba(255,255,255,0.85)"/>
-    <text x="80" y="130" font-size="46" fill="rgba(255,255,255,0.92)" font-family="Arial" font-weight="700">${safe}</text>
-    <text x="80" y="180" font-size="26" fill="rgba(255,255,255,0.60)" font-family="Arial">VR Training</text>
-  </svg>`;
-  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-}
-
-function renderStrength(items, doneIds){
-  const wrap = document.getElementById("strengthItems");
-  const section = document.getElementById("strengthSection");
-  wrap.innerHTML = "";
-
-  if(!items || !items.length){
-    section.style.display = "none";
-    return;
-  }
-
-  section.style.display = "block";
-
-  items.forEach(it => {
-    const col = document.createElement("div");
-    col.className = "col-12";
-
-    const checked = doneIds.has(String(it.id)) ? "checked" : "";
-    const vidSrc = it.video_src || "";
-    const poster = posterDataUrl(it.nombre);
-
-    col.innerHTML = `
-      <div class="exercise-card">
-        <div class="exercise-head">
-          <div>
-            <div class="exercise-name">${escapeHtml(cleanText(it.nombre || "Ejercicio"))}</div>
-            <div class="exercise-meta">
-              ${escapeHtml(it.series || "")}${it.series ? " · " : ""}${escapeHtml(it.reps || "")}
-              ${it.descanso ? (" · Desc " + escapeHtml(it.descanso)) : ""}
-              ${it.nota ? (" · " + escapeHtml(cleanText(it.nota))) : ""}
-            </div>
-          </div>
-
-          <div class="d-flex align-items-center gap-2">
-            <div class="form-check form-switch m-0">
-              <input class="form-check-input" type="checkbox" ${checked}
-                     onchange="toggleItem(${it.id}, this.checked)">
-            </div>
-            <div class="text-muted" style="font-weight:900;letter-spacing:.08em;">HECHO</div>
-          </div>
-        </div>
-
-        <div class="exercise-video">
-          ${vidSrc ? `
-            <video controls playsinline webkit-playsinline preload="metadata" poster="${poster}">
-              <source src="${vidSrc}" type="video/mp4">
-            </video>
-          ` : `<div class="text-muted">Sin video</div>`}
-        </div>
-      </div>
-    `;
-    wrap.appendChild(col);
-  });
-}
-
-function showForceItems(blockIndex){
-  const b = (CURRENT_PAYLOAD && Array.isArray(CURRENT_PAYLOAD.blocks)) ? CURRENT_PAYLOAD.blocks[blockIndex] : null;
-  const items = (b && b.ok && Array.isArray(b.items)) ? b.items : [];
-  renderStrength(items, CURRENT_CHECKS);
-
-  const el = document.getElementById("strengthSection");
-  if(el && el.style.display !== "none"){
-    el.scrollIntoView({behavior:"smooth", block:"start"});
-  }
-}
-
-/* =========================
-   MODAL OPEN (LIMPIO)
+   MODAL OPEN
 ========================= */
 function openDay(isoDate){
   CURRENT_DAY = isoDate;
@@ -841,20 +773,23 @@ function openDay(isoDate){
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
 
-  // reset plan
-  document.getElementById("warmupWrap").style.display = "none";
-  document.getElementById("finisherWrap").style.display = "none";
+  // reset plan wrappers
+  document.getElementById("planWarmupWrap").classList.add("d-none");
+  document.getElementById("planMainWrap").classList.add("d-none");
+  document.getElementById("planFinisherWrap").classList.add("d-none");
 
-  // reset availability (oculto)
-  toggleAvailabilityBox(false);
-  setAvailUI("si", "");
+  document.getElementById("planWarmup").textContent = "—";
+  document.getElementById("planMain").textContent = "—";
+  document.getElementById("planFinisher").textContent = "—";
 
-  // reset content
   document.getElementById("dayBlocks").innerHTML = `<div class="text-muted">Cargando...</div>`;
   document.getElementById("blocksMeta").textContent = "—";
-  document.getElementById("strengthItems").innerHTML = "";
-  document.getElementById("strengthSection").style.display = "none";
+
+  document.getElementById("didTrain").checked = false;
   document.getElementById("doneText").value = "";
+
+  // disponibilidad oculta por defecto
+  setAvailUI("si", "");
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
     .then(r => r.json())
@@ -864,54 +799,37 @@ function openDay(isoDate){
 
       const p = data.plan || {};
 
-      // header
       document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
-      // ✅ Solo mostrar activación/enfriamiento si existen y no son "None"
       const warm = cleanText(p.warmup || "");
-      const fin = cleanText(p.finisher || "");
+      const main = cleanText(p.main || "");
+      const fin  = cleanText(p.finisher || "");
 
-      if(!isBlankish(warm)){
-        document.getElementById("warmupWrap").style.display = "block";
+      if(hasMeaningfulText(warm)){
+        document.getElementById("planWarmupWrap").classList.remove("d-none");
         document.getElementById("planWarmup").textContent = warm;
       }
-      if(!isBlankish(fin)){
-        document.getElementById("finisherWrap").style.display = "block";
+      if(hasMeaningfulText(main)){
+        document.getElementById("planMainWrap").classList.remove("d-none");
+        document.getElementById("planMain").textContent = main;
+      }
+      if(hasMeaningfulText(fin)){
+        document.getElementById("planFinisherWrap").classList.remove("d-none");
         document.getElementById("planFinisher").textContent = fin;
       }
 
-      // availability: solo si ya está bloqueado o ya hay comentario (si no, queda oculto)
-      const puede = (p.puede_entrenar || "si");
-      const comm = cleanText(p.comentario_atleta || "");
-      setAvailUI(puede, comm);
+      setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
 
-      const alreadyBlocked = (puede === "no");
-      const hasComment = !isBlankish(comm);
-      if(alreadyBlocked || hasComment){
-        toggleAvailabilityBox(true);
-      }
-
-      // did train + log simple (guardamos en main_done)
       document.getElementById("didTrain").checked = !!data.log?.did_train;
-      const previous = cleanText(data.log?.main_done || "");
-      if(!isBlankish(previous)){
-        document.getElementById("doneText").value = previous;
-      }
 
-      // checks
+      // usamos main_done como campo único (compat con tu backend)
+      const existing = cleanText(data.log?.main_done || data.log?.warmup_done || data.log?.finisher_done || "");
+      document.getElementById("doneText").value = existing;
+
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
-      // blocks
       renderBlocks(data.blocks || []);
-
-      // auto: si hay fuerza en algún bloque, mostrar primer bloque de fuerza
-      const blocks = Array.isArray(data.blocks) ? data.blocks : [];
-      const firstForceIdx = blocks.findIndex(b => (b.type||"").toLowerCase()==="fuerza" && b.ok && Array.isArray(b.items) && b.items.length);
-      if(firstForceIdx >= 0){
-        showForceItems(firstForceIdx);
-      }
-
       DAY_MODAL.show();
     })
     .catch(err => {
@@ -941,16 +859,13 @@ function toggleItem(itemId, done){
 }
 
 function saveLog(){
-  // ✅ “Qué hiciste” se guarda en main_done para no tocar backend hoy
-  const text = document.getElementById("doneText").value || "";
-
   const payload = {
     user_id: CURRENT_USER,
     fecha: CURRENT_DAY,
     did_train: document.getElementById("didTrain").checked,
-    warmup_done: "",       // lo dejamos vacío (UI simple)
-    main_done: text,       // guardamos acá
-    finisher_done: ""      // lo dejamos vacío (UI simple)
+    warmup_done: "",
+    main_done: document.getElementById("doneText").value || "",
+    finisher_done: ""
   };
 
   fetch("/athlete/save_log", {
@@ -966,7 +881,6 @@ function saveLog(){
 async function saveAvailability(){
   const noPuedo = document.getElementById("noPuedoToggle").checked;
   const comentario = document.getElementById("noPuedoText").value || "";
-
   const payload = { user_id: CURRENT_USER, fecha: CURRENT_DAY, no_puedo: noPuedo, comentario };
 
   try{
@@ -984,13 +898,6 @@ async function saveAvailability(){
     if(cell){
       if(noPuedo) cell.classList.add("blocked");
       else cell.classList.remove("blocked");
-    }
-
-    // si guardó en OK y sin comentario, ocultamos
-    if(!noPuedo && isBlankish(comentario)){
-      toggleAvailabilityBox(false);
-    }else{
-      toggleAvailabilityBox(true);
     }
 
     alert("✅ Guardado");

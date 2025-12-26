@@ -210,7 +210,7 @@
 </div>
 
 <!-- =========================
-     MODAL DÍA (CLEAN + INTUITIVO)
+     MODAL DÍA (SIMPLE + PRO)
 ========================= -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen-sm-down modal-xl">
@@ -224,7 +224,6 @@
                 <h5 class="modal-title mb-0" id="dayModalTitle">Detalle</h5>
                 <span class="day-chip" id="dayModalType">—</span>
               </div>
-              <div class="text-muted mt-1" style="font-size:.95rem;">Plan + bloques + check de ejercicios.</div>
             </div>
 
             <div class="d-flex align-items-center gap-3 flex-wrap">
@@ -232,9 +231,15 @@
                 <input class="form-check-input" type="checkbox" id="didTrain">
                 <label class="form-check-label text-muted" for="didTrain">Hoy entrené</label>
               </div>
-
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+          </div>
+
+          <!-- CTA discreto para “No puedo” (solo muestra el panel si lo abrís o si ya está bloqueado) -->
+          <div class="mt-2 d-flex justify-content-end">
+            <button id="toggleAvailBtn" type="button" class="btn btn-sm btn-outline-danger" onclick="toggleAvailabilityBox()">
+              <i class="bi bi-slash-circle"></i> No puedo entrenar
+            </button>
           </div>
         </div>
       </div>
@@ -242,27 +247,23 @@
       <div class="modal-body">
         <div class="row g-3">
 
-          <!-- IZQUIERDA: PLAN + DISPONIBILIDAD -->
+          <!-- IZQUIERDA: ACTIVACIÓN / ENFRIAMIENTO (solo si existen) + AVAIL (oculto por defecto) -->
           <div class="col-lg-4">
-            <div class="day-section">
+            <div class="day-section" id="planSection">
               <div class="day-section-title">Plan</div>
 
-              <div class="plan-card">
+              <div class="plan-card" id="warmupWrap" style="display:none;">
                 <div class="plan-k">Activación</div>
                 <div class="plan-v" id="planWarmup">—</div>
               </div>
 
-              <div class="plan-card">
-                <div class="plan-k">Bloque principal</div>
-                <div class="plan-v" id="planMain">—</div>
-              </div>
-
-              <div class="plan-card">
+              <div class="plan-card" id="finisherWrap" style="display:none;">
                 <div class="plan-k">Enfriamiento</div>
                 <div class="plan-v" id="planFinisher">—</div>
               </div>
 
-              <div class="avail-box mt-2">
+              <!-- Disponibilidad (solo aparece si lo abre el atleta o si ya está bloqueado) -->
+              <div class="avail-box mt-2" id="availBox" style="display:none;">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div class="day-section-title" style="margin:0;">Disponibilidad</div>
                   <span id="availBadge" class="badge bg-secondary">—</span>
@@ -274,25 +275,27 @@
                 </div>
 
                 <textarea class="form-control mt-2" id="noPuedoText"
-                          placeholder="Ej: viaje / lesión / trabajo / etc (corto)"></textarea>
+                          placeholder="Ej: viaje / lesión / trabajo (corto)"></textarea>
 
                 <button class="btn btn-outline-danger w-100 mt-2" type="button" onclick="saveAvailability()">
-                  Guardar bloqueo
+                  Guardar
                 </button>
 
                 <div class="text-muted mt-2" style="font-size:.9rem;">
-                  Si bloqueás el día, el coach lo verá en rojo y no planifica.
+                  Si bloqueás el día, el coach lo verá en rojo.
                 </div>
               </div>
+
             </div>
           </div>
 
-          <!-- DERECHA: BLOQUES + EJERCICIOS + GUION + LOG -->
+          <!-- DERECHA: SOLO LO QUE TIENE QUE HACER -->
           <div class="col-lg-8">
+
             <div class="day-section">
               <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                 <div>
-                  <div class="day-section-title">Bloques del día</div>
+                  <div class="day-section-title">Lo que toca hoy</div>
                   <div class="text-muted" id="blocksMeta">—</div>
                 </div>
               </div>
@@ -302,30 +305,17 @@
               </div>
             </div>
 
-            <div class="day-section mt-3">
+            <div class="day-section mt-3" id="strengthSection" style="display:none;">
               <div class="day-section-title">Ejercicios (Fuerza)</div>
               <div id="strengthItems" class="row g-3"></div>
             </div>
 
-            <!-- ✅ GUION (SIN BOTÓN GENERAR - SOLO VISTA) -->
-            <div class="day-section mt-3">
-              <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                <div class="day-section-title" style="margin:0;">Guión</div>
-                <span class="badge bg-secondary">DESACTIVADO</span>
-              </div>
-
-              <div id="scriptBox" class="glass p-3 mt-2"
-                   style="border-radius:16px; white-space:pre-wrap; line-height:1.35; font-size:.98rem;">
-                <div class="text-muted">Guión desactivado por hoy (modo limpio). Mañana lo dejamos pro.</div>
-              </div>
-            </div>
-
+            <!-- ✅ LOG SIMPLE: un solo campo -->
             <div class="day-section mt-3">
               <div class="day-section-title">Qué hiciste</div>
 
-              <textarea class="form-control mb-2" id="doneWarmup" placeholder="Activación realizada..."></textarea>
-              <textarea class="form-control mb-2" id="doneMain" placeholder="Bloque principal realizado..."></textarea>
-              <textarea class="form-control mb-2" id="doneFinisher" placeholder="Enfriamiento realizado..."></textarea>
+              <textarea class="form-control mb-2" id="doneText"
+                        placeholder="Contá qué hiciste hoy (rápido y simple)..."></textarea>
 
               <button class="btn btn-primary w-100 mt-2" onclick="saveLog()">
                 💾 Guardar
@@ -343,9 +333,6 @@
 
 {% block extra_css %}
 <style>
-/* =========================
-   CLEAN DAY UI + YOUR EXISTING
-========================= */
 .day-modal{
   background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
   color: rgba(255,255,255,.92);
@@ -505,28 +492,6 @@ let CURRENT_USER = {{ user.id|int }};
 let CURRENT_PAYLOAD = null;
 let CURRENT_CHECKS = new Set();
 
-if(typeof bootstrap === "undefined"){
-  console.error("Bootstrap JS no está cargado. Revisá layout.html");
-}
-
-function setAvailUI(puede, comentario){
-  const toggle = document.getElementById("noPuedoToggle");
-  const text = document.getElementById("noPuedoText");
-  const badge = document.getElementById("availBadge");
-
-  const blocked = (puede === "no");
-  toggle.checked = blocked;
-  text.value = comentario || "";
-
-  if(blocked){
-    badge.className = "badge bg-danger";
-    badge.textContent = "NO PUEDE";
-  }else{
-    badge.className = "badge bg-success";
-    badge.textContent = "OK";
-  }
-}
-
 function escapeHtml(s){
   return String(s||"")
     .replaceAll("&","&amp;")
@@ -536,7 +501,6 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 
-/* ✅ decode HTML entities */
 function decodeHtmlEntities(s){
   const txt = document.createElement("textarea");
   txt.innerHTML = String(s||"");
@@ -551,6 +515,50 @@ function cleanText(s){
   return out;
 }
 
+function isBlankish(s){
+  const t = String(s||"").trim();
+  if(!t) return true;
+  return ["none","null","undefined","-","—"].includes(t.toLowerCase());
+}
+
+/* =========================
+   AVAIL UI (OCULTO x DEFECTO)
+========================= */
+function setAvailUI(puede, comentario){
+  const toggle = document.getElementById("noPuedoToggle");
+  const text = document.getElementById("noPuedoText");
+  const badge = document.getElementById("availBadge");
+
+  const blocked = (puede === "no");
+  toggle.checked = blocked;
+  text.value = comentario || "";
+
+  if(blocked){
+    badge.className = "badge bg-danger";
+    badge.textContent = "BLOQUEADO";
+  }else{
+    badge.className = "badge bg-success";
+    badge.textContent = "OK";
+  }
+}
+
+function toggleAvailabilityBox(forceShow=null){
+  const box = document.getElementById("availBox");
+  const visible = box.style.display !== "none";
+  if(forceShow === true){
+    box.style.display = "block";
+    return;
+  }
+  if(forceShow === false){
+    box.style.display = "none";
+    return;
+  }
+  box.style.display = visible ? "none" : "block";
+}
+
+/* =========================
+   BADGES / LABELS
+========================= */
 function badgeHtml(type){
   const t = (type||"").toUpperCase();
   const map = {
@@ -579,7 +587,7 @@ function typeLabel(type){
 }
 
 /* =========================
-   BLOQUES (UI limpia)
+   BLOQUES (LO QUE TOCA HOY)
 ========================= */
 function renderBlocks(blocks){
   const wrap = document.getElementById("dayBlocks");
@@ -587,10 +595,10 @@ function renderBlocks(blocks){
   wrap.innerHTML = "";
 
   const arr = Array.isArray(blocks) ? blocks : [];
-  meta.textContent = arr.length ? `${arr.length} bloque(s)` : "—";
+  meta.textContent = arr.length ? `${arr.length} bloque(s)` : "Sin bloques";
 
   if(!arr.length){
-    wrap.innerHTML = `<div class="text-muted">No hay bloques definidos en “Main”.</div>`;
+    wrap.innerHTML = `<div class="text-muted">Hoy no hay bloques definidos.</div>`;
     return;
   }
 
@@ -648,19 +656,6 @@ function renderBlocks(blocks){
           ${badgeHtml("TABATA")}
         </div>
 
-        <div class="block-list">
-          <div class="block-list-title">Lista</div>
-          <div style="display:grid; gap:2px;">
-            ${(Array.isArray(b.items) ? b.items.slice(0, 8) : []).map((it, i) => `
-              <div class="block-row">
-                <div class="text-light" style="font-weight:900;">${i+1}. ${escapeHtml(cleanText(it.nombre || "Ejercicio"))}</div>
-                <div class="text-muted" style="font-weight:900;">${work}s</div>
-              </div>
-            `).join("")}
-            ${(Array.isArray(b.items) && b.items.length > 8) ? `<div class="text-muted mt-1">+ ${b.items.length-8} más...</div>` : ``}
-          </div>
-        </div>
-
         <div class="block-actions">
           <a class="btn btn-danger" href="${startUrl}" target="_blank" rel="noopener">
             ▶ Reproducir
@@ -702,7 +697,7 @@ function renderBlocks(blocks){
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
-              <div class="block-sub">Tocá “Ver ejercicios” para mostrar los videos</div>
+              <div class="block-sub">Abrí “Ver ejercicios” para ver los videos</div>
             </div>
           </div>
           ${badgeHtml("FUERZA")}
@@ -738,7 +733,7 @@ function renderBlocks(blocks){
 }
 
 /* =========================
-   FUERZA
+   FUERZA (VIDEOS)
 ========================= */
 function posterDataUrl(title){
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -762,11 +757,15 @@ function posterDataUrl(title){
 
 function renderStrength(items, doneIds){
   const wrap = document.getElementById("strengthItems");
+  const section = document.getElementById("strengthSection");
   wrap.innerHTML = "";
+
   if(!items || !items.length){
-    wrap.innerHTML = `<div class="text-muted">No hay ejercicios de fuerza en este día.</div>`;
+    section.style.display = "none";
     return;
   }
+
+  section.style.display = "block";
 
   items.forEach(it => {
     const col = document.createElement("div");
@@ -815,12 +814,14 @@ function showForceItems(blockIndex){
   const items = (b && b.ok && Array.isArray(b.items)) ? b.items : [];
   renderStrength(items, CURRENT_CHECKS);
 
-  const el = document.getElementById("strengthItems");
-  if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+  const el = document.getElementById("strengthSection");
+  if(el && el.style.display !== "none"){
+    el.scrollIntoView({behavior:"smooth", block:"start"});
+  }
 }
 
 /* =========================
-   MODAL OPEN
+   MODAL OPEN (LIMPIO)
 ========================= */
 function openDay(isoDate){
   CURRENT_DAY = isoDate;
@@ -840,14 +841,20 @@ function openDay(isoDate){
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
 
-  document.getElementById("strengthItems").innerHTML = "";
+  // reset plan
+  document.getElementById("warmupWrap").style.display = "none";
+  document.getElementById("finisherWrap").style.display = "none";
+
+  // reset availability (oculto)
+  toggleAvailabilityBox(false);
+  setAvailUI("si", "");
+
+  // reset content
   document.getElementById("dayBlocks").innerHTML = `<div class="text-muted">Cargando...</div>`;
   document.getElementById("blocksMeta").textContent = "—";
-
-  // ✅ guión fijo (sin generar)
-  document.getElementById("scriptBox").innerHTML = `<div class="text-muted">Guión desactivado por hoy (modo limpio).</div>`;
-
-  setAvailUI("si", "");
+  document.getElementById("strengthItems").innerHTML = "";
+  document.getElementById("strengthSection").style.display = "none";
+  document.getElementById("doneText").value = "";
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
     .then(r => r.json())
@@ -856,30 +863,53 @@ function openDay(isoDate){
       CURRENT_PAYLOAD = data;
 
       const p = data.plan || {};
+
+      // header
       document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
-      document.getElementById("planWarmup").textContent = cleanText(p.warmup || "—");
-      document.getElementById("planMain").textContent = cleanText(p.main || "—");
-      document.getElementById("planFinisher").textContent = cleanText(p.finisher || "—");
+      // ✅ Solo mostrar activación/enfriamiento si existen y no son "None"
+      const warm = cleanText(p.warmup || "");
+      const fin = cleanText(p.finisher || "");
 
-      setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
+      if(!isBlankish(warm)){
+        document.getElementById("warmupWrap").style.display = "block";
+        document.getElementById("planWarmup").textContent = warm;
+      }
+      if(!isBlankish(fin)){
+        document.getElementById("finisherWrap").style.display = "block";
+        document.getElementById("planFinisher").textContent = fin;
+      }
 
+      // availability: solo si ya está bloqueado o ya hay comentario (si no, queda oculto)
+      const puede = (p.puede_entrenar || "si");
+      const comm = cleanText(p.comentario_atleta || "");
+      setAvailUI(puede, comm);
+
+      const alreadyBlocked = (puede === "no");
+      const hasComment = !isBlankish(comm);
+      if(alreadyBlocked || hasComment){
+        toggleAvailabilityBox(true);
+      }
+
+      // did train + log simple (guardamos en main_done)
       document.getElementById("didTrain").checked = !!data.log?.did_train;
-      document.getElementById("doneWarmup").value = cleanText(data.log?.warmup_done || "");
-      document.getElementById("doneMain").value = cleanText(data.log?.main_done || "");
-      document.getElementById("doneFinisher").value = cleanText(data.log?.finisher_done || "");
+      const previous = cleanText(data.log?.main_done || "");
+      if(!isBlankish(previous)){
+        document.getElementById("doneText").value = previous;
+      }
 
+      // checks
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
+      // blocks
       renderBlocks(data.blocks || []);
 
+      // auto: si hay fuerza en algún bloque, mostrar primer bloque de fuerza
       const blocks = Array.isArray(data.blocks) ? data.blocks : [];
       const firstForceIdx = blocks.findIndex(b => (b.type||"").toLowerCase()==="fuerza" && b.ok && Array.isArray(b.items) && b.items.length);
       if(firstForceIdx >= 0){
         showForceItems(firstForceIdx);
-      }else{
-        document.getElementById("strengthItems").innerHTML = `<div class="text-muted">No hay fuerza en este día.</div>`;
       }
 
       DAY_MODAL.show();
@@ -911,13 +941,16 @@ function toggleItem(itemId, done){
 }
 
 function saveLog(){
+  // ✅ “Qué hiciste” se guarda en main_done para no tocar backend hoy
+  const text = document.getElementById("doneText").value || "";
+
   const payload = {
     user_id: CURRENT_USER,
     fecha: CURRENT_DAY,
     did_train: document.getElementById("didTrain").checked,
-    warmup_done: document.getElementById("doneWarmup").value || "",
-    main_done: document.getElementById("doneMain").value || "",
-    finisher_done: document.getElementById("doneFinisher").value || ""
+    warmup_done: "",       // lo dejamos vacío (UI simple)
+    main_done: text,       // guardamos acá
+    finisher_done: ""      // lo dejamos vacío (UI simple)
   };
 
   fetch("/athlete/save_log", {
@@ -951,6 +984,13 @@ async function saveAvailability(){
     if(cell){
       if(noPuedo) cell.classList.add("blocked");
       else cell.classList.remove("blocked");
+    }
+
+    // si guardó en OK y sin comentario, ocultamos
+    if(!noPuedo && isBlankish(comentario)){
+      toggleAvailabilityBox(false);
+    }else{
+      toggleAvailabilityBox(true);
     }
 
     alert("✅ Guardado");

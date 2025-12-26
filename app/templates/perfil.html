@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class="container mt-4">
+
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div class="d-flex align-items-center gap-3">
@@ -207,98 +208,122 @@
       </div>
     </div>
   {% endif %}
+
 </div>
 
 <!-- =========================
-     MODAL DÍA (SIMPLE + PRO)
+     MODAL DÍA (PREMIUM)
 ========================= -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen-sm-down modal-xl">
     <div class="modal-content day-modal">
-      <div class="modal-header">
+
+      <!-- TOP BAR -->
+      <div class="modal-header premium-header">
         <div class="w-100">
           <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
-            <div>
+            <div class="premium-title-wrap">
               <div class="text-muted" id="dayModalDate" style="letter-spacing:.18em;text-transform:uppercase;"></div>
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <h5 class="modal-title mb-0" id="dayModalTitle">Detalle</h5>
+              <div class="d-flex align-items-center gap-2 flex-wrap mt-1">
+                <div class="premium-title" id="dayModalTitle">Detalle</div>
                 <span class="day-chip" id="dayModalType">—</span>
               </div>
-              <div class="text-muted mt-1" style="font-size:.95rem;">Lo que toca hoy.</div>
+              <div class="text-muted premium-sub" id="dayModalSub">Lo que toca hoy.</div>
             </div>
 
-            <div class="d-flex align-items-center gap-3 flex-wrap">
-              <div class="form-check form-switch m-0">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <div class="form-check form-switch m-0 premium-switch">
                 <input class="form-check-input" type="checkbox" id="didTrain">
                 <label class="form-check-label text-muted" for="didTrain">Hoy entrené</label>
               </div>
+
+              <button id="btnNoPuedo" type="button" class="btn btn-outline-danger btn-sm"
+                      data-bs-toggle="collapse" data-bs-target="#availCollapse" aria-expanded="false">
+                <i class="bi bi-slash-circle"></i>
+              </button>
+
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
           </div>
+
+          <!-- Bloqueo colapsable -->
+          <div class="collapse mt-3" id="availCollapse">
+            <div class="avail-inline">
+              <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div class="text-muted" style="font-weight:900; letter-spacing:.14em; text-transform:uppercase; font-size:.78rem;">
+                  Disponibilidad
+                </div>
+                <span id="availBadge" class="badge bg-secondary">—</span>
+              </div>
+
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="noPuedoToggle">
+                <label class="form-check-label text-muted" for="noPuedoToggle">Bloquear este día</label>
+              </div>
+
+              <textarea class="form-control mt-2" id="noPuedoText"
+                        placeholder="Ej: viaje / lesión / trabajo (corto)"></textarea>
+
+              <button class="btn btn-outline-danger w-100 mt-2" type="button" onclick="saveAvailability()">
+                Guardar
+              </button>
+
+              <div class="text-muted mt-2" style="font-size:.9rem;">
+                Si bloqueás el día, el coach lo verá en rojo y no planifica.
+              </div>
+            </div>
+          </div>
+
+          <!-- PROGRESS STRIP -->
+          <div class="premium-strip mt-3">
+            <div class="strip-left">
+              <div class="strip-k">PROGRESO</div>
+              <div class="strip-v" id="progressText">—</div>
+            </div>
+            <div class="strip-bar">
+              <div class="strip-bar-fill" id="progressFill" style="width:0%;"></div>
+            </div>
+          </div>
+
         </div>
       </div>
 
+      <!-- BODY -->
       <div class="modal-body">
         <div class="row g-3">
 
-          <!-- IZQUIERDA: SOLO LO QUE EXISTE -->
+          <!-- PLAN MINIMAL -->
           <div class="col-lg-4">
             <div class="day-section">
               <div class="day-section-title">Plan</div>
 
-              <div id="planWarmupWrap" class="plan-card d-none">
+              <div id="cardWarmup" class="plan-card d-none">
                 <div class="plan-k">Activación</div>
                 <div class="plan-v" id="planWarmup">—</div>
               </div>
 
-              <div id="planMainWrap" class="plan-card d-none">
+              <div id="cardMain" class="plan-card d-none">
                 <div class="plan-k">Principal</div>
                 <div class="plan-v" id="planMain">—</div>
               </div>
 
-              <div id="planFinisherWrap" class="plan-card d-none">
+              <div id="cardFinisher" class="plan-card d-none">
                 <div class="plan-k">Enfriamiento</div>
                 <div class="plan-v" id="planFinisher">—</div>
               </div>
 
-              <!-- DISPONIBILIDAD: OCULTA POR DEFECTO (solo aparece si está bloqueado o si el atleta abre) -->
-              <div id="availWrap" class="avail-box mt-2 d-none">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="day-section-title" style="margin:0;">Disponibilidad</div>
-                  <span id="availBadge" class="badge bg-secondary">—</span>
-                </div>
-
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="noPuedoToggle">
-                  <label class="form-check-label text-muted" for="noPuedoToggle">No puedo entrenar</label>
-                </div>
-
-                <textarea class="form-control mt-2" id="noPuedoText"
-                          placeholder="Motivo (corto)"></textarea>
-
-                <button class="btn btn-outline-danger w-100 mt-2" type="button" onclick="saveAvailability()">
-                  Guardar
-                </button>
-
-                <div class="text-muted mt-2" style="font-size:.9rem;">
-                  Si bloqueás el día, el coach lo verá en rojo.
-                </div>
+              <div class="text-muted mt-2" style="font-size:.92rem;">
+                Tildá ejercicios y guardá tu nota.
               </div>
-
-              <!-- BOTÓN PEQUEÑO PARA ABRIR DISPONIBILIDAD (solo si aún NO está bloqueado) -->
-              <button id="openAvailBtn" class="btn btn-outline-light w-100 mt-2 d-none" type="button" onclick="openAvailability()">
-                <i class="bi bi-slash-circle"></i> No puedo entrenar
-              </button>
-
             </div>
           </div>
 
-          <!-- DERECHA: BLOQUES + CHECK + VIDEOS (SIN DUPLICAR) -->
+          <!-- BLOQUES + NOTA -->
           <div class="col-lg-8">
             <div class="day-section">
               <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                 <div>
-                  <div class="day-section-title">Lo que toca hoy</div>
+                  <div class="day-section-title">Sesión</div>
                   <div class="text-muted" id="blocksMeta">—</div>
                 </div>
               </div>
@@ -308,13 +333,18 @@
               </div>
             </div>
 
-            <!-- QUE HICISTE: 1 SOLO CAMPO -->
             <div class="day-section mt-3">
               <div class="day-section-title">Qué hiciste</div>
-              <textarea class="form-control" id="doneText" rows="4" placeholder="Contá qué hiciste hoy (rápido)..."></textarea>
+              <textarea class="form-control mb-2" id="doneMain"
+                        placeholder="Escribí en una línea lo que hiciste hoy..."></textarea>
+
               <button class="btn btn-primary w-100 mt-2" onclick="saveLog()">
                 💾 Guardar
               </button>
+
+              <div class="text-muted mt-2" style="font-size:.9rem;">
+                Guardamos tu nota del día.
+              </div>
             </div>
 
           </div>
@@ -334,6 +364,59 @@
 }
 .day-modal .modal-body{ background: transparent; }
 
+.premium-header{
+  border-bottom: 1px solid rgba(255,255,255,.10) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+}
+.premium-title{
+  font-weight: 950;
+  font-size: 1.35rem;
+  letter-spacing: .02em;
+  line-height: 1.05;
+}
+.premium-sub{
+  font-size: .95rem;
+  opacity: .85;
+}
+.premium-switch .form-check-input{ transform: scale(1.05); }
+
+.premium-strip{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.22);
+  border-radius: 16px;
+  padding: 10px 12px;
+}
+.strip-left{
+  display:flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap:10px;
+}
+.strip-k{
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: .72rem;
+  color: rgba(255,255,255,.65);
+}
+.strip-v{
+  font-weight: 900;
+  color: rgba(255,255,255,.90);
+}
+.strip-bar{
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  overflow:hidden;
+  margin-top: 8px;
+}
+.strip-bar-fill{
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(34,211,238,.80);
+  width: 0%;
+}
+
 .month-head{ color: rgba(255,255,255,.72) !important; }
 .month-cell{ background: rgba(0,0,0,.42) !important; }
 .month-cell .daynum{ color: rgba(255,255,255,.92) !important; }
@@ -342,6 +425,7 @@
   border: 1px solid rgba(255, 59, 48, 0.55) !important;
   box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset;
 }
+.month-cell.blocked .daynum{ color: rgba(255,255,255,.95) !important; }
 
 .vr-days span{ color: rgba(255,255,255,.78); font-weight: 900; letter-spacing:.08em; }
 
@@ -387,7 +471,7 @@
 .plan-v{
   margin-top: 6px;
   font-size: 1.00rem;
-  font-weight: 800;
+  font-weight: 850;
   color: rgba(255,255,255,.92);
   white-space: pre-line;
 }
@@ -424,31 +508,38 @@
 }
 .block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
 
-.exercise-mini{
+.exercise-card{
   border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.18);
-  border-radius: 16px;
-  padding: 10px;
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  overflow:hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
   margin-top: 10px;
 }
-.exercise-row{
+.exercise-head{
+  padding: 10px 12px;
   display:flex;
   justify-content: space-between;
+  align-items:flex-start;
   gap:10px;
-  padding: 8px 0;
-  border-bottom: 1px dashed rgba(255,255,255,.10);
 }
-.exercise-row:last-child{ border-bottom: 0; }
-.exercise-name{ font-weight: 900; }
-.exercise-meta{ color: rgba(255,255,255,.70); font-weight: 800; font-size: .92rem; }
+.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
+.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); }
+.exercise-video{ padding: 10px 12px 12px; }
 .exercise-video video{
   width:100%;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.18);
   background: rgba(0,0,0,.35);
-  min-height: 200px;
+  min-height: 220px;
   object-fit: cover;
-  margin-top: 8px;
+}
+
+.avail-inline{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 16px;
+  padding: 12px;
 }
 </style>
 {% endblock %}
@@ -479,15 +570,20 @@ function cleanText(s){
   if(out.includes("&") || out.includes("&#")) out = decodeHtmlEntities(out);
   return out;
 }
-function hasMeaningfulText(s){
-  const t = (s ?? "").toString().trim();
-  if(!t) return false;
-  if(t.toLowerCase() === "none") return false;
-  return true;
-}
 
-function badgeHtml(type){
-  const t = (type||"").toUpperCase();
+function typeLabel(type){
+  const t = (type||"").toLowerCase();
+  if(t === "tabata") return "TABATA";
+  if(t === "fuerza") return "FUERZA";
+  if(t === "run") return "RUN";
+  if(t === "bike") return "BIKE";
+  if(t === "swim") return "SWIM";
+  if(t === "free") return "FREE";
+  if(t === "note") return "NOTE";
+  return (type||"BLOQUE").toUpperCase();
+}
+function badgeHtml(label){
+  const t = (label||"").toUpperCase();
   const map = {
     "TABATA": "bg-danger",
     "FUERZA": "bg-info",
@@ -500,21 +596,29 @@ function badgeHtml(type){
   const cls = map[t] || "bg-secondary";
   return `<span class="badge ${cls}" style="font-weight:900; letter-spacing:.06em;">${escapeHtml(t||"BLOQUE")}</span>`;
 }
-function typeLabel(type){
-  const t = (type||"").toLowerCase();
-  if(t === "tabata") return "TABATA";
-  if(t === "fuerza") return "FUERZA";
-  if(t === "run") return "RUN";
-  if(t === "bike") return "BIKE";
-  if(t === "swim") return "SWIM";
-  if(t === "free") return "FREE";
-  if(t === "note") return "NOTE";
-  return (type||"BLOQUE").toUpperCase();
+
+/* ✅ principal bonito (usa blocks) */
+function prettyMainFromBlocks(blocks){
+  const arr = Array.isArray(blocks) ? blocks : [];
+  if(!arr.length) return "";
+
+  const names = arr
+    .filter(b => b && b.ok && (String(b.type||"").toLowerCase()==="fuerza" || String(b.type||"").toLowerCase()==="tabata"))
+    .map(b => cleanText(b.rutina?.nombre || ""))
+    .filter(Boolean);
+
+  if(names.length) return names.join(" · ");
+
+  const texts = arr
+    .filter(b => b && b.ok && b.text)
+    .map(b => `${typeLabel(b.type)}: ${cleanText(b.text)}`)
+    .filter(Boolean);
+
+  return texts.join(" · ");
 }
 
+/* ✅ availability UI */
 function setAvailUI(puede, comentario){
-  const wrap = document.getElementById("availWrap");
-  const openBtn = document.getElementById("openAvailBtn");
   const toggle = document.getElementById("noPuedoToggle");
   const text = document.getElementById("noPuedoText");
   const badge = document.getElementById("availBadge");
@@ -524,26 +628,15 @@ function setAvailUI(puede, comentario){
   text.value = comentario || "";
 
   if(blocked){
-    wrap.classList.remove("d-none");     // si está bloqueado, se ve
-    openBtn.classList.add("d-none");    // no muestro botón "No puedo entrenar"
     badge.className = "badge bg-danger";
-    badge.textContent = "BLOQUEADO";
+    badge.textContent = "NO PUEDE";
   }else{
-    wrap.classList.add("d-none");       // por defecto oculto
-    openBtn.classList.remove("d-none"); // muestro el botón para abrirlo si quiere
     badge.className = "badge bg-success";
     badge.textContent = "OK";
   }
 }
 
-function openAvailability(){
-  const wrap = document.getElementById("availWrap");
-  const openBtn = document.getElementById("openAvailBtn");
-  wrap.classList.remove("d-none");
-  openBtn.classList.add("d-none");
-  // no marcamos bloqueado aún; eso solo cuando el usuario lo activa y guarda
-}
-
+/* poster */
 function posterDataUrl(title){
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const svg = `
@@ -564,54 +657,67 @@ function posterDataUrl(title){
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
-function strengthItemsHtml(items){
-  const arr = Array.isArray(items) ? items : [];
-  if(!arr.length) return `<div class="text-muted">No hay ejercicios cargados.</div>`;
+/* ✅ Progress global */
+function setProgress(doneCount, totalCount){
+  const txt = document.getElementById("progressText");
+  const fill = document.getElementById("progressFill");
+  const total = Math.max(0, Number(totalCount||0));
+  const done = Math.max(0, Number(doneCount||0));
+  const pct = total > 0 ? Math.round((done*100)/total) : 0;
 
-  return `
-    <div class="exercise-mini">
-      ${arr.map(it => {
-        const id = String(it.id);
-        const checked = CURRENT_CHECKS.has(id) ? "checked" : "";
-        const name = escapeHtml(cleanText(it.nombre || "Ejercicio"));
-        const metaParts = [];
-        if(it.series) metaParts.push(escapeHtml(it.series));
-        if(it.reps) metaParts.push(escapeHtml(it.reps));
-        if(it.descanso) metaParts.push("Desc " + escapeHtml(it.descanso));
-        if(it.nota) metaParts.push(escapeHtml(cleanText(it.nota)));
-        const meta = metaParts.join(" · ");
-
-        const vidSrc = it.video_src || "";
-        const poster = posterDataUrl(it.nombre);
-
-        return `
-          <div class="exercise-row">
-            <div style="min-width:0;">
-              <div class="exercise-name">${name}</div>
-              <div class="exercise-meta">${meta || ""}</div>
-              ${vidSrc ? `
-                <div class="exercise-video">
-                  <video controls playsinline webkit-playsinline preload="metadata" poster="${poster}">
-                    <source src="${vidSrc}" type="video/mp4">
-                  </video>
-                </div>
-              ` : `<div class="text-muted mt-1">Sin video</div>`}
-            </div>
-
-            <div class="d-flex align-items-center gap-2">
-              <div class="form-check form-switch m-0">
-                <input class="form-check-input" type="checkbox" ${checked}
-                       onchange="toggleItem(${it.id}, this.checked)">
-              </div>
-              <div class="text-muted" style="font-weight:900;letter-spacing:.08em;">HECHO</div>
-            </div>
-          </div>
-        `;
-      }).join("")}
-    </div>
-  `;
+  txt.textContent = total ? `Hechos ${done} / ${total}` : "—";
+  fill.style.width = `${pct}%`;
 }
 
+/* ✅ render ejercicios */
+function renderStrengthItems(items, doneIds){
+  if(!items || !items.length){
+    return `<div class="text-muted">No hay ejercicios en esta rutina.</div>`;
+  }
+
+  return items.map(it => {
+    const checked = doneIds.has(String(it.id)) ? "checked" : "";
+    const vidSrc = it.video_src || "";
+    const poster = posterDataUrl(it.nombre);
+    const inputId = `done_${it.id}`;
+
+    return `
+      <div class="exercise-card">
+        <div class="exercise-head">
+          <div>
+            <div class="exercise-name">${escapeHtml(cleanText(it.nombre || "Ejercicio"))}</div>
+            <div class="exercise-meta">
+              ${escapeHtml(it.series || "")}${it.series ? " · " : ""}${escapeHtml(it.reps || "")}
+              ${it.descanso ? (" · Desc " + escapeHtml(it.descanso)) : ""}
+              ${it.nota ? (" · " + escapeHtml(cleanText(it.nota))) : ""}
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <div class="form-check form-switch m-0">
+              <input id="${inputId}" class="form-check-input" type="checkbox" ${checked}
+                     onchange="toggleItem(${it.id}, this.checked)">
+            </div>
+            <label for="${inputId}" class="text-muted"
+                   style="font-weight:900;letter-spacing:.08em; padding:10px 6px; cursor:pointer;">
+              HECHO
+            </label>
+          </div>
+        </div>
+
+        <div class="exercise-video">
+          ${vidSrc ? `
+            <video controls playsinline webkit-playsinline preload="metadata" poster="${poster}">
+              <source src="${vidSrc}" type="video/mp4">
+            </video>
+          ` : `<div class="text-muted">Sin video</div>`}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ✅ render blocks premium: fuerza con desplegable */
 function renderBlocks(blocks){
   const wrap = document.getElementById("dayBlocks");
   const meta = document.getElementById("blocksMeta");
@@ -658,6 +764,42 @@ function renderBlocks(blocks){
       return;
     }
 
+    if(type === "fuerza"){
+      const rname = cleanText(b.rutina?.nombre || "Fuerza");
+      const collapseId = `force_${idx}`;
+      const items = Array.isArray(b.items) ? b.items : [];
+      const itemsHtml = renderStrengthItems(items, CURRENT_CHECKS);
+
+      div.innerHTML = `
+        <div class="block-head">
+          <div class="block-left">
+            <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
+            <div>
+              <div class="block-title">${escapeHtml(rname)}</div>
+              <div class="block-sub">Ejercicios con video y check.</div>
+            </div>
+          </div>
+          ${badgeHtml("FUERZA")}
+        </div>
+
+        <div class="block-actions">
+          <button class="btn btn-outline-light" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+            Ver ejercicios
+          </button>
+          <div class="text-muted" style="font-weight:900; letter-spacing:.06em; align-self:center;">
+            ${items.length ? `${items.length} ejercicio(s)` : ``}
+          </div>
+        </div>
+
+        <div class="collapse mt-2" id="${collapseId}">
+          ${itemsHtml}
+        </div>
+      `;
+      wrap.appendChild(div);
+      return;
+    }
+
     if(type === "tabata"){
       const rname = cleanText(b.rutina?.nombre || "Tabata");
       const work = b.cfg?.work ?? 40;
@@ -672,14 +814,15 @@ function renderBlocks(blocks){
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
-              <div class="block-sub">${work}s · ${rest}s · ${rounds} ejercicios · ${sets} set(s)</div>
+              <div class="block-sub">${work}s trabajo · ${rest}s descanso · ${rounds} ejercicios · ${sets} set(s)</div>
             </div>
           </div>
           ${badgeHtml("TABATA")}
         </div>
-
         <div class="block-actions">
-          <a class="btn btn-danger" href="${startUrl}" target="_blank" rel="noopener">▶ Reproducir</a>
+          <a class="btn btn-danger" href="${startUrl}" target="_blank" rel="noopener">
+            ▶ Reproducir
+          </a>
         </div>
       `;
       wrap.appendChild(div);
@@ -704,38 +847,6 @@ function renderBlocks(blocks){
       return;
     }
 
-    if(type === "fuerza"){
-      const rname = cleanText(b.rutina?.nombre || "Fuerza");
-      const collapseId = `force_${idx}`;
-      const hasItems = Array.isArray(b.items) && b.items.length;
-
-      div.innerHTML = `
-        <div class="block-head">
-          <div class="block-left">
-            <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
-            <div>
-              <div class="block-title">${escapeHtml(rname)}</div>
-              <div class="block-sub">${hasItems ? "Ejercicios con video y check." : "Sin ejercicios cargados."}</div>
-            </div>
-          </div>
-          ${badgeHtml("FUERZA")}
-        </div>
-
-        <div class="block-actions">
-          <button class="btn btn-outline-light" type="button"
-                  data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false">
-            Ver ejercicios
-          </button>
-        </div>
-
-        <div class="collapse mt-2" id="${collapseId}">
-          ${strengthItemsHtml(b.items || [])}
-        </div>
-      `;
-      wrap.appendChild(div);
-      return;
-    }
-
     div.innerHTML = `
       <div class="block-head">
         <div class="block-left">
@@ -752,9 +863,7 @@ function renderBlocks(blocks){
   });
 }
 
-/* =========================
-   MODAL OPEN
-========================= */
+/* ✅ modal open */
 function openDay(isoDate){
   CURRENT_DAY = isoDate;
 
@@ -772,23 +881,19 @@ function openDay(isoDate){
   document.getElementById("dayModalDate").textContent = isoDate;
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
-
-  // reset plan wrappers
-  document.getElementById("planWarmupWrap").classList.add("d-none");
-  document.getElementById("planMainWrap").classList.add("d-none");
-  document.getElementById("planFinisherWrap").classList.add("d-none");
-
-  document.getElementById("planWarmup").textContent = "—";
-  document.getElementById("planMain").textContent = "—";
-  document.getElementById("planFinisher").textContent = "—";
+  document.getElementById("dayModalSub").textContent = "Lo que toca hoy.";
 
   document.getElementById("dayBlocks").innerHTML = `<div class="text-muted">Cargando...</div>`;
   document.getElementById("blocksMeta").textContent = "—";
 
+  document.getElementById("doneMain").value = "";
   document.getElementById("didTrain").checked = false;
-  document.getElementById("doneText").value = "";
 
-  // disponibilidad oculta por defecto
+  document.getElementById("cardWarmup").classList.add("d-none");
+  document.getElementById("cardMain").classList.add("d-none");
+  document.getElementById("cardFinisher").classList.add("d-none");
+
+  setProgress(0, 0);
   setAvailUI("si", "");
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
@@ -798,38 +903,51 @@ function openDay(isoDate){
       CURRENT_PAYLOAD = data;
 
       const p = data.plan || {};
-
       document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
-      const warm = cleanText(p.warmup || "");
-      const main = cleanText(p.main || "");
-      const fin  = cleanText(p.finisher || "");
+      const warm = cleanText(p.warmup || "").trim();
+      const fin = cleanText(p.finisher || "").trim();
+      const niceMain = prettyMainFromBlocks(data.blocks).trim();
 
-      if(hasMeaningfulText(warm)){
-        document.getElementById("planWarmupWrap").classList.remove("d-none");
+      if(warm){
         document.getElementById("planWarmup").textContent = warm;
+        document.getElementById("cardWarmup").classList.remove("d-none");
       }
-      if(hasMeaningfulText(main)){
-        document.getElementById("planMainWrap").classList.remove("d-none");
-        document.getElementById("planMain").textContent = main;
+      if(niceMain || (p.main || "").trim()){
+        document.getElementById("planMain").textContent = niceMain || cleanText(p.main || "—");
+        document.getElementById("cardMain").classList.remove("d-none");
+        document.getElementById("dayModalSub").textContent = niceMain ? `Principal: ${niceMain}` : "Lo que toca hoy.";
+      }else{
+        document.getElementById("dayModalSub").textContent = "Lo que toca hoy.";
       }
-      if(hasMeaningfulText(fin)){
-        document.getElementById("planFinisherWrap").classList.remove("d-none");
+      if(fin){
         document.getElementById("planFinisher").textContent = fin;
+        document.getElementById("cardFinisher").classList.remove("d-none");
       }
 
       setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
 
       document.getElementById("didTrain").checked = !!data.log?.did_train;
-
-      // usamos main_done como campo único (compat con tu backend)
-      const existing = cleanText(data.log?.main_done || data.log?.warmup_done || data.log?.finisher_done || "");
-      document.getElementById("doneText").value = existing;
+      document.getElementById("doneMain").value = cleanText(data.log?.main_done || "");
 
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
-      renderBlocks(data.blocks || []);
+      // Progress total = suma de items fuerza + items tabata (si querés)
+      const blocks = Array.isArray(data.blocks) ? data.blocks : [];
+      let total = 0;
+      blocks.forEach(b => {
+        if(!b || b.ok !== true) return;
+        const t = String(b.type||"").toLowerCase();
+        if((t === "fuerza" || t === "tabata") && Array.isArray(b.items)){
+          total += b.items.length;
+        }
+      });
+
+      setProgress(CURRENT_CHECKS.size, total);
+
+      renderBlocks(blocks);
+
       DAY_MODAL.show();
     })
     .catch(err => {
@@ -838,9 +956,7 @@ function openDay(isoDate){
     });
 }
 
-/* =========================
-   CHECKS + LOG + AVAIL
-========================= */
+/* ✅ checks */
 function toggleItem(itemId, done){
   const form = new FormData();
   form.append("user_id", String(CURRENT_USER));
@@ -854,17 +970,28 @@ function toggleItem(itemId, done){
       if(!j.ok) throw new Error(j.error || "Error");
       if(done) CURRENT_CHECKS.add(String(itemId));
       else CURRENT_CHECKS.delete(String(itemId));
+
+      // refrescar progreso (sin recargar)
+      const blocks = (CURRENT_PAYLOAD && Array.isArray(CURRENT_PAYLOAD.blocks)) ? CURRENT_PAYLOAD.blocks : [];
+      let total = 0;
+      blocks.forEach(b => {
+        if(!b || b.ok !== true) return;
+        const t = String(b.type||"").toLowerCase();
+        if((t === "fuerza" || t === "tabata") && Array.isArray(b.items)) total += b.items.length;
+      });
+      setProgress(CURRENT_CHECKS.size, total);
     })
     .catch(err => { console.error(err); alert("Error guardando check: " + err.message); });
 }
 
+/* ✅ log simple */
 function saveLog(){
   const payload = {
     user_id: CURRENT_USER,
     fecha: CURRENT_DAY,
     did_train: document.getElementById("didTrain").checked,
     warmup_done: "",
-    main_done: document.getElementById("doneText").value || "",
+    main_done: document.getElementById("doneMain").value || "",
     finisher_done: ""
   };
 
@@ -878,6 +1005,7 @@ function saveLog(){
   .catch(err => { console.error(err); alert("Error guardando: " + err.message); });
 }
 
+/* ✅ disponibilidad */
 async function saveAvailability(){
   const noPuedo = document.getElementById("noPuedoToggle").checked;
   const comentario = document.getElementById("noPuedoText").value || "";

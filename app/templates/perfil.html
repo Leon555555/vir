@@ -207,49 +207,64 @@
       </div>
     </div>
   {% endif %}
-
 </div>
 
-<!-- Modal Día -->
+<!-- =========================
+     MODAL DÍA (CLEAN + INTUITIVO)
+========================= -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen-sm-down modal-xl">
     <div class="modal-content day-modal">
       <div class="modal-header">
-        <div>
-          <div class="text-muted" id="dayModalDate" style="letter-spacing:.18em;text-transform:uppercase;"></div>
-          <div class="d-flex align-items-center gap-2">
-            <h5 class="modal-title mb-0" id="dayModalTitle">Detalle</h5>
-            <span class="badge bg-secondary" id="dayModalType">—</span>
+        <div class="w-100">
+          <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+            <div>
+              <div class="text-muted" id="dayModalDate" style="letter-spacing:.18em;text-transform:uppercase;"></div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h5 class="modal-title mb-0" id="dayModalTitle">Detalle</h5>
+                <span class="day-chip" id="dayModalType">—</span>
+              </div>
+              <div class="text-muted mt-1" style="font-size:.95rem;">Plan + bloques + check de ejercicios.</div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" id="didTrain">
+                <label class="form-check-label text-muted" for="didTrain">Hoy entrené</label>
+              </div>
+
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
           </div>
         </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
       <div class="modal-body">
         <div class="row g-3">
 
-          <div class="col-lg-5">
-            <div class="card glass p-3 h-100">
-              <div class="fw-bold mb-2">Plan</div>
+          <!-- IZQUIERDA: PLAN + DISPONIBILIDAD -->
+          <div class="col-lg-4">
+            <div class="day-section">
+              <div class="day-section-title">Plan</div>
 
-              <div class="plan-row">
+              <div class="plan-card">
                 <div class="plan-k">Activación</div>
                 <div class="plan-v" id="planWarmup">—</div>
               </div>
 
-              <div class="plan-row">
-                <div class="plan-k plan-k-small">Bloque principal</div>
+              <div class="plan-card">
+                <div class="plan-k">Bloque principal</div>
                 <div class="plan-v" id="planMain">—</div>
               </div>
 
-              <div class="plan-row">
+              <div class="plan-card">
                 <div class="plan-k">Enfriamiento</div>
                 <div class="plan-v" id="planFinisher">—</div>
               </div>
 
-              <div class="mt-3 glass p-3" style="border-radius:16px;">
+              <div class="avail-box mt-2">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="mini-title">DISPONIBILIDAD</div>
+                  <div class="day-section-title" style="margin:0;">Disponibilidad</div>
                   <span id="availBadge" class="badge bg-secondary">—</span>
                 </div>
 
@@ -269,62 +284,55 @@
                   Si bloqueás el día, el coach lo verá en rojo y no planifica.
                 </div>
               </div>
-
             </div>
           </div>
 
-          <div class="col-lg-7">
-            <div class="card glass p-3">
-              <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                <div class="fw-bold" id="rightTitle">Lo realizado</div>
-
-                <div class="form-check form-switch m-0">
-                  <input class="form-check-input" type="checkbox" id="didTrain">
-                  <label class="form-check-label text-muted" for="didTrain">Hoy entrené</label>
+          <!-- DERECHA: BLOQUES + EJERCICIOS + GUION + LOG -->
+          <div class="col-lg-8">
+            <div class="day-section">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <div>
+                  <div class="day-section-title">Bloques del día</div>
+                  <div class="text-muted" id="blocksMeta">—</div>
                 </div>
               </div>
 
-              <!-- ✅ BLOQUES DEL DÍA (mejorados) -->
-              <div class="glass p-3 mb-3" style="border-radius:18px;">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="mini-title" style="letter-spacing:.14em;">BLOQUES DEL DÍA</div>
-                  <div class="text-muted" style="font-weight:900;" id="blocksMeta">—</div>
-                </div>
-                <div id="dayBlocks" class="d-grid" style="gap:12px;"></div>
+              <div id="dayBlocks" class="blocks-wrap">
+                <div class="text-muted">Cargando...</div>
               </div>
+            </div>
 
-              <!-- Fuerza items (según bloque seleccionado) -->
+            <div class="day-section mt-3">
+              <div class="day-section-title">Ejercicios (Fuerza)</div>
               <div id="strengthItems" class="row g-3"></div>
+            </div>
 
-              <div class="mt-3">
-                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                  <div class="section-title">Guión</div>
-                  <div class="d-flex gap-2">
-                    <button class="btn btn-info btn-sm" type="button" onclick="genSessionScript()">
-                      ✨ Generar
-                    </button>
-                  </div>
-                </div>
-                <div id="scriptBox" class="glass p-3 mt-2"
-                     style="border-radius:16px; white-space:pre-wrap; line-height:1.35; font-size:.98rem;">
-                  <div class="text-muted">Tocá “Generar” para ver el guión del día.</div>
-                </div>
+            <!-- ✅ GUION (SIN BOTÓN GENERAR - SOLO VISTA) -->
+            <div class="day-section mt-3">
+              <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div class="day-section-title" style="margin:0;">Guión</div>
+                <span class="badge bg-secondary">DESACTIVADO</span>
               </div>
 
-              <div class="mt-3">
-                <div class="text-muted mb-2" style="letter-spacing:.14em;text-transform:uppercase;">Qué hiciste</div>
-
-                <textarea class="form-control mb-2" id="doneWarmup" placeholder="Activación realizada..."></textarea>
-                <textarea class="form-control mb-2" id="doneMain" placeholder="Bloque principal realizado..."></textarea>
-                <textarea class="form-control mb-2" id="doneFinisher" placeholder="Enfriamiento realizada..."></textarea>
-
-                <button class="btn btn-primary w-100 mt-2" onclick="saveLog()">
-                  💾 Guardar
-                </button>
+              <div id="scriptBox" class="glass p-3 mt-2"
+                   style="border-radius:16px; white-space:pre-wrap; line-height:1.35; font-size:.98rem;">
+                <div class="text-muted">Guión desactivado por hoy (modo limpio). Mañana lo dejamos pro.</div>
               </div>
             </div>
-          </div>
 
+            <div class="day-section mt-3">
+              <div class="day-section-title">Qué hiciste</div>
+
+              <textarea class="form-control mb-2" id="doneWarmup" placeholder="Activación realizada..."></textarea>
+              <textarea class="form-control mb-2" id="doneMain" placeholder="Bloque principal realizado..."></textarea>
+              <textarea class="form-control mb-2" id="doneFinisher" placeholder="Enfriamiento realizado..."></textarea>
+
+              <button class="btn btn-primary w-100 mt-2" onclick="saveLog()">
+                💾 Guardar
+              </button>
+            </div>
+
+          </div>
         </div>
       </div>
 
@@ -335,32 +343,75 @@
 
 {% block extra_css %}
 <style>
-.day-modal{ background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important; color: rgba(255,255,255,.92);}
+/* =========================
+   CLEAN DAY UI + YOUR EXISTING
+========================= */
+.day-modal{
+  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
+  color: rgba(255,255,255,.92);
+}
 .day-modal .modal-body{ background: transparent; }
-
-.plan-row{ padding: 12px 10px; border: 1px solid rgba(255,255,255,.10); border-radius: 16px; background: rgba(255,255,255,.03); margin-bottom: 10px;}
-.plan-k{ font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.78); font-size: .82rem;}
-.plan-k-small{ font-size:.72rem; opacity:.78; }
-.plan-v{ margin-top: 6px; font-size: 1.05rem; font-weight: 700; color: rgba(255,255,255,.94); }
-
-.exercise-card{ border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.03); border-radius: 18px; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,.35);}
-.exercise-head{ padding: 10px 12px; display:flex; justify-content: space-between; align-items:flex-start; gap:10px;}
-.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
-.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); }
-.exercise-video{ padding: 10px 12px 12px; }
-.exercise-video video{ width:100%; border-radius: 16px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.35); min-height: 220px; object-fit: cover; }
-
-.done-pill{ display:flex; align-items:center; gap:8px;}
-.done-pill .form-check-label{ color: rgba(255,255,255,.70); font-weight: 800; }
 
 .month-head{ color: rgba(255,255,255,.72) !important; }
 .month-cell{ background: rgba(0,0,0,.42) !important; }
 .month-cell .daynum{ color: rgba(255,255,255,.92) !important; }
-
-.month-cell.blocked{ background: rgba(255, 59, 48, 0.18) !important; border: 1px solid rgba(255, 59, 48, 0.55) !important; box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset; }
+.month-cell.blocked{
+  background: rgba(255, 59, 48, 0.18) !important;
+  border: 1px solid rgba(255, 59, 48, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset;
+}
 .month-cell.blocked .daynum{ color: rgba(255,255,255,.95) !important; }
 
-.vr-days span{ color: rgba(255,255,255,.78); font-weight: 900; letter-spacing:.08em;}
+.vr-days span{ color: rgba(255,255,255,.78); font-weight: 900; letter-spacing:.08em; }
+
+.day-chip{
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 900;
+  font-size: .82rem;
+  letter-spacing:.06em;
+}
+
+.day-section{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  padding: 12px;
+}
+.day-section-title{
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: .78rem;
+  color: rgba(255,255,255,.72);
+  margin-bottom: 10px;
+}
+
+.plan-card{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.plan-k{
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.72);
+  font-size: .78rem;
+}
+.plan-v{
+  margin-top: 6px;
+  font-size: 1.00rem;
+  font-weight: 800;
+  color: rgba(255,255,255,.92);
+  white-space: pre-line;
+}
+
+.blocks-wrap{ display:grid; gap:12px; }
 
 .block-card{
   border: 1px solid rgba(255,255,255,.10);
@@ -374,21 +425,73 @@
   align-items:flex-start;
   gap:10px;
 }
-.block-title{
-  font-weight: 950;
-  color: rgba(255,255,255,.96);
-}
-.block-sub{
-  color: rgba(255,255,255,.72);
-  font-weight: 800;
-  font-size: .92rem;
-  margin-top: 4px;
-}
+.block-left{ display:flex; gap:10px; align-items:flex-start; }
 .block-icon{
   width:40px;height:40px;border-radius:14px;
   border:1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.04);
   display:flex;align-items:center;justify-content:center;
+  flex: 0 0 auto;
+}
+.block-title{ font-weight: 950; color: rgba(255,255,255,.96); line-height: 1.1; }
+.block-sub{
+  color: rgba(255,255,255,.72);
+  font-weight: 800;
+  font-size: .92rem;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+.block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
+
+.block-list{
+  margin-top: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.20);
+  padding: 10px;
+}
+.block-list-title{
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: .74rem;
+  color: rgba(255,255,255,.65);
+  margin-bottom: 8px;
+}
+.block-row{
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  gap:10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255,255,255,.10);
+}
+.block-row:last-child{ border-bottom: 0; }
+
+.exercise-card{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  overflow:hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+.exercise-head{
+  padding: 10px 12px;
+  display:flex;
+  justify-content: space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
+.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); }
+.exercise-video{ padding: 10px 12px 12px; }
+.exercise-video video{
+  width:100%;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.35);
+  min-height: 220px;
+  object-fit: cover;
 }
 </style>
 {% endblock %}
@@ -397,10 +500,9 @@
 <script>
 let DAY_MODAL = null;
 let CURRENT_DAY = null;
-let CURRENT_USER = {{ user.id }};
+let CURRENT_USER = {{ user.id|int }};
 
 let CURRENT_PAYLOAD = null;
-let FUERZA_BLOCKS = [];   // [{idx, rutina, items}]
 let CURRENT_CHECKS = new Set();
 
 if(typeof bootstrap === "undefined"){
@@ -434,9 +536,21 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 
-/* =========================
-   BADGES (del segundo)
-========================= */
+/* ✅ decode HTML entities */
+function decodeHtmlEntities(s){
+  const txt = document.createElement("textarea");
+  txt.innerHTML = String(s||"");
+  return txt.value;
+}
+
+function cleanText(s){
+  let out = decodeHtmlEntities(s);
+  if(out.includes("&") || out.includes("&#")){
+    out = decodeHtmlEntities(out);
+  }
+  return out;
+}
+
 function badgeHtml(type){
   const t = (type||"").toUpperCase();
   const map = {
@@ -465,7 +579,7 @@ function typeLabel(type){
 }
 
 /* =========================
-   BLOQUES (mejorado)
+   BLOQUES (UI limpia)
 ========================= */
 function renderBlocks(blocks){
   const wrap = document.getElementById("dayBlocks");
@@ -484,7 +598,6 @@ function renderBlocks(blocks){
     const type = (b.type || "").toLowerCase();
     const ok = b.ok !== false;
 
-    // iconos
     let icon = "bi-grid";
     if(type === "tabata"){ icon = "bi-lightning-charge-fill"; }
     if(type === "run"){ icon = "bi-person-running"; }
@@ -500,7 +613,7 @@ function renderBlocks(blocks){
     if(!ok){
       div.innerHTML = `
         <div class="block-head">
-          <div class="d-flex gap-2">
+          <div class="block-left">
             <div class="block-icon"><i class="bi ${icon} text-warning"></i></div>
             <div>
               <div class="block-title">${typeLabel(b.type)}</div>
@@ -514,9 +627,8 @@ function renderBlocks(blocks){
       return;
     }
 
-    // TABATA (con Reproducir + Settings)
     if(type === "tabata"){
-      const rname = b.rutina?.nombre || "Tabata";
+      const rname = cleanText(b.rutina?.nombre || "Tabata");
       const work = b.cfg?.work ?? 40;
       const rest = b.cfg?.rest ?? 20;
       const rounds = b.cfg?.rounds ?? (Array.isArray(b.items) ? b.items.length : 0);
@@ -526,7 +638,7 @@ function renderBlocks(blocks){
 
       div.innerHTML = `
         <div class="block-head">
-          <div class="d-flex gap-2">
+          <div class="block-left">
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
@@ -536,25 +648,25 @@ function renderBlocks(blocks){
           ${badgeHtml("TABATA")}
         </div>
 
-        <div class="mt-2 glass p-2" style="border-radius:14px;">
-          <div class="text-muted" style="font-weight:900; letter-spacing:.10em; text-transform:uppercase;">Lista</div>
-          <div class="mt-2" style="display:grid; gap:8px;">
+        <div class="block-list">
+          <div class="block-list-title">Lista</div>
+          <div style="display:grid; gap:2px;">
             ${(Array.isArray(b.items) ? b.items.slice(0, 8) : []).map((it, i) => `
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="text-light" style="font-weight:900;">${i+1}. ${escapeHtml(it.nombre || "Ejercicio")}</div>
+              <div class="block-row">
+                <div class="text-light" style="font-weight:900;">${i+1}. ${escapeHtml(cleanText(it.nombre || "Ejercicio"))}</div>
                 <div class="text-muted" style="font-weight:900;">${work}s</div>
               </div>
             `).join("")}
-            ${(Array.isArray(b.items) && b.items.length > 8) ? `<div class="text-muted">+ ${b.items.length-8} más...</div>` : ``}
+            ${(Array.isArray(b.items) && b.items.length > 8) ? `<div class="text-muted mt-1">+ ${b.items.length-8} más...</div>` : ``}
           </div>
         </div>
 
-        <div class="d-flex gap-2 mt-3 flex-wrap">
-          <a class="btn btn-danger btn-lg" href="${startUrl}" target="_blank" rel="noopener">
+        <div class="block-actions">
+          <a class="btn btn-danger" href="${startUrl}" target="_blank" rel="noopener">
             ▶ Reproducir
           </a>
           ${settingsUrl ? `
-            <a class="btn btn-outline-warning btn-lg" href="${settingsUrl}" target="_blank" rel="noopener">
+            <a class="btn btn-outline-warning" href="${settingsUrl}" target="_blank" rel="noopener">
               ⚙️ Settings
             </a>` : ``}
         </div>
@@ -563,12 +675,11 @@ function renderBlocks(blocks){
       return;
     }
 
-    // RUN / BIKE / SWIM / FREE / NOTE
     if(type === "run" || type === "bike" || type === "swim" || type === "free" || type === "note"){
-      const text = b.text || "—";
+      const text = cleanText(b.text || "—");
       div.innerHTML = `
         <div class="block-head">
-          <div class="d-flex gap-2">
+          <div class="block-left">
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${typeLabel(b.type)}</div>
@@ -582,13 +693,12 @@ function renderBlocks(blocks){
       return;
     }
 
-    // FUERZA (con Builder + Ver ejercicios)
     if(type === "fuerza"){
-      const rname = b.rutina?.nombre || "Fuerza";
+      const rname = cleanText(b.rutina?.nombre || "Fuerza");
       const builderUrl = b.builder_url || "";
       div.innerHTML = `
         <div class="block-head">
-          <div class="d-flex gap-2">
+          <div class="block-left">
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
@@ -597,7 +707,7 @@ function renderBlocks(blocks){
           </div>
           ${badgeHtml("FUERZA")}
         </div>
-        <div class="d-flex gap-2 mt-3 flex-wrap">
+        <div class="block-actions">
           ${builderUrl ? `
             <a class="btn btn-outline-info" href="${builderUrl}" target="_blank" rel="noopener">
               Builder
@@ -611,14 +721,13 @@ function renderBlocks(blocks){
       return;
     }
 
-    // default
     div.innerHTML = `
       <div class="block-head">
-        <div class="d-flex gap-2">
+        <div class="block-left">
           <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
           <div>
             <div class="block-title">${typeLabel(b.type)}</div>
-            <div class="block-sub">${escapeHtml(b.text || "")}</div>
+            <div class="block-sub">${escapeHtml(cleanText(b.text || ""))}</div>
           </div>
         </div>
         ${badgeHtml(typeLabel(b.type))}
@@ -629,7 +738,7 @@ function renderBlocks(blocks){
 }
 
 /* =========================
-   FUERZA: poster + render
+   FUERZA
 ========================= */
 function posterDataUrl(title){
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -655,6 +764,7 @@ function renderStrength(items, doneIds){
   const wrap = document.getElementById("strengthItems");
   wrap.innerHTML = "";
   if(!items || !items.length){
+    wrap.innerHTML = `<div class="text-muted">No hay ejercicios de fuerza en este día.</div>`;
     return;
   }
 
@@ -670,15 +780,15 @@ function renderStrength(items, doneIds){
       <div class="exercise-card">
         <div class="exercise-head">
           <div>
-            <div class="exercise-name">${escapeHtml(it.nombre || "Ejercicio")}</div>
+            <div class="exercise-name">${escapeHtml(cleanText(it.nombre || "Ejercicio"))}</div>
             <div class="exercise-meta">
               ${escapeHtml(it.series || "")}${it.series ? " · " : ""}${escapeHtml(it.reps || "")}
               ${it.descanso ? (" · Desc " + escapeHtml(it.descanso)) : ""}
-              ${it.nota ? (" · " + escapeHtml(it.nota)) : ""}
+              ${it.nota ? (" · " + escapeHtml(cleanText(it.nota))) : ""}
             </div>
           </div>
 
-          <div class="done-pill">
+          <div class="d-flex align-items-center gap-2">
             <div class="form-check form-switch m-0">
               <input class="form-check-input" type="checkbox" ${checked}
                      onchange="toggleItem(${it.id}, this.checked)">
@@ -701,12 +811,10 @@ function renderStrength(items, doneIds){
 }
 
 function showForceItems(blockIndex){
-  // usa el payload actual
   const b = (CURRENT_PAYLOAD && Array.isArray(CURRENT_PAYLOAD.blocks)) ? CURRENT_PAYLOAD.blocks[blockIndex] : null;
   const items = (b && b.ok && Array.isArray(b.items)) ? b.items : [];
   renderStrength(items, CURRENT_CHECKS);
 
-  // scrollea suave a ejercicios
   const el = document.getElementById("strengthItems");
   if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
 }
@@ -726,15 +834,19 @@ function openDay(isoDate){
   }
 
   CURRENT_PAYLOAD = null;
-  FUERZA_BLOCKS = [];
   CURRENT_CHECKS = new Set();
 
   document.getElementById("dayModalDate").textContent = isoDate;
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
+
   document.getElementById("strengthItems").innerHTML = "";
   document.getElementById("dayBlocks").innerHTML = `<div class="text-muted">Cargando...</div>`;
-  document.getElementById("scriptBox").innerHTML = `<div class="text-muted">Tocá “Generar” para ver el guión del día.</div>`;
+  document.getElementById("blocksMeta").textContent = "—";
+
+  // ✅ guión fijo (sin generar)
+  document.getElementById("scriptBox").innerHTML = `<div class="text-muted">Guión desactivado por hoy (modo limpio).</div>`;
+
   setAvailUI("si", "");
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
@@ -744,40 +856,30 @@ function openDay(isoDate){
       CURRENT_PAYLOAD = data;
 
       const p = data.plan || {};
-      document.getElementById("dayModalTitle").textContent = (data.rutina?.nombre ? data.rutina.nombre : "Detalle del día");
-      document.getElementById("dayModalType").textContent = p.plan_type || "—";
+      document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
+      document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
-      document.getElementById("planWarmup").textContent = p.warmup || "—";
-      document.getElementById("planMain").textContent = p.main || "—";
-      document.getElementById("planFinisher").textContent = p.finisher || "—";
+      document.getElementById("planWarmup").textContent = cleanText(p.warmup || "—");
+      document.getElementById("planMain").textContent = cleanText(p.main || "—");
+      document.getElementById("planFinisher").textContent = cleanText(p.finisher || "—");
 
-      setAvailUI(p.puede_entrenar || "si", p.comentario_atleta || "");
+      setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
 
       document.getElementById("didTrain").checked = !!data.log?.did_train;
-      document.getElementById("doneWarmup").value = data.log?.warmup_done || "";
-      document.getElementById("doneMain").value = data.log?.main_done || "";
-      document.getElementById("doneFinisher").value = data.log?.finisher_done || "";
+      document.getElementById("doneWarmup").value = cleanText(data.log?.warmup_done || "");
+      document.getElementById("doneMain").value = cleanText(data.log?.main_done || "");
+      document.getElementById("doneFinisher").value = cleanText(data.log?.finisher_done || "");
 
-      // checks
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
-      // bloques
       renderBlocks(data.blocks || []);
 
-      // fuerza: preparar lista y mostrar el primer bloque por defecto
       const blocks = Array.isArray(data.blocks) ? data.blocks : [];
-      let firstForceIdx = null;
-      blocks.forEach((b, idx) => {
-        if((b.type||"").toLowerCase() === "fuerza" && b.ok && Array.isArray(b.items) && b.items.length){
-          FUERZA_BLOCKS.push({ idx, items: b.items, rutina: b.rutina || {} });
-          if(firstForceIdx === null) firstForceIdx = idx;
-        }
-      });
-
-      if(firstForceIdx !== null){
+      const firstForceIdx = blocks.findIndex(b => (b.type||"").toLowerCase()==="fuerza" && b.ok && Array.isArray(b.items) && b.items.length);
+      if(firstForceIdx >= 0){
         showForceItems(firstForceIdx);
       }else{
-        document.getElementById("strengthItems").innerHTML = "";
+        document.getElementById("strengthItems").innerHTML = `<div class="text-muted">No hay fuerza en este día.</div>`;
       }
 
       DAY_MODAL.show();
@@ -789,7 +891,7 @@ function openDay(isoDate){
 }
 
 /* =========================
-   CHECKS + LOG + AVAIL + SCRIPT
+   CHECKS + LOG + AVAIL
 ========================= */
 function toggleItem(itemId, done){
   const form = new FormData();
@@ -802,7 +904,6 @@ function toggleItem(itemId, done){
     .then(r => r.json())
     .then(j => {
       if(!j.ok) throw new Error(j.error || "Error");
-      // mantener set local
       if(done) CURRENT_CHECKS.add(String(itemId));
       else CURRENT_CHECKS.delete(String(itemId));
     })
@@ -856,24 +957,6 @@ async function saveAvailability(){
   }catch(err){
     console.error(err);
     alert("Error guardando disponibilidad: " + err.message);
-  }
-}
-
-async function genSessionScript(){
-  const box = document.getElementById("scriptBox");
-  box.innerHTML = `<div class="text-muted">Generando guión...</div>`;
-
-  try{
-    const res = await fetch("/ai/session_script", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ user_id: CURRENT_USER, fecha: CURRENT_DAY })
-    });
-    const data = await res.json();
-    if(!data.ok) throw new Error(data.error || "Error");
-    box.textContent = data.script || "—";
-  }catch(err){
-    box.innerHTML = `<div class="text-muted">Error: ${err.message}</div>`;
   }
 }
 </script>

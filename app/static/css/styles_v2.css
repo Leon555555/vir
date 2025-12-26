@@ -349,6 +349,16 @@ body.vr-body{
   border-color: rgba(34,211,238,.35);
 }
 
+/* ✅ NUEVO: día bloqueado (no puede entrenar) */
+.month-cell.blocked{
+  background: rgba(255, 59, 48, 0.18) !important;
+  border: 1px solid rgba(255, 59, 48, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset;
+}
+.month-cell.blocked .daynum{
+  color: rgba(255,255,255,.95) !important;
+}
+
 /* responsive mobile */
 @media (max-width: 520px){
   .month-grid{ gap: 8px; }
@@ -369,4 +379,223 @@ body.vr-body{
   .month-cell .ptype{
     font-size: .78rem;
   }
+}
+
+/* ============================================================
+   ✅ PERFIL PRO (modal día + bloques + fuerza)
+   Para que NO dependas de CSS inline en perfil.html
+============================================================ */
+
+/* avatar header perfil */
+.vr-avatar{
+  width:46px;
+  height:46px;
+  border-radius:16px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* mini stats (racha / semana) */
+.mini-stat{
+  min-width: 132px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+}
+.mini-title{
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: .72rem;
+  color: rgba(255,255,255,.65);
+}
+.mini-value{
+  font-weight: 950;
+  font-size: 1.05rem;
+  margin-top: 2px;
+}
+
+.vr-kicker{
+  font-weight: 950;
+  color: rgba(255,255,255,.65);
+}
+
+/* barras consistencia (progress view) */
+.vr-bars{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  height: 74px;
+}
+.vr-bar{
+  flex:1;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.22);
+  overflow:hidden;
+  position: relative;
+}
+.vr-bar-fill{
+  width: 100%;
+  height: 0%;
+  background: rgba(34,211,238,.72);
+  transition: height .25s ease;
+}
+.vr-days{
+  display:flex;
+  justify-content: space-between;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+/* modal día */
+.day-modal{
+  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
+  color: rgba(255,255,255,.92);
+}
+.day-modal .modal-body{ background: transparent; }
+
+.day-chip{
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 900;
+  font-size: .82rem;
+  letter-spacing:.06em;
+}
+
+.day-section{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  padding: 12px;
+}
+.day-section-title{
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: .78rem;
+  color: rgba(255,255,255,.72);
+  margin-bottom: 10px;
+}
+
+/* plan cards */
+.plan-card{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.plan-k{
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.72);
+  font-size: .78rem;
+}
+.plan-v{
+  margin-top: 6px;
+  font-size: 1.00rem;
+  font-weight: 800;
+  color: rgba(255,255,255,.92);
+  white-space: pre-line;
+}
+
+/* availability box */
+.avail-box{
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(0,0,0,.18);
+}
+
+/* blocks */
+.blocks-wrap{ display:grid; gap:12px; }
+
+.block-card{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  padding: 12px;
+}
+.block-head{
+  display:flex;
+  justify-content: space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.block-left{ display:flex; gap:10px; align-items:flex-start; }
+.block-icon{
+  width:40px;height:40px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  display:flex;align-items:center;justify-content:center;
+  flex: 0 0 auto;
+}
+.block-title{ font-weight: 950; color: rgba(255,255,255,.96); line-height: 1.1; }
+.block-sub{
+  color: rgba(255,255,255,.72);
+  font-weight: 800;
+  font-size: .92rem;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+.block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
+
+.block-list{
+  margin-top: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.20);
+  padding: 10px;
+}
+.block-list-title{
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: .74rem;
+  color: rgba(255,255,255,.65);
+  margin-bottom: 8px;
+}
+.block-row{
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  gap:10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255,255,255,.10);
+}
+.block-row:last-child{ border-bottom: 0; }
+
+/* fuerza cards */
+.exercise-card{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  overflow:hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+.exercise-head{
+  padding: 10px 12px;
+  display:flex;
+  justify-content: space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
+.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); }
+.exercise-video{ padding: 10px 12px 12px; }
+.exercise-video video{
+  width:100%;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.35);
+  min-height: 220px;
+  object-fit: cover;
 }

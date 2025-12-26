@@ -25,7 +25,7 @@ from app.models import (
 )
 
 # =============================================================
-# BLUEPRINTS
+# BLUEPRINTS (como lo tenías)
 # =============================================================
 main_bp = Blueprint("main", __name__)
 strava_bp = Blueprint("strava", __name__, url_prefix="/strava")
@@ -1313,6 +1313,158 @@ def athlete_save_availability():
     db.session.commit()
 
     return jsonify({"ok": True})
+
+
+# =============================================================
+# ✅ AI: SESSION SCRIPT (LO QUE TE FALTABA PARA “GENERAR”)
+# =============================================================
+def _pretty_date_es(d: date) -> str:
+    # sin locales raros: algo simple y usable
+    return d.strftime("%d/%m/%Y")
+
+
+def _safe_txt(s: Any) -> str:
+    return (str(s or "")).strip()
+
+
+def _build_session_script(plan: DiaPlan, blocks: List[Dict[str, Any]]) -> str:
+    """
+    Genera un guión LIMPIO en base a lo que ya tenés:
+    - warmup / main (bloques en líneas) / finisher
+    - lista de bloques parseados (tabata/fuerza/run/etc)
+    """
+    lines: List[str] = []
+    lines.append("GUION DE SESIÓN")
+    lines.append("—" * 22)
+
+    # ACTIVACIÓN
+    w = _safe_txt(getattr(plan, "warmup", "") or "")
+    lines.append("1) ACTIVACIÓN")
+    lines.append(w if w else "—")
+    lines.append("")
+
+    # BLOQUES
+    lines.append("2) BLOQUES DEL DÍA")
+    if not blocks:
+        lines.append("—")
+    else:
+        idx = 1
+        for b in blocks:
+            if not b or b.get("ok") is False:
+                continue
+            t = (b.get("type") or "").upper()
+
+            if t == "TABATA":
+                rname = _safe_txt((b.get("rutina") or {}).get("nombre") or "Tabata")
+                cfg = b.get("cfg") or {}
+                work = cfg.get("work", 40)
+                rest = cfg.get("rest", 20)
+                rounds = cfg.get("rounds", 0)
+                sets_ = cfg.get("sets", 1)
+                lines.append(f"- {idx}. TABATA: {rname} ({work}s/{rest}s · rounds {rounds} · sets {sets_})")
+                idx += 1
+                continue
+
+            if t == "FUERZA":
+                rname = _safe_txt((b.get("rutina") or {}).get("nombre") or "Fuerza")
+                lines.append(f"- {idx}. FUERZA: {rname}")
+                idx += 1
+                continue
+
+            if t in {"RUN", "BIKE", "SWIM", "FREE", "NOTE"}:
+                txt = _safe_txt(b.get("text") or "—")
+                lines.append(f"- {idx}. {t}: {txt}")
+                idx += 1
+                continue
+
+            # fallback
+            lines.append(f"- {idx}. {t}")
+            idx += 1
+
+    lines.append("")
+
+    # ENFRIAMIENTO
+    f = _safe_txt(getattr(plan, "finisher", "") or "")
+    lines.append("3) ENFRIAMIENTO")
+    lines.append(f if f else "—")
+
+    return "\n".join(lines).strip() + "\n"
+
+
+@main_bp.route("/ai/session_script", methods=["POST"])
+@login_required
+def ai_session_script():
+    """
+    Endpoint que espera tu JS:
+    POST /ai/session_script
+    body: { user_id, fecha }
+    Respuesta: { ok: true, script: "..." }
+    """
+    data = request.get_json(silent=True) or {}
+    user_id = int(data.get("user_id") or 0)
+    fecha_str = _safe_txt(data.get("fecha") or "")
+
+    if not user_id or not fecha_str:
+        return jsonify({"ok": False, "error": "Faltan datos"}), 400
+
+    if not (admin_ok() or current_user.id == user_id):
+        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
+
+    fecha = safe_parse_ymd(fecha_str, fallback=date.today())
+
+    plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
+    if not plan:
+        plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso")
+        db.session.add(plan)
+        db.session.commit()
+
+    # Reusar la misma lógica que day_detail para que el guión sea coherente
+    blocks_src = _split_blocks_from_main(plan.main or "")
+    blocks: List[Dict[str, Any]] = []
+    for b in blocks_src:
+        btype = b["type"]
+        raw = (b["raw"] or "").strip()
+
+        if btype == "tabata":
+            rid = parse_rutina_ref(raw)
+            rutina = Rutina.query.get(rid) if rid else None
+            if not rutina:
+                continue
+            items = _items_payload_for_rutina(rutina.id)
+            cfg = _get_tabata_cfg(rutina, len(items))
+            blocks.append({
+                "type": "tabata",
+                "ok": True,
+                "rutina": _rutina_payload(rutina),
+                "cfg": cfg,
+                "items": items,
+            })
+            continue
+
+        if btype == "fuerza":
+            rid = parse_rutina_ref(raw)
+            rutina = Rutina.query.get(rid) if rid else None
+            if not rutina:
+                continue
+            items = _items_payload_for_rutina(rutina.id)
+            blocks.append({
+                "type": "fuerza",
+                "ok": True,
+                "rutina": _rutina_payload(rutina),
+                "items": items,
+            })
+            continue
+
+        if btype in ("run", "bike", "swim", "free", "note"):
+            blocks.append({"type": btype, "ok": True, "text": raw})
+            continue
+
+    script = _build_session_script(plan, blocks)
+
+    # Extra: encabezado con fecha
+    script = f"{_pretty_date_es(fecha)}\n\n{script}"
+
+    return jsonify({"ok": True, "script": script})
 
 
 # =============================================================

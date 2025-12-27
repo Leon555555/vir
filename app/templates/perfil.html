@@ -229,7 +229,12 @@
               <div class="text-muted mt-1" style="font-size:.95rem;" id="daySubtitle">Lo que toca hoy.</div>
             </div>
 
-            <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <!-- ✅ BOTÓN PREMIUM “NO PUEDO ENTRENAR” -->
+              <button class="btn btn-sm btn-outline-danger" type="button" id="cantTrainBtn" onclick="toggleAvailabilityPanel(true)">
+                <i class="bi bi-slash-circle me-1"></i> No puedo entrenar
+              </button>
+
               <div class="form-check form-switch m-0">
                 <input class="form-check-input" type="checkbox" id="didTrain">
                 <label class="form-check-label text-muted" for="didTrain">Hoy entrené</label>
@@ -286,6 +291,32 @@
 
               <div class="text-muted mt-2" style="font-size:.92rem;">
                 Seguí el orden: activación → principal → enfriamiento.
+              </div>
+            </div>
+
+            <!-- ✅ DISPONIBILIDAD (colapsado, premium) -->
+            <div class="day-section mt-3 d-none" id="availabilityPanel">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="day-section-title" style="margin:0;">Disponibilidad</div>
+                <span class="badge bg-secondary" id="availBadge">—</span>
+              </div>
+
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="noPuedoToggle">
+                <label class="form-check-label text-muted" for="noPuedoToggle">No puedo entrenar este día</label>
+              </div>
+
+              <textarea class="form-control mt-2" id="noPuedoText"
+                        placeholder="Ej: viaje / lesión / trabajo / etc (corto)"></textarea>
+
+              <div class="d-grid mt-2">
+                <button class="btn btn-outline-danger" type="button" onclick="saveAvailability()">
+                  Guardar bloqueo
+                </button>
+              </div>
+
+              <div class="text-muted mt-2" style="font-size:.9rem;">
+                Si bloqueás el día, el coach lo verá en rojo y no planifica.
               </div>
             </div>
           </div>
@@ -518,6 +549,73 @@ function typeLabel(type){
   if(t === "free") return "FREE";
   if(t === "note") return "NOTE";
   return (type||"BLOQUE").toUpperCase();
+}
+
+/* =========================
+   DISPONIBILIDAD (UI)
+========================= */
+function setAvailUI(puede, comentario){
+  const toggle = document.getElementById("noPuedoToggle");
+  const text = document.getElementById("noPuedoText");
+  const badge = document.getElementById("availBadge");
+
+  const blocked = (String(puede || "si") === "no");
+  toggle.checked = blocked;
+  text.value = comentario || "";
+
+  if(blocked){
+    badge.className = "badge bg-danger";
+    badge.textContent = "NO PUEDE";
+    document.getElementById("blockedChip").classList.remove("d-none");
+    document.getElementById("cantTrainBtn").classList.add("active");
+  }else{
+    badge.className = "badge bg-success";
+    badge.textContent = "OK";
+    document.getElementById("blockedChip").classList.add("d-none");
+    document.getElementById("cantTrainBtn").classList.remove("active");
+  }
+}
+
+function toggleAvailabilityPanel(forceOpen){
+  const panel = document.getElementById("availabilityPanel");
+  const open = !panel.classList.contains("d-none");
+  if(forceOpen || !open){
+    panel.classList.remove("d-none");
+    panel.scrollIntoView({behavior:"smooth", block:"start"});
+  }else{
+    panel.classList.add("d-none");
+  }
+}
+
+async function saveAvailability(){
+  const noPuedo = document.getElementById("noPuedoToggle").checked;
+  const comentario = document.getElementById("noPuedoText").value || "";
+
+  const payload = { user_id: CURRENT_USER, fecha: CURRENT_DAY, no_puedo: noPuedo, comentario };
+
+  try{
+    const res = await fetch("/athlete/save_availability", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error || "Error");
+
+    setAvailUI(noPuedo ? "no" : "si", comentario);
+
+    // pintar celda del mes si está visible
+    const cell = document.querySelector(`.month-cell[data-date="${CSS.escape(CURRENT_DAY)}"]`);
+    if(cell){
+      if(noPuedo) cell.classList.add("blocked");
+      else cell.classList.remove("blocked");
+    }
+
+    alert("✅ Guardado");
+  }catch(err){
+    console.error(err);
+    alert("Error guardando disponibilidad: " + err.message);
+  }
 }
 
 /* =========================
@@ -795,6 +893,10 @@ function openDay(isoDate){
 
   document.getElementById("blockedChip").classList.add("d-none");
 
+  // availability panel reset (cerrado por defecto)
+  document.getElementById("availabilityPanel").classList.add("d-none");
+  setAvailUI("si","");
+
   // default sections visible
   document.getElementById("midSessionSection").classList.add("d-none");
   document.getElementById("sessionRightSection").classList.remove("d-none");
@@ -807,18 +909,12 @@ function openDay(isoDate){
 
       const p = data.plan || {};
       const planType = String(p.plan_type || "").toLowerCase();
-
       const isEndurance = (planType === "run" || planType === "bike" || planType === "swim");
-      const isStrengthDay = (planType === "fuerza");
 
       document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
-      const blocked = String(p.puede_entrenar || "si") === "no";
-      if(blocked){
-        document.getElementById("blockedChip").classList.remove("d-none");
-      }
-
+      // warmup / finisher (no mostrar none)
       const warm = cleanText(p.warmup || "");
       if(!warm || warm.toLowerCase()==="none"){
         document.getElementById("warmupCard").style.display = "none";
@@ -835,14 +931,15 @@ function openDay(isoDate){
         document.getElementById("finisherCard").style.display = "";
       }
 
+      // ✅ disponibilidad desde backend
+      setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
+
       document.getElementById("didTrain").checked = !!data.log?.did_train;
       document.getElementById("doneNote").value = cleanText(data.log?.main_done || "");
 
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
-      // ✅ REORDEN:
-      // - RUN/BIKE/SWIM: blocks al centro (col izquierda)
-      // - FUERZA y resto: blocks en derecha
+      // bloques
       const blocks = Array.isArray(data.blocks) ? data.blocks : [];
       const blocksCount = blocks.length;
 

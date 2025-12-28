@@ -9,13 +9,16 @@
     <div>
       <div class="section-title">📅 PLANIFICADOR</div>
       {% if atleta %}
-        <div class="text-soft">Atleta: <strong class="text-light">{{ atleta.nombre }}</strong> · Semana: <strong>{{ semana_str }}</strong></div>
+        <div class="text-soft">
+          Atleta: <strong class="text-light">{{ atleta.nombre }}</strong>
+          · Semana: <strong>{{ semana_str }}</strong>
+        </div>
       {% else %}
         <div class="text-soft">No hay atleta seleccionado</div>
       {% endif %}
     </div>
 
-    <div class="d-flex gap-2 align-items-center">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
       <a class="btn btn-outline-info btn-sm" href="{{ url_for('main.dashboard_entrenador') }}">
         ← Dashboard
       </a>
@@ -30,6 +33,57 @@
         </button>
       </form>
       {% endif %}
+    </div>
+  </div>
+
+  <!-- CONTROLES -->
+  <div class="card glass mb-3">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+
+        <!-- Cambiar atleta -->
+        <div class="col-lg-4">
+          <label class="form-label small text-muted mb-1">Atleta</label>
+          <form method="get" action="{{ url_for('main.coach_planificador') }}" class="d-flex gap-2">
+            <select class="form-select form-select-sm" name="user_id" onchange="this.form.submit()">
+              {% for a in atletas %}
+                <option value="{{ a.id }}" {% if atleta and a.id == atleta.id %}selected{% endif %}>
+                  {{ a.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="center" value="{{ center.isoformat() }}">
+          </form>
+        </div>
+
+        <!-- Cambiar semana -->
+        <div class="col-lg-8">
+          <label class="form-label small text-muted mb-1">Semana</label>
+          <div class="d-flex gap-2 flex-wrap align-items-center">
+
+            {% if atleta %}
+              <a class="btn btn-outline-light btn-sm"
+                 href="{{ url_for('main.coach_planificador', user_id=atleta.id, center=prev_center.isoformat()) }}">
+                ← Semana anterior
+              </a>
+
+              <a class="btn btn-outline-light btn-sm"
+                 href="{{ url_for('main.coach_planificador', user_id=atleta.id, center=next_center.isoformat()) }}">
+                Semana siguiente →
+              </a>
+
+              <form method="get" action="{{ url_for('main.coach_planificador') }}" class="d-flex gap-2 align-items-center">
+                <input type="hidden" name="user_id" value="{{ atleta.id }}">
+                <input type="date" class="form-control form-control-sm" name="center" value="{{ center.isoformat() }}">
+                <button class="btn btn-info btn-sm">Ir</button>
+              </form>
+            {% else %}
+              <div class="text-muted">Seleccioná un atleta para navegar semanas.</div>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -140,7 +194,7 @@
                       </div>
                     </div>
 
-                    <!-- fallback legacy main (por si querés pegar texto manual) -->
+                    <!-- legacy -->
                     <div class="mt-3">
                       <label class="form-label small text-muted mb-1">Main (legacy opcional)</label>
                       <textarea name="main" class="form-control form-control-sm" rows="2"
@@ -156,9 +210,11 @@
       {% endif %}
     </div>
 
-    <!-- RIGHT: BANCO POR GRUPO MUSCULAR -->
+    <!-- RIGHT: BANCO + RUTINAS -->
     <div class="col-lg-5">
-      <div class="card glass">
+
+      <!-- BANCO POR MÚSCULO -->
+      <div class="card glass mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <strong>🏋️ Banco de ejercicios (por músculo)</strong>
           <span class="badge bg-secondary">
@@ -186,7 +242,8 @@
                       {{ g }} <span class="ms-2 badge bg-info">{{ items|length }}</span>
                     </button>
                   </h2>
-                  <div id="c{{ loop.index }}" class="accordion-collapse collapse" aria-labelledby="h{{ loop.index }}" data-bs-parent="#accMuscles">
+                  <div id="c{{ loop.index }}" class="accordion-collapse collapse"
+                       aria-labelledby="h{{ loop.index }}" data-bs-parent="#accMuscles">
                     <div class="accordion-body bg-dark">
 
                       {% for e in items %}
@@ -228,11 +285,59 @@
         </div>
 
         <div class="card-footer text-muted small">
-          Tip: La agrupación sale de <code>Ejercicio.categoria</code> (texto libre). Si ponés “Pecho”/“Espalda”/“Hombro”… se ordena solo.
+          Tip: La agrupación sale de <code>Ejercicio.categoria</code>. Si ponés “Pecho / Espalda / Hombros / Piernas / Core”… se ordena solo.
         </div>
       </div>
-    </div>
 
+      <!-- RUTINAS CREADAS -->
+      <div class="card glass">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>🧩 Rutinas creadas</strong>
+          <span class="badge bg-secondary">{{ rutinas|length }}</span>
+        </div>
+
+        <div class="card-body" style="max-height:420px; overflow:auto;">
+          {% if not rutinas %}
+            <div class="text-muted">Todavía no hay rutinas.</div>
+          {% else %}
+            {% for r in rutinas %}
+              <div class="card bg-black border-secondary mb-2">
+                <div class="card-body py-2">
+                  <div class="d-flex justify-content-between gap-2">
+                    <div>
+                      <div class="fw-bold text-light">{{ r.nombre }}</div>
+                      <div class="small text-muted">
+                        {% if r.tipo %}{{ r.tipo }}{% else %}Rutina{% endif %} · ID {{ r.id }}
+                      </div>
+                      {% if r.descripcion %}
+                        <div class="small text-soft mt-1">{{ r.descripcion }}</div>
+                      {% endif %}
+                    </div>
+
+                    <div class="d-flex flex-column gap-1">
+                      <a class="btn btn-outline-info btn-sm"
+                         href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
+                        🛠 Builder
+                      </a>
+
+                      <a class="btn btn-outline-warning btn-sm"
+                         href="{{ url_for('main.rutina_tabata_player', rutina_id=r.id) }}">
+                        ⏱ Tabata
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+
+        <div class="card-footer text-muted small">
+          Tip: En el plan, TABATA/FUERZA seleccionan una rutina de esta lista.
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 

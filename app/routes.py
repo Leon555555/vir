@@ -38,20 +38,28 @@ strava_bp = main_bp
 # =============================================================
 ALLOWED_VIDEO_EXT = {".mp4", ".mov", ".webm", ".m4v"}
 
+# ✅ Grupos musculares pedidos
+MUSCLE_GROUPS_ORDER = ["Pectoral", "Dorsal", "Hombros", "Piernas", "Core"]
+
+
 def admin_ok() -> bool:
     return bool(current_user.is_authenticated and getattr(current_user, "is_admin", False))
+
 
 @main_bp.app_context_processor
 def inject_admin():
     return {"admin_ok": admin_ok()}
 
+
 def start_of_week(d: date) -> date:
     return d - timedelta(days=d.weekday())
+
 
 def week_dates(center: Optional[date] = None) -> List[date]:
     base = center or date.today()
     start = start_of_week(base)
     return [start + timedelta(days=i) for i in range(7)]
+
 
 def safe_parse_ymd(s: str, fallback: Optional[date] = None) -> date:
     if fallback is None:
@@ -60,6 +68,7 @@ def safe_parse_ymd(s: str, fallback: Optional[date] = None) -> date:
         return datetime.strptime((s or "").strip(), "%Y-%m-%d").date()
     except Exception:
         return fallback
+
 
 def parse_center_any(raw: str | None, fallback: Optional[date] = None) -> date:
     """
@@ -86,6 +95,7 @@ def parse_center_any(raw: str | None, fallback: Optional[date] = None) -> date:
     except Exception:
         return safe_parse_ymd(raw, fallback=fb)
 
+
 def month_grid(year: int, month: int) -> List[List[Optional[date]]]:
     first_wd, days_in_month = monthrange(year, month)  # 0=lunes
     day = 1
@@ -105,10 +115,12 @@ def month_grid(year: int, month: int) -> List[List[Optional[date]]]:
 
     return grid
 
+
 def videos_dir() -> str:
     folder = os.path.join(current_app.static_folder, "videos")
     os.makedirs(folder, exist_ok=True)
     return folder
+
 
 def list_repo_videos() -> List[str]:
     folder = videos_dir()
@@ -125,6 +137,7 @@ def list_repo_videos() -> List[str]:
         pass
     out.sort()
     return out
+
 
 def save_video_to_static(file_storage) -> str:
     filename = secure_filename(file_storage.filename or "")
@@ -149,6 +162,7 @@ def save_video_to_static(file_storage) -> str:
     file_storage.save(dest)
     return filename
 
+
 def delete_video_from_static(filename: str) -> None:
     safe = secure_filename(filename or "")
     if not safe:
@@ -167,9 +181,11 @@ def delete_video_from_static(filename: str) -> None:
 
     os.remove(path)
 
+
 def _set_if_attr(obj, key: str, value):
     if hasattr(obj, key):
         setattr(obj, key, value)
+
 
 def parse_rutina_ref(main_field: str) -> Optional[int]:
     s = (main_field or "").strip()
@@ -187,76 +203,6 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
     except Exception:
         return None
 
-# =============================================================
-# ✅ AGRUPACIÓN POR GRUPOS MUSCULARES (PLANIFICADOR)
-# =============================================================
-MUSCLE_GROUPS_ORDER = ["Pectoral", "Dorsal", "Hombros", "Piernas", "Core", "Brazos", "Cardio", "Full body", "Otros"]
-
-def normalize_group_from_categoria(categoria: str) -> str:
-    """
-    Toma Ejercicio.categoria (texto libre) y lo mapea a un grupo muscular.
-    """
-    c = (categoria or "").strip().lower()
-
-    # pectoral
-    if any(k in c for k in ["pecho", "pector", "chest"]):
-        return "Pectoral"
-
-    # dorsal/espalda
-    if any(k in c for k in ["espalda", "dors", "back", "remo", "dominad"]):
-        return "Dorsal"
-
-    # hombros
-    if any(k in c for k in ["hombro", "delto", "shoulder"]):
-        return "Hombros"
-
-    # piernas
-    if any(k in c for k in ["pierna", "leg", "cuadr", "isquio", "glute", "gemelo", "sentadilla", "zancada"]):
-        return "Piernas"
-
-    # core/abs
-    if any(k in c for k in ["core", "abd", "abdominal", "oblic", "plancha", "lumba"]):
-        return "Core"
-
-    # brazos
-    if any(k in c for k in ["biceps", "bíceps", "triceps", "tríceps", "brazo"]):
-        return "Brazos"
-
-    # cardio
-    if any(k in c for k in ["cardio", "hiit", "cuerda", "run", "bike", "swim", "natacion", "natación"]):
-        return "Cardio"
-
-    # full body
-    if any(k in c for k in ["full", "cuerpo completo", "fullbody", "full body"]):
-        return "Full body"
-
-    # fallback
-    if c in ["tren superior", "upper"]:
-        return "Brazos"
-    if c in ["calistenia", "calisthenics"]:
-        # depende, pero mejor agrupar por hombros/dorsal a futuro; por ahora:
-        return "Full body"
-
-    return "Otros"
-
-def build_ejercicios_por_grupo(ejercicios: List[Ejercicio]) -> Dict[str, List[Dict[str, Any]]]:
-    out: Dict[str, List[Dict[str, Any]]] = {}
-    for e in ejercicios:
-        group = normalize_group_from_categoria(getattr(e, "categoria", ""))
-        out.setdefault(group, []).append({
-            "id": e.id,
-            "nombre": e.nombre,
-            "categoria": e.categoria,
-            "descripcion": e.descripcion,
-            "video_filename": e.video_filename,
-            "video_url": url_for("static", filename=f"videos/{e.video_filename}") if e.video_filename else "",
-        })
-
-    # orden interno por nombre
-    for k in out.keys():
-        out[k].sort(key=lambda x: (x.get("nombre") or "").lower())
-
-    return out
 
 # =============================================================
 # PARSER DE BLOQUES DESDE plan.main (una línea = un bloque)
@@ -311,8 +257,10 @@ def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
 
     return out
 
+
 def _rutina_payload(rutina: Rutina) -> Dict[str, Any]:
     return {"id": rutina.id, "nombre": rutina.nombre, "tipo": getattr(rutina, "tipo", "")}
+
 
 def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
     ritems = (
@@ -348,6 +296,72 @@ def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
         })
     return items_payload
 
+
+# =============================================================
+# ✅ EJERCICIOS POR GRUPO MUSCULAR (Pectoral/Dorsal/Hombros/Piernas/Core)
+# =============================================================
+def _normalize(s: str) -> str:
+    return (s or "").strip().lower()
+
+
+def categoria_to_muscle_group(categoria: str) -> str:
+    """
+    Mapea Ejercicio.categoria (texto libre) a 5 grupos:
+    Pectoral, Dorsal, Hombros, Piernas, Core
+    """
+    c = _normalize(categoria)
+
+    # Pecho / pectoral
+    if any(k in c for k in ["pecho", "pectoral", "chest", "bench", "press banca", "banca"]):
+        return "Pectoral"
+
+    # Espalda / dorsal
+    if any(k in c for k in ["espalda", "dorsal", "back", "remo", "dominada", "pull", "jalón", "jaron"]):
+        return "Dorsal"
+
+    # Hombros
+    if any(k in c for k in ["hombro", "delto", "shoulder", "press militar", "elevación lateral", "elevacion lateral"]):
+        return "Hombros"
+
+    # Piernas
+    if any(k in c for k in ["pierna", "legs", "cuádr", "cuadr", "glúte", "glute", "isquio", "sentadilla", "zancada", "lunge", "gemelo", "pantorrilla"]):
+        return "Piernas"
+
+    # Core (por defecto si lo detecta)
+    if any(k in c for k in ["core", "abs", "abdominal", "plancha", "oblicuo", "lumba", "lumbar"]):
+        return "Core"
+
+    # fallback: si no matchea, lo mando a Core para que no se pierda
+    return "Core"
+
+
+def build_ejercicios_por_grupo(ejercicios: List[Ejercicio]) -> Dict[str, List[Dict[str, Any]]]:
+    grouped: Dict[str, List[Dict[str, Any]]] = {g: [] for g in MUSCLE_GROUPS_ORDER}
+
+    for e in ejercicios:
+        g = categoria_to_muscle_group(getattr(e, "categoria", "") or "")
+        video_url = ""
+        if getattr(e, "video_filename", ""):
+            video_url = url_for("static", filename=f"videos/{e.video_filename}")
+
+        grouped.setdefault(g, [])
+        grouped[g].append({
+            "id": e.id,
+            "nombre": e.nombre,
+            "categoria": e.categoria,
+            "descripcion": e.descripcion,
+            "video_url": video_url,
+        })
+
+    # ordenar por nombre dentro de cada grupo
+    for g in list(grouped.keys()):
+        grouped[g].sort(key=lambda x: (x.get("nombre") or "").lower())
+
+    # limpiar grupos vacíos
+    grouped = {g: grouped[g] for g in MUSCLE_GROUPS_ORDER if grouped.get(g)}
+    return grouped
+
+
 # =============================================================
 # DB FIX (opcional)
 # =============================================================
@@ -367,6 +381,7 @@ def admin_db_fix_diaplan_blocks():
         db.session.rollback()
         return f"ERROR: {e}", 500
 
+
 @main_bp.route("/admin/db_fix_tabata")
 @login_required
 def admin_db_fix_tabata():
@@ -383,6 +398,7 @@ def admin_db_fix_tabata():
     except Exception as e:
         db.session.rollback()
         return f"ERROR: {str(e)}", 500
+
 
 def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     """
@@ -417,6 +433,7 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     db.session.commit()
     return by_date
 
+
 # =============================================================
 # AUTH
 # =============================================================
@@ -425,6 +442,7 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for("main.perfil_redirect"))
     return redirect(url_for("main.login"))
+
 
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -442,11 +460,13 @@ def login():
 
     return render_template("login.html")
 
+
 @main_bp.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect(url_for("main.login"))
+
 
 # =============================================================
 # PERFIL REDIRECT
@@ -457,6 +477,7 @@ def perfil_redirect():
     if admin_ok():
         return redirect(url_for("main.dashboard_entrenador"))
     return redirect(url_for("main.perfil_usuario", user_id=current_user.id, view="today"))
+
 
 # =============================================================
 # PERFIL USUARIO (ATLETA)
@@ -554,6 +575,7 @@ def perfil_usuario(user_id: int):
         strava_account=strava_account,
     )
 
+
 # =============================================================
 # PANEL ENTRENADOR
 # =============================================================
@@ -577,10 +599,12 @@ def dashboard_entrenador():
         available_videos=available_videos,
     )
 
+
 @main_bp.route("/dashboard_entrenador")
 @login_required
 def dashboard_entrenador_alias():
     return dashboard_entrenador()
+
 
 # =============================================================
 # ELIMINAR VIDEO DESDE BANCO (ADMIN)
@@ -614,6 +638,7 @@ def admin_delete_video():
 
     return redirect(url_for("main.dashboard_entrenador"))
 
+
 # =============================================================
 # RUTINA BUILDER
 # =============================================================
@@ -637,6 +662,7 @@ def rutina_builder(rutina_id: int):
         ejercicios=ejercicios,
         items=items,
     )
+
 
 @main_bp.route("/rutina/<int:rutina_id>/items/add", methods=["POST"])
 @login_required
@@ -679,6 +705,7 @@ def rutina_add_item(rutina_id: int):
     flash("✅ Ejercicio añadido", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
+
 @main_bp.route("/rutina/<int:rutina_id>/items/<int:item_id>/update", methods=["POST"])
 @login_required
 def rutina_update_item(rutina_id: int, item_id: int):
@@ -699,6 +726,7 @@ def rutina_update_item(rutina_id: int, item_id: int):
     flash("✅ Cambios guardados", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
 
+
 @main_bp.route("/rutina/<int:rutina_id>/items/<int:item_id>/delete", methods=["POST"])
 @login_required
 def rutina_delete_item(rutina_id: int, item_id: int):
@@ -713,6 +741,7 @@ def rutina_delete_item(rutina_id: int, item_id: int):
     db.session.commit()
     flash("🗑️ Eliminado", "success")
     return redirect(url_for("main.rutina_builder", rutina_id=rutina.id))
+
 
 @main_bp.route("/rutina/<int:rutina_id>/items/reorder", methods=["POST"])
 @login_required
@@ -737,6 +766,7 @@ def rutina_reorder(rutina_id: int):
     db.session.commit()
     return jsonify({"ok": True})
 
+
 # =============================================================
 # TABATA SETTINGS + PLAYER
 # =============================================================
@@ -753,6 +783,7 @@ def _tabata_default_cfg(items_count: int) -> Dict[str, Any]:
         "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
     }
 
+
 def _get_tabata_cfg(rutina: Rutina, items_count: int) -> Dict[str, Any]:
     preset = getattr(rutina, "tabata_preset", None)
     base = _tabata_default_cfg(items_count)
@@ -760,9 +791,11 @@ def _get_tabata_cfg(rutina: Rutina, items_count: int) -> Dict[str, Any]:
         base.update(preset)
     return base
 
+
 def _save_tabata_cfg(rutina: Rutina, cfg: Dict[str, Any]) -> None:
     rutina.tabata_preset = cfg
     db.session.commit()
+
 
 @main_bp.route("/rutina/<int:rutina_id>/tabata/settings", methods=["GET"])
 @login_required
@@ -797,6 +830,7 @@ def rutina_tabata_settings(rutina_id: int):
         tabata_count_in=tabata_count_in,
         auto_rounds=auto_rounds,
     )
+
 
 @main_bp.route("/rutina/<int:rutina_id>/tabata/settings/save", methods=["POST"])
 @login_required
@@ -849,6 +883,7 @@ def rutina_tabata_settings_save(rutina_id: int):
         flash(f"Error guardando Tabata: {e}", "danger")
 
     return redirect(url_for("main.rutina_tabata_player", rutina_id=rutina.id))
+
 
 @main_bp.route("/rutina/<int:rutina_id>/tabata", methods=["GET", "POST"])
 @login_required
@@ -929,8 +964,9 @@ def rutina_tabata_player(rutina_id: int):
         is_admin=admin_ok(),
     )
 
+
 # =============================================================
-# ✅ PLANIFICADOR (FIX TEMPLATE PATH + BANCO POR MÚSCULOS)
+# PLANIFICADOR (COACH)
 # =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
@@ -939,7 +975,7 @@ def coach_planificador():
         flash("Acceso denegado", "danger")
         return redirect(url_for("main.perfil_redirect"))
 
-    atletas = User.query.filter(User.is_admin.is_(False)).order_by(User.id.desc()).all()
+    atletas = User.query.filter(User.is_admin.is_(False)).order_by(User.nombre.asc()).all()
     rutinas = Rutina.query.order_by(Rutina.id.desc()).all()
 
     user_id = request.args.get("user_id", type=int)
@@ -947,20 +983,37 @@ def coach_planificador():
         user_id = atletas[0].id
 
     atleta = User.query.get(user_id) if user_id else None
+    center = parse_center_any(request.args.get("center", ""), fallback=date.today())
+
     if not atleta:
         flash("No hay atletas", "warning")
-        return render_template("coach/planificador.html", atletas=atletas, rutinas=rutinas, atleta=None)
+        return render_template(
+            "coach/planificador.html",
+            atletas=atletas,
+            rutinas=rutinas,
+            atleta=None,
+            fechas=[],
+            planes={},
+            semana_str="",
+            center=center,
+            prev_center=center - timedelta(days=7),
+            next_center=center + timedelta(days=7),
+            ejercicios_por_grupo={},
+            muscle_groups_order=MUSCLE_GROUPS_ORDER,
+        )
 
-    center = parse_center_any(request.args.get("center", ""), fallback=date.today())
     fechas = week_dates(center)
     planes = ensure_week_plans(atleta.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
+
+    prev_center = center - timedelta(days=7)
+    next_center = center + timedelta(days=7)
 
     ejercicios = Ejercicio.query.order_by(Ejercicio.nombre.asc()).all()
     ejercicios_por_grupo = build_ejercicios_por_grupo(ejercicios)
 
     return render_template(
-        "coach/planificador.html",   # ✅ CLAVE
+        "coach/planificador.html",
         atletas=atletas,
         rutinas=rutinas,
         atleta=atleta,
@@ -968,13 +1021,58 @@ def coach_planificador():
         planes=planes,
         semana_str=semana_str,
         center=center,
+        prev_center=prev_center,
+        next_center=next_center,
         ejercicios_por_grupo=ejercicios_por_grupo,
         muscle_groups_order=MUSCLE_GROUPS_ORDER,
     )
 
-# =============================================================
-# ✅ GUARDAR DÍA (tu form postea acá)
-# =============================================================
+
+@main_bp.route("/coach/copiar_semana/<int:user_id>", methods=["POST"])
+@login_required
+def coach_copiar_semana(user_id: int):
+    if not admin_ok():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.perfil_redirect"))
+
+    center = parse_center_any(request.form.get("center", ""), fallback=date.today())
+
+    # semana origen y destino
+    src_dates = week_dates(center)
+    dst_dates = [d + timedelta(days=7) for d in src_dates]
+
+    src = ensure_week_plans(user_id, src_dates)
+    dst = ensure_week_plans(user_id, dst_dates)
+
+    copied = 0
+    skipped_no_puedo = 0
+
+    for d_src in src_dates:
+        d_dst = d_src + timedelta(days=7)
+
+        p_src = src.get(d_src)
+        p_dst = dst.get(d_dst)
+        if not p_src or not p_dst:
+            continue
+
+        # si atleta marcó NO en destino, no pisar
+        if getattr(p_dst, "puede_entrenar", "si") == "no":
+            skipped_no_puedo += 1
+            continue
+
+        p_dst.plan_type = p_src.plan_type
+        p_dst.warmup = p_src.warmup
+        p_dst.main = p_src.main
+        p_dst.finisher = p_src.finisher
+        p_dst.propuesto_score = p_src.propuesto_score
+
+        copied += 1
+
+    db.session.commit()
+    flash(f"✅ Semana copiada: {copied} días. (Saltados por 'no puedo': {skipped_no_puedo})", "success")
+    return redirect(url_for("main.coach_planificador", user_id=user_id, center=center.isoformat()))
+
+
 @main_bp.route("/dia/save", methods=["POST"])
 @login_required
 def save_day():
@@ -1031,46 +1129,6 @@ def save_day():
     flash("✅ Día guardado", "success")
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=fecha.isoformat()))
 
-# =============================================================
-# ✅ COPIAR SEMANA → SIGUIENTE (tu template lo llama)
-# =============================================================
-@main_bp.route("/coach/copiar_semana/<int:user_id>", methods=["POST"])
-@login_required
-def coach_copiar_semana(user_id: int):
-    if not admin_ok():
-        flash("Acceso denegado", "danger")
-        return redirect(url_for("main.perfil_redirect"))
-
-    center = parse_center_any(request.form.get("center", ""), fallback=date.today())
-    src = week_dates(center)
-    dst = [d + timedelta(days=7) for d in src]
-
-    src_plans = ensure_week_plans(user_id, src)
-    dst_plans = ensure_week_plans(user_id, dst)
-
-    copied = 0
-    skipped = 0
-
-    for i in range(7):
-        sp = src_plans.get(src[i])
-        dp = dst_plans.get(dst[i])
-        if not sp or not dp:
-            continue
-
-        if getattr(dp, "puede_entrenar", "si") == "no":
-            skipped += 1
-            continue
-
-        dp.plan_type = sp.plan_type
-        dp.warmup = sp.warmup
-        dp.main = sp.main
-        dp.finisher = sp.finisher
-        dp.propuesto_score = sp.propuesto_score
-        copied += 1
-
-    db.session.commit()
-    flash(f"✅ Semana copiada ({copied}) · Saltados ({skipped})", "success")
-    return redirect(url_for("main.coach_planificador", user_id=user_id, center=center.isoformat()))
 
 # =============================================================
 # ADMIN CRUD
@@ -1104,6 +1162,7 @@ def admin_nuevo_atleta():
     flash("✅ Atleta creado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
+
 @main_bp.route("/crear_rutina", methods=["POST"])
 @login_required
 def crear_rutina():
@@ -1125,6 +1184,7 @@ def crear_rutina():
 
     flash("✅ Rutina creada", "success")
     return redirect(url_for("main.dashboard_entrenador"))
+
 
 @main_bp.route("/admin/ejercicios/nuevo", methods=["POST"])
 @login_required
@@ -1175,6 +1235,7 @@ def admin_nuevo_ejercicio():
     flash("✅ Ejercicio creado en el banco", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
+
 @main_bp.route("/admin/delete_user/<int:user_id>", methods=["POST"])
 @login_required
 def admin_delete_user(user_id: int):
@@ -1197,6 +1258,7 @@ def admin_delete_user(user_id: int):
 
     flash("✅ Atleta eliminado", "success")
     return redirect(url_for("main.dashboard_entrenador"))
+
 
 # =============================================================
 # API: DAY DETAIL — DEVUELVE blocks
@@ -1323,6 +1385,7 @@ def api_day_detail():
         "tabata_cfg": legacy_tabata_cfg,
     })
 
+
 @main_bp.route("/athlete/check_item", methods=["POST"])
 @login_required
 def athlete_check_item():
@@ -1349,6 +1412,7 @@ def athlete_check_item():
     _set_if_attr(row, "updated_at", datetime.utcnow())
     db.session.commit()
     return jsonify({"ok": True})
+
 
 @main_bp.route("/athlete/save_log", methods=["POST"])
 @login_required
@@ -1380,6 +1444,7 @@ def athlete_save_log():
     db.session.commit()
     return jsonify({"ok": True})
 
+
 @main_bp.route("/athlete/save_availability", methods=["POST"])
 @login_required
 def athlete_save_availability():
@@ -1409,6 +1474,7 @@ def athlete_save_availability():
 
     return jsonify({"ok": True})
 
+
 # =============================================================
 # STRAVA OAUTH (SIN BLUEPRINT EXTRA)
 # =============================================================
@@ -1430,6 +1496,7 @@ def strava_connect():
         "scope": "read,activity:read_all",
     }
     return redirect("https://www.strava.com/oauth/authorize?" + urlencode(params))
+
 
 @main_bp.route("/strava/callback")
 @login_required

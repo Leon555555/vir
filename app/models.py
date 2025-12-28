@@ -70,12 +70,6 @@ class DiaPlan(db.Model):
     propuesto_score = db.Column(db.Integer, default=0, nullable=False)
 
     # ✅ NUEVO: bloques del día (para tabata + run + ejercicios sueltos etc)
-    # Estructura ejemplo:
-    # [
-    #  {"type":"tabata","rutina_id":3,"label":"Tabata 1"},
-    #  {"type":"free","label":"Core","text":"Plancha 3x30'' ..."},
-    #  {"type":"run","label":"Run","text":"30' Z2 + 4 progresivos"}
-    # ]
     blocks = db.Column(JSONB, default=list, nullable=False)
 
     user = db.relationship("User", backref=db.backref("planes", lazy=True))

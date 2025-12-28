@@ -29,6 +29,10 @@ from app.models import (
 # =============================================================
 main_bp = Blueprint("main", __name__)
 
+# ✅ FIX Render: create_app() importa "strava_bp" desde app.routes
+# Sin romper arquitectura: alias al mismo blueprint
+strava_bp = main_bp
+
 # =============================================================
 # HELPERS
 # =============================================================
@@ -420,15 +424,12 @@ def perfil_usuario(user_id: int):
     user = User.query.get_or_404(user_id)
     view = (request.args.get("view") or "today").strip().lower()
 
-    # ✅ CLAVE: aceptar YYYY-MM (type=month) y YYYY-MM-DD
     center_raw = (request.args.get("center") or "").strip()
     center = parse_center_any(center_raw, fallback=date.today())
     hoy = date.today()
 
-    # strava account si existe relación/prop
     strava_account = getattr(user, "strava_account", None)
 
-    # semana stats
     week_goal = 5
     fechas_semana = week_dates(hoy)
     done_week = set()
@@ -478,7 +479,6 @@ def perfil_usuario(user_id: int):
         ).all()
         planes_mes = {p.fecha: p for p in month_plans}
 
-        # completar días faltantes
         for w in grid:
             for d in w:
                 if d and d not in planes_mes:
@@ -700,7 +700,7 @@ def rutina_reorder(rutina_id: int):
 
 
 # =============================================================
-# TABATA SETTINGS + PLAYER (si lo usás)
+# TABATA SETTINGS + PLAYER
 # =============================================================
 def _tabata_default_cfg(items_count: int) -> Dict[str, Any]:
     return {
@@ -960,7 +960,6 @@ def save_day():
     plan.warmup = (request.form.get("warmup") or "").strip()
     plan.finisher = (request.form.get("finisher") or "").strip()
 
-    # ✅ 4 slots => main por líneas
     lines: List[str] = []
     for i in range(1, 5):
         btype = (request.form.get(f"b{i}_type") or "").strip().upper()
@@ -1154,7 +1153,7 @@ def api_day_detail():
         db.session.commit()
 
     checks = AthleteCheck.query.filter_by(user_id=user_id, fecha=fecha, done=True).all()
-    done_ids = [c.rutina_item_id for c in checks]
+    done_ids = [c.rutina_item_id for c in checks if c.rutina_item_id is not None]
 
     blocks_src = _split_blocks_from_main(plan.main or "")
     blocks: List[Dict[str, Any]] = []
@@ -1340,7 +1339,7 @@ def athlete_save_availability():
 
 
 # =============================================================
-# STRAVA OAUTH (SIN BLUEPRINT)
+# STRAVA OAUTH (SIN BLUEPRINT EXTRA)
 # =============================================================
 @main_bp.route("/strava/connect")
 @login_required

@@ -25,10 +25,9 @@ from app.models import (
 )
 
 # =============================================================
-# BLUEPRINTS (como lo tenías)
+# BLUEPRINT (UNO SOLO)
 # =============================================================
 main_bp = Blueprint("main", __name__)
-strava_bp = Blueprint("strava", __name__, url_prefix="/strava")
 
 # =============================================================
 # HELPERS
@@ -62,6 +61,32 @@ def safe_parse_ymd(s: str, fallback: Optional[date] = None) -> date:
         return datetime.strptime((s or "").strip(), "%Y-%m-%d").date()
     except Exception:
         return fallback
+
+
+def parse_center_any(raw: str | None, fallback: Optional[date] = None) -> date:
+    """
+    ✅ Acepta:
+      - YYYY-MM-DD (date)
+      - YYYY-MM    (input type=month)
+    """
+    fb = fallback or date.today()
+    if not raw:
+        return fb
+    raw = (raw or "").strip()
+
+    # input type="month" => "2026-01"
+    if len(raw) == 7 and raw[4] == "-":
+        try:
+            y, m = raw.split("-")
+            return date(int(y), int(m), 1)
+        except Exception:
+            return fb
+
+    # normal date
+    try:
+        return date.fromisoformat(raw)
+    except Exception:
+        return safe_parse_ymd(raw, fallback=fb)
 
 
 def month_grid(year: int, month: int) -> List[List[Optional[date]]]:
@@ -121,6 +146,7 @@ def save_video_to_static(file_storage) -> str:
     folder = videos_dir()
     dest = os.path.join(folder, filename)
 
+    # evitar overwrite
     if os.path.exists(dest):
         base, ext2 = os.path.splitext(filename)
         filename = f"{base}_{int(datetime.utcnow().timestamp())}{ext2}"
@@ -172,7 +198,7 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
 
 
 # =============================================================
-# ✅ PARSER DE BLOQUES DESDE plan.main (una línea = un bloque)
+# PARSER DE BLOQUES DESDE plan.main (una línea = un bloque)
 # =============================================================
 def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
     lines = [l.strip() for l in (main_text or "").splitlines() if l.strip()]
@@ -265,7 +291,7 @@ def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
 
 
 # =============================================================
-# ✅ DB FIX: dia_plan.blocks (si tu modelo lo tiene)
+# DB FIX (opcional)
 # =============================================================
 @main_bp.route("/admin/db_fix_diaplan_blocks")
 @login_required
@@ -282,6 +308,24 @@ def admin_db_fix_diaplan_blocks():
     except Exception as e:
         db.session.rollback()
         return f"ERROR: {e}", 500
+
+
+@main_bp.route("/admin/db_fix_tabata")
+@login_required
+def admin_db_fix_tabata():
+    if not admin_ok():
+        return "Acceso denegado", 403
+
+    try:
+        db.session.execute(text("""
+            ALTER TABLE rutinas
+            ADD COLUMN IF NOT EXISTS tabata_preset JSONB;
+        """))
+        db.session.commit()
+        return "OK: columna tabata_preset creada (si faltaba)"
+    except Exception as e:
+        db.session.rollback()
+        return f"ERROR: {str(e)}", 500
 
 
 def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
@@ -316,27 +360,6 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
             by_date[f] = p
     db.session.commit()
     return by_date
-
-
-# =============================================================
-# DB FIX (TABATA PRESET) - SEGURO
-# =============================================================
-@main_bp.route("/admin/db_fix_tabata")
-@login_required
-def admin_db_fix_tabata():
-    if not admin_ok():
-        return "Acceso denegado", 403
-
-    try:
-        db.session.execute(text("""
-            ALTER TABLE rutinas
-            ADD COLUMN IF NOT EXISTS tabata_preset JSONB;
-        """))
-        db.session.commit()
-        return "OK: columna tabata_preset creada (si faltaba)"
-    except Exception as e:
-        db.session.rollback()
-        return f"ERROR: {str(e)}", 500
 
 
 # =============================================================
@@ -395,14 +418,17 @@ def perfil_usuario(user_id: int):
         return redirect(url_for("main.perfil_redirect"))
 
     user = User.query.get_or_404(user_id)
-    view = (request.args.get("view") or "today").strip()
+    view = (request.args.get("view") or "today").strip().lower()
 
-    center_str = (request.args.get("center") or "").strip()
-    center = safe_parse_ymd(center_str, fallback=date.today())
+    # ✅ CLAVE: aceptar YYYY-MM (type=month) y YYYY-MM-DD
+    center_raw = (request.args.get("center") or "").strip()
+    center = parse_center_any(center_raw, fallback=date.today())
     hoy = date.today()
 
+    # strava account si existe relación/prop
     strava_account = getattr(user, "strava_account", None)
 
+    # semana stats
     week_goal = 5
     fechas_semana = week_dates(hoy)
     done_week = set()
@@ -416,7 +442,7 @@ def perfil_usuario(user_id: int):
         done_week.add(l.fecha)
 
     week_done = len(done_week)
-    streak = week_done
+    streak = week_done  # simple
 
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
@@ -427,6 +453,7 @@ def perfil_usuario(user_id: int):
     fechas: List[date] = []
     planes: Dict[date, DiaPlan] = {}
     semana_str = ""
+
     if view == "week":
         fechas = week_dates(center)
         semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
@@ -435,6 +462,7 @@ def perfil_usuario(user_id: int):
     month_label = ""
     grid: List[List[Optional[date]]] = []
     planes_mes: Dict[date, DiaPlan] = {}
+
     if view == "month":
         y, m = center.year, center.month
         month_label = center.strftime("%B %Y").capitalize()
@@ -442,6 +470,7 @@ def perfil_usuario(user_id: int):
 
         start = date(y, m, 1)
         end = date(y, m, monthrange(y, m)[1])
+
         month_plans = DiaPlan.query.filter(
             DiaPlan.user_id == user.id,
             DiaPlan.fecha >= start,
@@ -449,6 +478,7 @@ def perfil_usuario(user_id: int):
         ).all()
         planes_mes = {p.fecha: p for p in month_plans}
 
+        # completar días faltantes
         for w in grid:
             for d in w:
                 if d and d not in planes_mes:
@@ -670,7 +700,7 @@ def rutina_reorder(rutina_id: int):
 
 
 # =============================================================
-# TABATA SETTINGS + PLAYER
+# TABATA SETTINGS + PLAYER (si lo usás)
 # =============================================================
 def _tabata_default_cfg(items_count: int) -> Dict[str, Any]:
     return {
@@ -790,10 +820,6 @@ def rutina_tabata_settings_save(rutina_id: int):
 @main_bp.route("/rutina/<int:rutina_id>/tabata", methods=["GET", "POST"])
 @login_required
 def rutina_tabata_player(rutina_id: int):
-    if not (admin_ok() or current_user.is_authenticated):
-        flash("Acceso denegado", "danger")
-        return redirect(url_for("main.perfil_redirect"))
-
     rutina = Rutina.query.get_or_404(rutina_id)
 
     ritems = (
@@ -893,7 +919,7 @@ def coach_planificador():
         flash("No hay atletas", "warning")
         return render_template("dashboard_entrenador.html", atletas=atletas, rutinas=rutinas, atleta=None)
 
-    center = safe_parse_ymd(request.args.get("center", ""), fallback=date.today())
+    center = parse_center_any(request.args.get("center", ""), fallback=date.today())
     fechas = week_dates(center)
     planes = ensure_week_plans(atleta.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
@@ -1099,7 +1125,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# ✅ API: DAY DETAIL — DEVUELVE blocks
+# API: DAY DETAIL — DEVUELVE blocks
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -1172,7 +1198,6 @@ def api_day_detail():
                 legacy_is_tabata = True
                 legacy_tabata_cfg = cfg
                 legacy_items_payload = items
-
             continue
 
         if btype == "fuerza":
@@ -1194,7 +1219,6 @@ def api_day_detail():
             if legacy_rutina is None:
                 legacy_rutina = rutina
                 legacy_items_payload = items
-
             continue
 
         if btype in ("run", "bike", "swim", "free", "note"):
@@ -1316,161 +1340,9 @@ def athlete_save_availability():
 
 
 # =============================================================
-# ✅ AI: SESSION SCRIPT (LO QUE TE FALTABA PARA “GENERAR”)
+# STRAVA OAUTH (SIN BLUEPRINT)
 # =============================================================
-def _pretty_date_es(d: date) -> str:
-    # sin locales raros: algo simple y usable
-    return d.strftime("%d/%m/%Y")
-
-
-def _safe_txt(s: Any) -> str:
-    return (str(s or "")).strip()
-
-
-def _build_session_script(plan: DiaPlan, blocks: List[Dict[str, Any]]) -> str:
-    """
-    Genera un guión LIMPIO en base a lo que ya tenés:
-    - warmup / main (bloques en líneas) / finisher
-    - lista de bloques parseados (tabata/fuerza/run/etc)
-    """
-    lines: List[str] = []
-    lines.append("GUION DE SESIÓN")
-    lines.append("—" * 22)
-
-    # ACTIVACIÓN
-    w = _safe_txt(getattr(plan, "warmup", "") or "")
-    lines.append("1) ACTIVACIÓN")
-    lines.append(w if w else "—")
-    lines.append("")
-
-    # BLOQUES
-    lines.append("2) BLOQUES DEL DÍA")
-    if not blocks:
-        lines.append("—")
-    else:
-        idx = 1
-        for b in blocks:
-            if not b or b.get("ok") is False:
-                continue
-            t = (b.get("type") or "").upper()
-
-            if t == "TABATA":
-                rname = _safe_txt((b.get("rutina") or {}).get("nombre") or "Tabata")
-                cfg = b.get("cfg") or {}
-                work = cfg.get("work", 40)
-                rest = cfg.get("rest", 20)
-                rounds = cfg.get("rounds", 0)
-                sets_ = cfg.get("sets", 1)
-                lines.append(f"- {idx}. TABATA: {rname} ({work}s/{rest}s · rounds {rounds} · sets {sets_})")
-                idx += 1
-                continue
-
-            if t == "FUERZA":
-                rname = _safe_txt((b.get("rutina") or {}).get("nombre") or "Fuerza")
-                lines.append(f"- {idx}. FUERZA: {rname}")
-                idx += 1
-                continue
-
-            if t in {"RUN", "BIKE", "SWIM", "FREE", "NOTE"}:
-                txt = _safe_txt(b.get("text") or "—")
-                lines.append(f"- {idx}. {t}: {txt}")
-                idx += 1
-                continue
-
-            # fallback
-            lines.append(f"- {idx}. {t}")
-            idx += 1
-
-    lines.append("")
-
-    # ENFRIAMIENTO
-    f = _safe_txt(getattr(plan, "finisher", "") or "")
-    lines.append("3) ENFRIAMIENTO")
-    lines.append(f if f else "—")
-
-    return "\n".join(lines).strip() + "\n"
-
-
-@main_bp.route("/ai/session_script", methods=["POST"])
-@login_required
-def ai_session_script():
-    """
-    Endpoint que espera tu JS:
-    POST /ai/session_script
-    body: { user_id, fecha }
-    Respuesta: { ok: true, script: "..." }
-    """
-    data = request.get_json(silent=True) or {}
-    user_id = int(data.get("user_id") or 0)
-    fecha_str = _safe_txt(data.get("fecha") or "")
-
-    if not user_id or not fecha_str:
-        return jsonify({"ok": False, "error": "Faltan datos"}), 400
-
-    if not (admin_ok() or current_user.id == user_id):
-        return jsonify({"ok": False, "error": "Acceso denegado"}), 403
-
-    fecha = safe_parse_ymd(fecha_str, fallback=date.today())
-
-    plan = DiaPlan.query.filter_by(user_id=user_id, fecha=fecha).first()
-    if not plan:
-        plan = DiaPlan(user_id=user_id, fecha=fecha, plan_type="Descanso")
-        db.session.add(plan)
-        db.session.commit()
-
-    # Reusar la misma lógica que day_detail para que el guión sea coherente
-    blocks_src = _split_blocks_from_main(plan.main or "")
-    blocks: List[Dict[str, Any]] = []
-    for b in blocks_src:
-        btype = b["type"]
-        raw = (b["raw"] or "").strip()
-
-        if btype == "tabata":
-            rid = parse_rutina_ref(raw)
-            rutina = Rutina.query.get(rid) if rid else None
-            if not rutina:
-                continue
-            items = _items_payload_for_rutina(rutina.id)
-            cfg = _get_tabata_cfg(rutina, len(items))
-            blocks.append({
-                "type": "tabata",
-                "ok": True,
-                "rutina": _rutina_payload(rutina),
-                "cfg": cfg,
-                "items": items,
-            })
-            continue
-
-        if btype == "fuerza":
-            rid = parse_rutina_ref(raw)
-            rutina = Rutina.query.get(rid) if rid else None
-            if not rutina:
-                continue
-            items = _items_payload_for_rutina(rutina.id)
-            blocks.append({
-                "type": "fuerza",
-                "ok": True,
-                "rutina": _rutina_payload(rutina),
-                "items": items,
-            })
-            continue
-
-        if btype in ("run", "bike", "swim", "free", "note"):
-            blocks.append({"type": btype, "ok": True, "text": raw})
-            continue
-
-    script = _build_session_script(plan, blocks)
-
-    # Extra: encabezado con fecha
-    script = f"{_pretty_date_es(fecha)}\n\n{script}"
-
-    return jsonify({"ok": True, "script": script})
-
-
-# =============================================================
-# STRAVA OAUTH (opcional)
-# =============================================================
-@strava_bp.route("/connect", endpoint="connect")
+@main_bp.route("/strava/connect")
 @login_required
 def strava_connect():
     client_id = os.getenv("STRAVA_CLIENT_ID", "").strip()
@@ -1490,7 +1362,7 @@ def strava_connect():
     return redirect("https://www.strava.com/oauth/authorize?" + urlencode(params))
 
 
-@strava_bp.route("/callback", endpoint="callback")
+@main_bp.route("/strava/callback")
 @login_required
 def strava_callback():
     code = (request.args.get("code") or "").strip()

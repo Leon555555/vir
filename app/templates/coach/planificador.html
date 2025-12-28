@@ -1,225 +1,234 @@
 {% extends "layout.html" %}
-{% block title %}Planificador — {{ atleta.nombre }}{% endblock %}
+{% block title %}Planificador — {{ atleta.nombre if atleta else 'Coach' }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
 
   <!-- HEADER -->
-  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
     <div>
-      <h2 class="mb-1">📅 Planificador — {{ atleta.nombre }}</h2>
-      <div class="text-muted">Semana: <strong>{{ semana_str }}</strong></div>
+      <div class="section-title">📅 PLANIFICADOR</div>
+      {% if atleta %}
+        <div class="text-soft">Atleta: <strong class="text-light">{{ atleta.nombre }}</strong> · Semana: <strong>{{ semana_str }}</strong></div>
+      {% else %}
+        <div class="text-soft">No hay atleta seleccionado</div>
+      {% endif %}
     </div>
 
-    <div class="d-flex gap-2">
-      <a class="btn btn-outline-light btn-sm"
-         href="{{ url_for('main.dashboard_entrenador') }}">
+    <div class="d-flex gap-2 align-items-center">
+      <a class="btn btn-outline-info btn-sm" href="{{ url_for('main.dashboard_entrenador') }}">
         ← Dashboard
       </a>
+
+      {% if atleta %}
+      <form method="post"
+            action="{{ url_for('main.coach_copiar_semana', user_id=atleta.id) }}"
+            onsubmit="return confirm('¿Copiar toda esta semana a la siguiente?');">
+        <input type="hidden" name="center" value="{{ center.isoformat() }}">
+        <button class="btn btn-outline-warning btn-sm">
+          📋 Copiar semana → siguiente
+        </button>
+      </form>
+      {% endif %}
     </div>
   </div>
 
   <div class="row g-3">
-    <!-- ✅ COLUMNA IZQ: GRID SEMANAL -->
-    <div class="col-lg-8">
-      <div class="row g-3">
-        {% for f in fechas %}
-          {% set plan = planes[f] %}
-          <div class="col-md-6">
-            <div class="card bg-dark text-light border-secondary h-100">
-              <div class="card-header d-flex justify-content-between align-items-center">
-                <strong>{{ f.strftime('%a %d/%m')|upper }}</strong>
-                <span class="badge bg-info">{{ (plan.plan_type or 'descanso')|capitalize }}</span>
-              </div>
 
-              <div class="card-body">
-                <form method="post" action="{{ url_for('main.save_day') }}">
-                  <input type="hidden" name="user_id" value="{{ atleta.id }}">
-                  <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
-                  <input type="hidden" name="center" value="{{ center.isoformat() }}">
+    <!-- LEFT: SEMANA -->
+    <div class="col-lg-7">
+      {% if not atleta %}
+        <div class="alert alert-warning">No hay atletas disponibles.</div>
+      {% else %}
+        <div class="row g-3">
+          {% for f in fechas %}
+            {% set plan = planes[f] %}
+            <div class="col-md-6">
+              <div class="card glass lift h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <strong>{{ f.strftime('%a %d/%m')|upper }}</strong>
+                  <span class="badge bg-info">{{ (plan.plan_type or 'Descanso')|capitalize }}</span>
+                </div>
 
-                  <!-- Tipo -->
-                  <div class="mb-2">
-                    <label class="form-label small text-muted mb-1">Tipo</label>
-                    {% set t = (plan.plan_type or 'descanso')|lower %}
-                    <select name="plan_type" class="form-select form-select-sm">
-                      <option value="descanso" {% if t=='descanso' %}selected{% endif %}>Descanso</option>
-                      <option value="fuerza" {% if t=='fuerza' %}selected{% endif %}>Fuerza</option>
-                      <option value="run" {% if t=='run' %}selected{% endif %}>Run</option>
-                      <option value="pista" {% if t=='pista' %}selected{% endif %}>Pista</option>
-                      <option value="bike" {% if t=='bike' %}selected{% endif %}>Bike</option>
-                      <option value="natacion" {% if t=='natacion' %}selected{% endif %}>Natación</option>
-                    </select>
-                  </div>
+                <div class="card-body">
+                  {% if plan.puede_entrenar == 'no' %}
+                    <div class="alert alert-warning py-2 mb-2">
+                      🚫 El atleta marcó: <strong>No puedo entrenar</strong>
+                      {% if plan.comentario_atleta %}
+                        <div class="small text-muted mt-1">{{ plan.comentario_atleta }}</div>
+                      {% endif %}
+                    </div>
+                  {% endif %}
 
-                  <!-- Warmup -->
-                  <div class="mb-2">
-                    <label class="form-label small text-muted mb-1">Calentamiento</label>
-                    <input name="warmup" class="form-control form-control-sm"
-                           value="{{ plan.warmup or '' }}" placeholder="Ej: movilidad + skipping...">
-                  </div>
+                  <form method="post" action="{{ url_for('main.save_day') }}">
+                    <input type="hidden" name="user_id" value="{{ atleta.id }}">
+                    <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
 
-                  <!-- ✅ BLOQUES (1 a 4) -->
-                  <div class="mb-2">
-                    <label class="form-label small text-muted mb-1">Bloques (TABATA / FUERZA / RUN / BIKE / SWIM / FREE / NOTE)</label>
+                    <div class="mb-2">
+                      <label class="form-label small text-muted mb-1">Tipo</label>
+                      {% set t = (plan.plan_type or 'Descanso') %}
+                      <select name="plan_type" class="form-select form-select-sm">
+                        <option value="Descanso" {% if t=='Descanso' %}selected{% endif %}>Descanso</option>
+                        <option value="Fuerza" {% if t=='Fuerza' %}selected{% endif %}>Fuerza</option>
+                        <option value="Run" {% if t=='Run' %}selected{% endif %}>Run</option>
+                        <option value="Bike" {% if t=='Bike' %}selected{% endif %}>Bike</option>
+                        <option value="Swim" {% if t=='Swim' %}selected{% endif %}>Swim</option>
+                      </select>
+                    </div>
 
-                    {% for i in range(1,5) %}
-                      <div class="border border-secondary rounded p-2 mb-2">
-                        <div class="row g-2 align-items-center">
-                          <div class="col-4">
-                            <select class="form-select form-select-sm block-type"
-                                    name="b{{ i }}_type"
-                                    data-i="{{ i }}">
-                              <option value="">—</option>
-                              <option value="TABATA">TABATA</option>
-                              <option value="FUERZA">FUERZA</option>
-                              <option value="RUN">RUN</option>
-                              <option value="BIKE">BIKE</option>
-                              <option value="SWIM">SWIM</option>
-                              <option value="FREE">FREE</option>
-                              <option value="NOTE">NOTE</option>
-                            </select>
-                          </div>
+                    <div class="mb-2">
+                      <label class="form-label small text-muted mb-1">Calentamiento</label>
+                      <input name="warmup" class="form-control form-control-sm" value="{{ plan.warmup or '' }}"
+                             placeholder="Ej: movilidad + skipping...">
+                    </div>
 
-                          <!-- Rutina selector (solo TABATA/FUERZA) -->
-                          <div class="col-8 block-rutina d-none" id="b{{ i }}_rutina_wrap">
-                            <select name="b{{ i }}_rutina" class="form-select form-select-sm">
-                              <option value="">— Seleccionar rutina —</option>
-                              {% for r in rutinas %}
-                                <option value="{{ r.id }}">{{ r.nombre }}{% if r.tipo %} ({{ r.tipo }}){% endif %}</option>
-                              {% endfor %}
-                            </select>
-                            <div class="form-text text-muted">Guarda como: <code>TABATA:RUTINA:ID</code> o <code>FUERZA:RUTINA:ID</code></div>
-                          </div>
+                    <!-- BLOQUES (4) -->
+                    <div class="mb-2">
+                      <label class="form-label small text-muted mb-1">Bloques (TABATA / FUERZA / RUN / BIKE / SWIM / FREE / NOTE)</label>
 
-                          <!-- Texto (RUN/BIKE/SWIM/FREE/NOTE) -->
-                          <div class="col-12 block-text d-none" id="b{{ i }}_text_wrap">
-                            <textarea class="form-control form-control-sm block-textarea"
-                                      name="b{{ i }}_text"
-                                      rows="2"
-                                      placeholder="Ej: 30' Z2 + 4 progresivos / Core 3x..."></textarea>
-                          </div>
+                      {% for i in range(1,5) %}
+                      <div class="row g-2 mb-2">
+                        <div class="col-4">
+                          <select class="form-select form-select-sm" name="b{{i}}_type">
+                            <option value="">—</option>
+                            <option value="TABATA">TABATA</option>
+                            <option value="FUERZA">FUERZA</option>
+                            <option value="RUN">RUN</option>
+                            <option value="BIKE">BIKE</option>
+                            <option value="SWIM">SWIM</option>
+                            <option value="FREE">FREE</option>
+                            <option value="NOTE">NOTE</option>
+                          </select>
+                        </div>
+
+                        <div class="col-4">
+                          <select class="form-select form-select-sm" name="b{{i}}_rutina">
+                            <option value="">Rutina (si aplica)</option>
+                            {% for r in rutinas %}
+                              <option value="{{ r.id }}">{{ r.nombre }}{% if r.tipo %} ({{ r.tipo }}){% endif %}</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+
+                        <div class="col-4">
+                          <input class="form-control form-control-sm" name="b{{i}}_text" placeholder="Texto (si aplica)">
                         </div>
                       </div>
-                    {% endfor %}
-                  </div>
+                      {% endfor %}
 
-                  <!-- Finisher -->
-                  <div class="mb-2">
-                    <label class="form-label small text-muted mb-1">Enfriamiento / Finisher</label>
-                    <input name="finisher" class="form-control form-control-sm"
-                           value="{{ plan.finisher or '' }}" placeholder="Ej: movilidad + respiración...">
-                  </div>
-
-                  <!-- Score + Guardar -->
-                  <div class="row g-2 mb-2">
-                    <div class="col-6">
-                      <label class="form-label small text-muted mb-1">Score propuesto</label>
-                      <input type="number" name="propuesto_score" class="form-control form-control-sm"
-                             value="{{ plan.propuesto_score or 0 }}">
+                      <div class="form-text text-muted">
+                        TIP: TABATA y FUERZA usan rutina. RUN/BIKE/SWIM/FREE/NOTE usan texto.
+                      </div>
                     </div>
-                    <div class="col-6 d-flex align-items-end">
-                      <button type="submit" class="btn btn-primary btn-sm w-100">
-                        💾 Guardar día
-                      </button>
+
+                    <div class="mb-2">
+                      <label class="form-label small text-muted mb-1">Finisher</label>
+                      <input name="finisher" class="form-control form-control-sm" value="{{ plan.finisher or '' }}"
+                             placeholder="Ej: core 8'...">
                     </div>
-                  </div>
 
-                  <!-- main manual (fallback si no usas bloques) -->
-                  <input type="hidden" name="main" value="{{ plan.main or '' }}">
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <label class="form-label small text-muted mb-1">Score</label>
+                        <input type="number" name="propuesto_score" class="form-control form-control-sm"
+                               value="{{ plan.propuesto_score or 0 }}">
+                      </div>
+                      <div class="col-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-info w-100 btn-sm">
+                          💾 Guardar día
+                        </button>
+                      </div>
+                    </div>
 
-                </form>
+                    <!-- fallback legacy main (por si querés pegar texto manual) -->
+                    <div class="mt-3">
+                      <label class="form-label small text-muted mb-1">Main (legacy opcional)</label>
+                      <textarea name="main" class="form-control form-control-sm" rows="2"
+                                placeholder="Si no usás bloques, podés pegar main acá.">{{ plan.main or '' }}</textarea>
+                    </div>
+
+                  </form>
+                </div>
               </div>
             </div>
-          </div>
-        {% endfor %}
-      </div>
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
 
-    <!-- ✅ COLUMNA DER: BANCO EJERCICIOS POR GRUPOS -->
-    <div class="col-lg-4">
-      <div class="card bg-dark text-light border-secondary">
+    <!-- RIGHT: BANCO POR GRUPO MUSCULAR -->
+    <div class="col-lg-5">
+      <div class="card glass">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <strong>🎥 Banco de Ejercicios</strong>
+          <strong>🏋️ Banco de ejercicios (por músculo)</strong>
           <span class="badge bg-secondary">
-            {% set total = 0 %}
-            {% for g in muscle_groups_order %}
-              {% set total = total + (ejercicios_por_grupo[g]|length) %}
-            {% endfor %}
-            {{ total }}
+            {% if ejercicios_por_grupo %}
+              {{ ejercicios_por_grupo|length }} grupos
+            {% else %}
+              0
+            {% endif %}
           </span>
         </div>
 
         <div class="card-body">
-          <div class="small text-muted mb-2">
-            Tip: elegí un bloque (FREE/RUN/NOTE) y tocá <strong>Insertar</strong> para meter el ejercicio en ese bloque.
-          </div>
-
-          <div class="mb-2">
-            <label class="form-label small text-muted mb-1">Insertar en bloque</label>
-            <select id="targetBlock" class="form-select form-select-sm">
-              <option value="1">Bloque 1</option>
-              <option value="2">Bloque 2</option>
-              <option value="3">Bloque 3</option>
-              <option value="4">Bloque 4</option>
-            </select>
-          </div>
-
-          <div class="accordion" id="accMuscle">
+          <div class="accordion" id="accMuscles">
             {% for g in muscle_groups_order %}
-              {% set lista = ejercicios_por_grupo[g] %}
-              {% if lista and lista|length > 0 %}
-                <div class="accordion-item bg-transparent border-secondary">
-                  <h2 class="accordion-header" id="h_{{ g }}">
-                    <button class="accordion-button collapsed bg-transparent text-light"
+              {% set items = ejercicios_por_grupo.get(g) if ejercicios_por_grupo else None %}
+              {% if items %}
+                <div class="accordion-item bg-transparent border-secondary mb-2">
+                  <h2 class="accordion-header" id="h{{ loop.index }}">
+                    <button class="accordion-button collapsed bg-dark text-light"
                             type="button"
                             data-bs-toggle="collapse"
-                            data-bs-target="#c_{{ g }}"
+                            data-bs-target="#c{{ loop.index }}"
                             aria-expanded="false"
-                            aria-controls="c_{{ g }}">
-                      {% if g == 'pectorales' %}🟦{% elif g == 'dorsales' %}🟩{% elif g == 'hombros' %}🟨{% elif g == 'piernas' %}🟥{% elif g == 'core' %}🟪{% else %}⚪{% endif %}
-                      <span class="ms-2 text-capitalize">{{ g }}</span>
-                      <span class="ms-auto badge bg-secondary">{{ lista|length }}</span>
+                            aria-controls="c{{ loop.index }}">
+                      {{ g }} <span class="ms-2 badge bg-info">{{ items|length }}</span>
                     </button>
                   </h2>
+                  <div id="c{{ loop.index }}" class="accordion-collapse collapse" aria-labelledby="h{{ loop.index }}" data-bs-parent="#accMuscles">
+                    <div class="accordion-body bg-dark">
 
-                  <div id="c_{{ g }}" class="accordion-collapse collapse" aria-labelledby="h_{{ g }}" data-bs-parent="#accMuscle">
-                    <div class="accordion-body">
-                      {% for e in lista %}
-                        <div class="border border-secondary rounded p-2 mb-2">
-                          <div class="d-flex justify-content-between align-items-start gap-2">
-                            <div>
-                              <div class="fw-semibold">{{ e.nombre }}</div>
-                              <div class="text-muted small">{{ e.categoria }}</div>
+                      {% for e in items %}
+                        <div class="card bg-black border-secondary mb-2">
+                          <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                              <div>
+                                <div class="fw-bold text-light">{{ e.nombre }}</div>
+                                <div class="small text-muted">{{ e.categoria }}</div>
+                                {% if e.descripcion %}
+                                  <div class="small text-soft mt-1">{{ e.descripcion }}</div>
+                                {% endif %}
+                              </div>
+
+                              {% if e.video_url %}
+                                <button class="btn btn-outline-info btn-sm"
+                                        type="button"
+                                        data-video="{{ e.video_url }}"
+                                        data-title="{{ e.nombre }}"
+                                        onclick="openVideo(this)">
+                                  ▶ Ver
+                                </button>
+                              {% endif %}
                             </div>
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-info"
-                                    onclick="insertExercise('{{ e.nombre|e }}')">
-                              ➕ Insertar
-                            </button>
                           </div>
-
-                          {% if e.video_filename %}
-                            <div class="mt-2">
-                              <video controls preload="metadata" style="width:100%; border-radius:12px;">
-                                <source src="{{ url_for('static', filename='videos/' ~ e.video_filename) }}" type="video/mp4">
-                              </video>
-                              <div class="text-muted small mt-1">🎥 {{ e.video_filename }}</div>
-                            </div>
-                          {% endif %}
-
-                          {% if e.descripcion %}
-                            <div class="text-muted small mt-2">{{ e.descripcion }}</div>
-                          {% endif %}
                         </div>
                       {% endfor %}
+
                     </div>
                   </div>
                 </div>
               {% endif %}
             {% endfor %}
-          </div>
 
+            {% if not ejercicios_por_grupo %}
+              <div class="text-muted">No hay ejercicios cargados.</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card-footer text-muted small">
+          Tip: La agrupación sale de <code>Ejercicio.categoria</code> (texto libre). Si ponés “Pecho”/“Espalda”/“Hombro”… se ordena solo.
         </div>
       </div>
     </div>
@@ -227,58 +236,33 @@
   </div>
 </div>
 
+<!-- MODAL VIDEO -->
+<div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-light" id="videoTitle">Video</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <video id="videoPlayer" controls playsinline style="width:100%;border-radius:14px;"></video>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-  // Toggle rutinas/text inputs por tipo de bloque
-  function refreshBlockUI(i) {
-    const sel = document.querySelector(`select[name="b${i}_type"]`);
-    if (!sel) return;
-    const v = (sel.value || "").toUpperCase();
+  function openVideo(btn){
+    const url = btn.getAttribute("data-video") || "";
+    const title = btn.getAttribute("data-title") || "Video";
+    const player = document.getElementById("videoPlayer");
+    const titleEl = document.getElementById("videoTitle");
 
-    const rutinaWrap = document.getElementById(`b${i}_rutina_wrap`);
-    const textWrap = document.getElementById(`b${i}_text_wrap`);
+    titleEl.textContent = title;
+    player.src = url;
 
-    if (v === "TABATA" || v === "FUERZA") {
-      rutinaWrap.classList.remove("d-none");
-      textWrap.classList.add("d-none");
-    } else if (v === "RUN" || v === "BIKE" || v === "SWIM" || v === "FREE" || v === "NOTE") {
-      rutinaWrap.classList.add("d-none");
-      textWrap.classList.remove("d-none");
-    } else {
-      rutinaWrap.classList.add("d-none");
-      textWrap.classList.add("d-none");
-    }
+    const modal = new bootstrap.Modal(document.getElementById("videoModal"));
+    modal.show();
   }
-
-  document.querySelectorAll(".block-type").forEach(el => {
-    el.addEventListener("change", () => refreshBlockUI(el.dataset.i));
-  });
-
-  // Inserta ejercicio en el bloque elegido (como FREE por defecto)
-  function insertExercise(nombre) {
-    const blockNum = document.getElementById("targetBlock").value;
-    const typeSel = document.querySelector(`select[name="b${blockNum}_type"]`);
-    const textArea = document.querySelector(`textarea[name="b${blockNum}_text"]`);
-
-    if (!typeSel || !textArea) return;
-
-    // si está vacío o es TABATA/FUERZA, lo dejamos en FREE para que sea “ejercicio suelto”
-    const currentType = (typeSel.value || "").toUpperCase();
-    if (!currentType || currentType === "TABATA" || currentType === "FUERZA") {
-      typeSel.value = "FREE";
-      refreshBlockUI(blockNum);
-    } else {
-      refreshBlockUI(blockNum);
-    }
-
-    // Append al textarea
-    const line = `• ${nombre}`;
-    textArea.value = (textArea.value || "").trim();
-    textArea.value = textArea.value ? (textArea.value + "\n" + line) : line;
-
-    textArea.focus();
-  }
-
-  // Init
-  for (let i = 1; i <= 4; i++) refreshBlockUI(i);
 </script>
 {% endblock %}

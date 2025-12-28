@@ -18,7 +18,7 @@
           {% if strava_account %}
             <span class="badge bg-success">🟠 Strava conectado</span>
           {% else %}
-            <a href="{{ url_for('main.strava.connect') }}" class="btn btn-sm btn-outline-warning">
+            <a href="{{ url_for('main.strava_connect') }}" class="btn btn-sm btn-outline-warning">
               🔗 Conectar con Strava
             </a>
           {% endif %}

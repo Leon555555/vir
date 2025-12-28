@@ -202,6 +202,47 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
 
 
 # =============================================================
+# ✅ NUEVO: Normalización de grupos musculares (Planificador PRO)
+# =============================================================
+MUSCLE_GROUPS_ORDER = ["pectorales", "dorsales", "hombros", "piernas", "core", "otros"]
+
+
+def normalize_muscle_group(raw: str) -> str:
+    """
+    Devuelve uno de:
+      pectorales, dorsales, hombros, piernas, core, otros
+    Sin romper tu DB: usa heurística sobre Ejercicio.categoria
+    """
+    s = (raw or "").strip().lower()
+
+    if not s:
+        return "otros"
+
+    # pectoral
+    if any(k in s for k in ["pect", "pecho", "chest"]):
+        return "pectorales"
+
+    # dorsal / espalda
+    if any(k in s for k in ["dors", "espalda", "back", "lats", "dominadas"]):
+        return "dorsales"
+
+    # hombros
+    if any(k in s for k in ["homb", "delto", "shoulder"]):
+        return "hombros"
+
+    # piernas
+    if any(k in s for k in ["pier", "leg", "cuad", "isquio", "glute", "gemelo", "sentadilla", "zancada"]):
+        return "piernas"
+
+    # core
+    if any(k in s for k in ["core", "abs", "abdominal", "oblic", "plancha", "lumba", "trunk"]):
+        return "core"
+
+    # fallback: si ponen "tren superior" lo consideramos "otros"
+    return "otros"
+
+
+# =============================================================
 # PARSER DE BLOQUES DESDE plan.main (una línea = un bloque)
 # =============================================================
 def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
@@ -898,7 +939,7 @@ def rutina_tabata_player(rutina_id: int):
 
 
 # =============================================================
-# PLANIFICADOR
+# ✅ PLANIFICADOR (PRO + Banco ejercicios por grupos)
 # =============================================================
 @main_bp.route("/coach/planificador")
 @login_required
@@ -917,15 +958,27 @@ def coach_planificador():
     atleta = User.query.get(user_id) if user_id else None
     if not atleta:
         flash("No hay atletas", "warning")
-        return render_template("dashboard_entrenador.html", atletas=atletas, rutinas=rutinas, atleta=None)
+        return render_template("planificador.html", atletas=atletas, rutinas=rutinas, atleta=None)
 
     center = parse_center_any(request.args.get("center", ""), fallback=date.today())
     fechas = week_dates(center)
     planes = ensure_week_plans(atleta.id, fechas)
     semana_str = f"{fechas[0].strftime('%d/%m')} - {fechas[-1].strftime('%d/%m')}"
 
+    # ✅ Banco ejercicios agrupado por músculo
+    ejercicios = Ejercicio.query.order_by(Ejercicio.nombre.asc()).all()
+    ejercicios_por_grupo: Dict[str, List[Ejercicio]] = {k: [] for k in MUSCLE_GROUPS_ORDER}
+
+    for e in ejercicios:
+        g = normalize_muscle_group(getattr(e, "categoria", "") or "")
+        ejercicios_por_grupo.setdefault(g, []).append(e)
+
+    # ordenar interno
+    for g in ejercicios_por_grupo:
+        ejercicios_por_grupo[g] = sorted(ejercicios_por_grupo[g], key=lambda x: (x.nombre or "").lower())
+
     return render_template(
-        "dashboard_entrenador.html",
+        "planificador.html",
         atletas=atletas,
         rutinas=rutinas,
         atleta=atleta,
@@ -933,6 +986,8 @@ def coach_planificador():
         planes=planes,
         semana_str=semana_str,
         center=center,
+        ejercicios_por_grupo=ejercicios_por_grupo,
+        muscle_groups_order=MUSCLE_GROUPS_ORDER,
     )
 
 

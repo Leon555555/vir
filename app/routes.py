@@ -311,27 +311,22 @@ def categoria_to_muscle_group(categoria: str) -> str:
     """
     c = _normalize(categoria)
 
-    # Pecho / pectoral
     if any(k in c for k in ["pecho", "pectoral", "chest", "bench", "press banca", "banca"]):
         return "Pectoral"
 
-    # Espalda / dorsal
     if any(k in c for k in ["espalda", "dorsal", "back", "remo", "dominada", "pull", "jalón", "jaron"]):
         return "Dorsal"
 
-    # Hombros
     if any(k in c for k in ["hombro", "delto", "shoulder", "press militar", "elevación lateral", "elevacion lateral"]):
         return "Hombros"
 
-    # Piernas
     if any(k in c for k in ["pierna", "legs", "cuádr", "cuadr", "glúte", "glute", "isquio", "sentadilla", "zancada", "lunge", "gemelo", "pantorrilla"]):
         return "Piernas"
 
-    # Core (por defecto si lo detecta)
     if any(k in c for k in ["core", "abs", "abdominal", "plancha", "oblicuo", "lumba", "lumbar"]):
         return "Core"
 
-    # fallback: si no matchea, lo mando a Core para que no se pierda
+    # fallback: que no se pierda
     return "Core"
 
 
@@ -353,11 +348,9 @@ def build_ejercicios_por_grupo(ejercicios: List[Ejercicio]) -> Dict[str, List[Di
             "video_url": video_url,
         })
 
-    # ordenar por nombre dentro de cada grupo
     for g in list(grouped.keys()):
         grouped[g].sort(key=lambda x: (x.get("nombre") or "").lower())
 
-    # limpiar grupos vacíos
     grouped = {g: grouped[g] for g in MUSCLE_GROUPS_ORDER if grouped.get(g)}
     return grouped
 
@@ -402,8 +395,8 @@ def admin_db_fix_tabata():
 
 def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     """
-    ✅ Evita crashear si tu modelo DiaPlan tiene un atributo 'blocks' pero la DB todavía no lo tiene.
-    Carga solo columnas seguras con load_only (no selecciona blocks).
+    ✅ Evita crashear si tu modelo DiaPlan tiene 'blocks' pero la DB todavía no lo tiene.
+    Carga solo columnas seguras con load_only.
     """
     q = DiaPlan.query.options(load_only(
         DiaPlan.id,
@@ -496,11 +489,13 @@ def perfil_usuario(user_id: int):
     center = parse_center_any(center_raw, fallback=date.today())
     hoy = date.today()
 
-    strava_account = getattr(user, "strava_account", None)
+    # ✅ FIX: Strava sale de IntegrationAccount (no de user.strava_account)
+    strava_account = IntegrationAccount.query.filter_by(user_id=user.id, provider="strava").first()
 
     week_goal = 5
     fechas_semana = week_dates(hoy)
     done_week = set()
+
     logs_week = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha >= fechas_semana[0],
@@ -963,6 +958,13 @@ def rutina_tabata_player(rutina_id: int):
         items_payload=items_payload,
         is_admin=admin_ok(),
     )
+
+
+# ✅ Alias de compatibilidad (por si algún template llama main.tabata_run)
+@main_bp.route("/tabata/<int:rutina_id>")
+@login_required
+def tabata_run(rutina_id: int):
+    return rutina_tabata_player(rutina_id)
 
 
 # =============================================================

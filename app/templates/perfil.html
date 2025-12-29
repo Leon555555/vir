@@ -114,8 +114,6 @@
           <div class="text-muted vr-kicker" style="letter-spacing:.18em;text-transform:uppercase;">HOY</div>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <div class="fs-4 fw-bold">{{ hoy.strftime('%A %d/%m')|upper }}</div>
-
-            {# ✅ antes: <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span> #}
             {{ activity_badge(plan_hoy.plan_type, 'sm') }}
           </div>
           <div class="text-muted mt-1">Entrá y marcá lo que hiciste.</div>
@@ -161,7 +159,6 @@
               {% if done %}
                 <span class="badge bg-success">HECHO</span>
               {% else %}
-                {# ✅ antes: <span class="badge bg-secondary">{{ p.plan_type }}</span> #}
                 {{ activity_badge(p.plan_type, 'sm') }}
               {% endif %}
             </div>
@@ -214,7 +211,6 @@
                    onclick="openDay('{{ d.isoformat() }}')">
                 <div class="daynum">{{ d.day }}</div>
 
-                {# ✅ icono + texto dentro de la celda #}
                 {% set raw = (pm.plan_type or 'Descanso') %}
                 {% set norm = raw|lower %}
                 {% if norm in ['swim','natacion','natación'] %}
@@ -679,7 +675,6 @@ async function saveAvailability(){
 
     setAvailUI(noPuedo ? "no" : "si", comentario);
 
-    // pintar celda del mes si está visible
     const cell = document.querySelector(`.month-cell[data-date="${CSS.escape(CURRENT_DAY)}"]`);
     if(cell){
       if(noPuedo) cell.classList.add("blocked");
@@ -942,7 +937,6 @@ function openDay(isoDate){
   CURRENT_PAYLOAD = null;
   CURRENT_CHECKS = new Set();
 
-  // reset UI
   document.getElementById("dayModalDate").textContent = isoDate;
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
@@ -968,11 +962,9 @@ function openDay(isoDate){
 
   document.getElementById("blockedChip").classList.add("d-none");
 
-  // availability panel reset (cerrado por defecto)
   document.getElementById("availabilityPanel").classList.add("d-none");
   setAvailUI("si","");
 
-  // default sections visible
   document.getElementById("midSessionSection").classList.add("d-none");
   document.getElementById("sessionRightSection").classList.remove("d-none");
 
@@ -986,10 +978,13 @@ function openDay(isoDate){
       const planType = String(p.plan_type || "").toLowerCase();
       const isEndurance = (planType === "run" || planType === "bike" || planType === "swim");
 
-      document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
+      // ✅ micro-fix: título lógico aunque no haya rutina (run/bike/swim)
+      const title = cleanText(data.rutina?.nombre || (isEndurance ? "Sesión del día" : "Detalle del día"));
+      document.getElementById("dayModalTitle").textContent = title;
+
+      // ✅ micro-fix: en el chip ponemos plan_type “limpio”
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
-      // warmup / finisher (no mostrar none)
       const warm = cleanText(p.warmup || "");
       if(!warm || warm.toLowerCase()==="none"){
         document.getElementById("warmupCard").style.display = "none";
@@ -1006,7 +1001,6 @@ function openDay(isoDate){
         document.getElementById("finisherCard").style.display = "";
       }
 
-      // ✅ disponibilidad desde backend
       setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
 
       document.getElementById("didTrain").checked = !!data.log?.did_train;
@@ -1014,7 +1008,6 @@ function openDay(isoDate){
 
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
-      // bloques
       const blocks = Array.isArray(data.blocks) ? data.blocks : [];
       const blocksCount = blocks.length;
 
@@ -1032,9 +1025,7 @@ function openDay(isoDate){
         renderBlocksInto("dayBlocks", blocks);
       }
 
-      // progreso fuerza
       updateProgress();
-
       DAY_MODAL.show();
     })
     .catch(err => {

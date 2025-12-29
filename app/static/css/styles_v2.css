@@ -278,8 +278,6 @@ body.vr-body{
 
 /* ============================================================
    ✅ PERFIL - MES EN CUADRÍCULA (MONTH GRID)
-   Estas clases YA existen en tu perfil.html:
-   - month-grid / month-head / month-cell / daynum / ptype
    ============================================================ */
 
 .month-grid{
@@ -382,11 +380,9 @@ body.vr-body{
 }
 
 /* ============================================================
-   ✅ PERFIL PRO (modal día + bloques + fuerza)
-   Para que NO dependas de CSS inline en perfil.html
+   ✅ PERFIL PRO
 ============================================================ */
 
-/* avatar header perfil */
 .vr-avatar{
   width:46px;
   height:46px;
@@ -398,7 +394,6 @@ body.vr-body{
   justify-content:center;
 }
 
-/* mini stats (racha / semana) */
 .mini-stat{
   min-width: 132px;
   padding: 10px 12px;
@@ -424,7 +419,6 @@ body.vr-body{
   color: rgba(255,255,255,.65);
 }
 
-/* barras consistencia (progress view) */
 .vr-bars{
   display:flex;
   align-items:flex-end;
@@ -452,7 +446,6 @@ body.vr-body{
   letter-spacing: .08em;
 }
 
-/* modal día */
 .day-modal{
   background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
   color: rgba(255,255,255,.92);
@@ -484,7 +477,6 @@ body.vr-body{
   margin-bottom: 10px;
 }
 
-/* plan cards */
 .plan-card{
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
@@ -507,7 +499,6 @@ body.vr-body{
   white-space: pre-line;
 }
 
-/* availability box */
 .avail-box{
   border: 1px solid rgba(255,255,255,.10);
   border-radius: 16px;
@@ -515,7 +506,6 @@ body.vr-body{
   background: rgba(0,0,0,.18);
 }
 
-/* blocks */
 .blocks-wrap{ display:grid; gap:12px; }
 
 .block-card{
@@ -573,7 +563,6 @@ body.vr-body{
 }
 .block-row:last-child{ border-bottom: 0; }
 
-/* fuerza cards */
 .exercise-card{
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
@@ -602,7 +591,6 @@ body.vr-body{
 
 /* ============================================================
    ✅ NUEVO: ACTIVITY ICONS (plan_type)
-   fuerza/run/pista/bike/natacion/descanso
 ============================================================ */
 
 .vr-activity-badge{
@@ -630,14 +618,12 @@ body.vr-body{
   text-transform: uppercase;
 }
 
-/* En cards pequeñas (week) */
 .vr-activity-badge.sm{
   padding:.22rem .55rem;
 }
 .vr-activity-badge.sm .vr-activity-icon{ width:16px; height:16px; }
 .vr-activity-badge.sm .vr-activity-text{ font-size:.78rem; }
 
-/* En month grid: mini icon */
 .month-cell .ptype-icon{
   margin-top: 8px;
   display:flex;
@@ -657,4 +643,83 @@ body.vr-body{
   color: rgba(255,255,255,.82);
   text-transform: uppercase;
   letter-spacing:.06em;
+}
+
+/* ============================================================
+   ✅ FIX PLANIFICADOR "SE VUELVE LOCO"
+   (No rompe arquitectura: solo clases nuevas)
+============================================================ */
+
+.vr-page{
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 18px 16px 26px;
+}
+
+.vr-plani-grid{
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 1100px){
+  .vr-plani-grid{ grid-template-columns: 1fr; }
+  .vr-sidebar{ position: static; top: auto; }
+}
+
+.vr-days-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 780px){
+  .vr-days-grid{ grid-template-columns: 1fr; }
+}
+
+.vr-day-card{
+  position: relative;
+  overflow: hidden;
+  min-height: 260px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.06);
+  padding: 14px;
+}
+
+.vr-day-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom: 10px;
+}
+
+/* Capa de “ilustración/ícono gigante” si lo usás como bg */
+.vr-day-hero{
+  position:absolute;
+  inset:auto -30px -40px auto;
+  width: 340px;
+  max-width: 70%;
+  opacity: .90;
+  pointer-events:none;
+  filter: drop-shadow(0 20px 60px rgba(0,0,0,.55));
+}
+
+.vr-day-body{
+  position: relative;
+  z-index: 2;
+}
+
+/* Sidebar sticky sin superposición */
+.vr-sidebar{
+  position: sticky;
+  top: 96px; /* debajo navbar */
+  align-self: start;
+}
+
+.vr-sidebar .card{
+  overflow: hidden;
 }

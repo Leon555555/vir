@@ -288,9 +288,9 @@ def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
         items_payload.append({
             "id": it.id,
             "nombre": it.nombre,
-            "series": it.series,
-            "reps": it.reps,
-            "descanso": it.descanso,
+            "series": getattr(it, "series", None),
+            "reps": getattr(it, "reps", None),
+            "descanso": getattr(it, "descanso", None),
             "nota": getattr(it, "nota", "") or "",
             "video_src": video_src,
         })
@@ -298,17 +298,13 @@ def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
 
 
 # =============================================================
-# ✅ EJERCICIOS POR GRUPO MUSCULAR (Pectoral/Dorsal/Hombros/Piernas/Core)
+# ✅ EJERCICIOS POR GRUPO MUSCULAR
 # =============================================================
 def _normalize(s: str) -> str:
     return (s or "").strip().lower()
 
 
 def categoria_to_muscle_group(categoria: str) -> str:
-    """
-    Mapea Ejercicio.categoria (texto libre) a 5 grupos:
-    Pectoral, Dorsal, Hombros, Piernas, Core
-    """
     c = _normalize(categoria)
 
     if any(k in c for k in ["pecho", "pectoral", "chest", "bench", "press banca", "banca"]):
@@ -320,13 +316,13 @@ def categoria_to_muscle_group(categoria: str) -> str:
     if any(k in c for k in ["hombro", "delto", "shoulder", "press militar", "elevación lateral", "elevacion lateral"]):
         return "Hombros"
 
-    if any(k in c for k in ["pierna", "legs", "cuádr", "cuadr", "glúte", "glute", "isquio", "sentadilla", "zancada", "lunge", "gemelo", "pantorrilla"]):
+    if any(k in c for k in ["pierna", "legs", "cuádr", "cuadr", "glúte", "glute", "isquio",
+                            "sentadilla", "zancada", "lunge", "gemelo", "pantorrilla"]):
         return "Piernas"
 
     if any(k in c for k in ["core", "abs", "abdominal", "plancha", "oblicuo", "lumba", "lumbar"]):
         return "Core"
 
-    # fallback: que no se pierda
     return "Core"
 
 
@@ -395,8 +391,8 @@ def admin_db_fix_tabata():
 
 def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     """
-    ✅ Evita crashear si tu modelo DiaPlan tiene 'blocks' pero la DB todavía no lo tiene.
-    Carga solo columnas seguras con load_only.
+    ✅ Evita crashear si DiaPlan tiene atributo 'blocks' pero DB todavía no lo tiene.
+    Carga solo columnas seguras con load_only (no selecciona blocks).
     """
     q = DiaPlan.query.options(load_only(
         DiaPlan.id,
@@ -489,13 +485,11 @@ def perfil_usuario(user_id: int):
     center = parse_center_any(center_raw, fallback=date.today())
     hoy = date.today()
 
-    # ✅ FIX: Strava sale de IntegrationAccount (no de user.strava_account)
-    strava_account = IntegrationAccount.query.filter_by(user_id=user.id, provider="strava").first()
+    strava_account = getattr(user, "strava_account", None)
 
     week_goal = 5
     fechas_semana = week_dates(hoy)
     done_week = set()
-
     logs_week = AthleteLog.query.filter(
         AthleteLog.user_id == user.id,
         AthleteLog.fecha >= fechas_semana[0],
@@ -960,13 +954,6 @@ def rutina_tabata_player(rutina_id: int):
     )
 
 
-# ✅ Alias de compatibilidad (por si algún template llama main.tabata_run)
-@main_bp.route("/tabata/<int:rutina_id>")
-@login_required
-def tabata_run(rutina_id: int):
-    return rutina_tabata_player(rutina_id)
-
-
 # =============================================================
 # PLANIFICADOR (COACH)
 # =============================================================
@@ -1039,7 +1026,6 @@ def coach_copiar_semana(user_id: int):
 
     center = parse_center_any(request.form.get("center", ""), fallback=date.today())
 
-    # semana origen y destino
     src_dates = week_dates(center)
     dst_dates = [d + timedelta(days=7) for d in src_dates]
 
@@ -1057,7 +1043,6 @@ def coach_copiar_semana(user_id: int):
         if not p_src or not p_dst:
             continue
 
-        # si atleta marcó NO en destino, no pisar
         if getattr(p_dst, "puede_entrenar", "si") == "no":
             skipped_no_puedo += 1
             continue
@@ -1379,9 +1364,9 @@ def api_day_detail():
         "checks": done_ids,
         "log": {
             "did_train": bool(log.did_train),
-            "warmup_done": log.warmup_done,
-            "main_done": log.main_done,
-            "finisher_done": log.finisher_done,
+            "warmup_done": getattr(log, "warmup_done", "") or "",
+            "main_done": getattr(log, "main_done", "") or "",
+            "finisher_done": getattr(log, "finisher_done", "") or "",
         },
         "is_tabata": bool(legacy_is_tabata),
         "tabata_cfg": legacy_tabata_cfg,

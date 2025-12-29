@@ -97,11 +97,16 @@
         <div class="row g-3">
           {% for f in fechas %}
             {% set plan = planes[f] %}
+            {% set t = (plan.plan_type or 'Descanso') %}
             <div class="col-md-6">
               <div class="card glass lift h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
+
+                <div class="card-header d-flex justify-content-between align-items-center gap-2">
                   <strong>{{ f.strftime('%a %d/%m')|upper }}</strong>
-                  <span class="badge bg-info">{{ (plan.plan_type or 'Descanso')|capitalize }}</span>
+
+                  <div class="d-flex align-items-center gap-2">
+                    {% include "partials/activity_badge.html" with context %}
+                  </div>
                 </div>
 
                 <div class="card-body">
@@ -118,16 +123,28 @@
                     <input type="hidden" name="user_id" value="{{ atleta.id }}">
                     <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
 
-                    <div class="mb-2">
-                      <label class="form-label small text-muted mb-1">Tipo</label>
-                      {% set t = (plan.plan_type or 'Descanso') %}
-                      <select name="plan_type" class="form-select form-select-sm">
-                        <option value="Descanso" {% if t=='Descanso' %}selected{% endif %}>Descanso</option>
-                        <option value="Fuerza" {% if t=='Fuerza' %}selected{% endif %}>Fuerza</option>
-                        <option value="Run" {% if t=='Run' %}selected{% endif %}>Run</option>
-                        <option value="Bike" {% if t=='Bike' %}selected{% endif %}>Bike</option>
-                        <option value="Swim" {% if t=='Swim' %}selected{% endif %}>Swim</option>
-                      </select>
+                    <!-- ✅ Selector por iconos -->
+                    <div class="mb-3">
+                      <label class="form-label small text-muted mb-1">Tipo (tocá el icono)</label>
+
+                      <div class="vr-activity-picker">
+                        {% set options = [
+                          ('Fuerza','icons/fuerza.png','Fuerza'),
+                          ('Run','icons/run.png','Run'),
+                          ('Pista','icons/pista.png','Run (pista)'),
+                          ('Bike','icons/bike.png','Bike'),
+                          ('Swim','icons/natacion.png','Natación'),
+                          ('Descanso','icons/descanso.png','Descanso')
+                        ] %}
+
+                        {% for val, icon, label in options %}
+                          <label class="vr-activity-option {% if t==val %}is-active{% endif %}">
+                            <input type="radio" name="plan_type" value="{{ val }}" {% if t==val %}checked{% endif %}>
+                            <img src="{{ url_for('static', filename=icon) }}" alt="{{ label }}">
+                            <span>{{ label }}</span>
+                          </label>
+                        {% endfor %}
+                      </div>
                     </div>
 
                     <div class="mb-2">
@@ -210,7 +227,7 @@
       {% endif %}
     </div>
 
-    <!-- RIGHT: BANCO + RUTINAS -->
+    <!-- RIGHT: BANCO + RUTINAS (sin cambios fuertes) -->
     <div class="col-lg-5">
 
       <!-- BANCO POR MÚSCULO -->
@@ -245,7 +262,6 @@
                   <div id="c{{ loop.index }}" class="accordion-collapse collapse"
                        aria-labelledby="h{{ loop.index }}" data-bs-parent="#accMuscles">
                     <div class="accordion-body bg-dark">
-
                       {% for e in items %}
                         <div class="card bg-black border-secondary mb-2">
                           <div class="card-body py-2">
@@ -257,7 +273,6 @@
                                   <div class="small text-soft mt-1">{{ e.descripcion }}</div>
                                 {% endif %}
                               </div>
-
                               {% if e.video_url %}
                                 <button class="btn btn-outline-info btn-sm"
                                         type="button"
@@ -271,7 +286,6 @@
                           </div>
                         </div>
                       {% endfor %}
-
                     </div>
                   </div>
                 </div>
@@ -283,13 +297,9 @@
             {% endif %}
           </div>
         </div>
-
-        <div class="card-footer text-muted small">
-          Tip: La agrupación sale de <code>Ejercicio.categoria</code>. Si ponés “Pecho / Espalda / Hombros / Piernas / Core”… se ordena solo.
-        </div>
       </div>
 
-      <!-- RUTINAS CREADAS -->
+      <!-- RUTINAS -->
       <div class="card glass">
         <div class="card-header d-flex justify-content-between align-items-center">
           <strong>🧩 Rutinas creadas</strong>
@@ -319,7 +329,6 @@
                          href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
                         🛠 Builder
                       </a>
-
                       <a class="btn btn-outline-warning btn-sm"
                          href="{{ url_for('main.rutina_tabata_player', rutina_id=r.id) }}">
                         ⏱ Tabata
@@ -330,10 +339,6 @@
               </div>
             {% endfor %}
           {% endif %}
-        </div>
-
-        <div class="card-footer text-muted small">
-          Tip: En el plan, TABATA/FUERZA seleccionan una rutina de esta lista.
         </div>
       </div>
 

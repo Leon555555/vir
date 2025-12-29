@@ -1,0 +1,32 @@
+{# app/templates/partials/activity_badge.html #}
+{% set t = (plan_type or 'Descanso') %}
+
+{% set icon_map = {
+  'Descanso': 'icons/descanso.png',
+  'Fuerza': 'icons/fuerza.png',
+  'Run': 'icons/run.png',
+  'Pista': 'icons/pista.png',
+  'Bike': 'icons/bike.png',
+  'Swim': 'icons/natacion.png',
+  'Natacion': 'icons/natacion.png',
+  'Natación': 'icons/natacion.png'
+} %}
+
+{% set label_map = {
+  'Descanso': 'Descanso',
+  'Fuerza': 'Fuerza',
+  'Run': 'Run',
+  'Pista': 'Run (pista)',
+  'Bike': 'Bike',
+  'Swim': 'Natación',
+  'Natacion': 'Natación',
+  'Natación': 'Natación'
+} %}
+
+{% set icon_rel = icon_map.get(t, 'icons/descanso.png') %}
+{% set label = label_map.get(t, t) %}
+
+<span class="vr-activity-badge">
+  <img class="vr-activity-icon" src="{{ url_for('static', filename=icon_rel) }}" alt="{{ label }}">
+  <span class="vr-activity-text">{{ label }}</span>
+</span>

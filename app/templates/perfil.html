@@ -1,8 +1,49 @@
 {% extends "layout.html" %}
 {% block title %}Perfil — VR Training{% endblock %}
 
+{# ============================================================
+   ✅ Macro: icono + texto para plan_type (sin templates extra)
+   Usa tus PNG en /static/icons/
+   fuerza.png, run.png, pista.png, bike.png, natacion.png, descanso.png
+============================================================ #}
+{% macro activity_badge(plan_type, size='') %}
+  {% set raw = (plan_type or 'Descanso') %}
+  {% set t = raw|string %}
+  {% set norm = t|lower %}
+
+  {% if norm in ['swim','natacion','natación'] %}
+    {% set icon = 'icons/natacion.png' %}
+    {% set label = 'Natación' %}
+  {% elif norm in ['pista','run_pista','track'] %}
+    {% set icon = 'icons/pista.png' %}
+    {% set label = 'Pista' %}
+  {% elif norm in ['run','running'] %}
+    {% set icon = 'icons/run.png' %}
+    {% set label = 'Run' %}
+  {% elif norm in ['bike','bici','cycling'] %}
+    {% set icon = 'icons/bike.png' %}
+    {% set label = 'Bike' %}
+  {% elif norm in ['fuerza','strength','gym'] %}
+    {% set icon = 'icons/fuerza.png' %}
+    {% set label = 'Fuerza' %}
+  {% elif norm in ['descanso','rest','recovery','off'] %}
+    {% set icon = 'icons/descanso.png' %}
+    {% set label = 'Descanso' %}
+  {% else %}
+    {# fallback #}
+    {% set icon = 'icons/descanso.png' %}
+    {% set label = t %}
+  {% endif %}
+
+  <span class="vr-activity-badge {% if size=='sm' %}sm{% endif %}">
+    <img class="vr-activity-icon" src="{{ url_for('static', filename=icon) }}" alt="{{ label }}">
+    <span class="vr-activity-text">{{ label }}</span>
+  </span>
+{% endmacro %}
+
 {% block content %}
 <div class="container mt-4">
+
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div class="d-flex align-items-center gap-3">
@@ -71,9 +112,11 @@
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
         <div>
           <div class="text-muted vr-kicker" style="letter-spacing:.18em;text-transform:uppercase;">HOY</div>
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
             <div class="fs-4 fw-bold">{{ hoy.strftime('%A %d/%m')|upper }}</div>
-            <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span>
+
+            {# ✅ antes: <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span> #}
+            {{ activity_badge(plan_hoy.plan_type, 'sm') }}
           </div>
           <div class="text-muted mt-1">Entrá y marcá lo que hiciste.</div>
         </div>
@@ -114,9 +157,13 @@
           <div class="card glass p-3 lift">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div class="fw-bold" style="letter-spacing:.08em;">{{ f.strftime('%a %d/%m')|upper }}</div>
-              <span class="badge {% if done %}bg-success{% else %}bg-secondary{% endif %}">
-                {% if done %}HECHO{% else %}{{ p.plan_type }}{% endif %}
-              </span>
+
+              {% if done %}
+                <span class="badge bg-success">HECHO</span>
+              {% else %}
+                {# ✅ antes: <span class="badge bg-secondary">{{ p.plan_type }}</span> #}
+                {{ activity_badge(p.plan_type, 'sm') }}
+              {% endif %}
             </div>
 
             <div class="text-muted" style="font-size:.95rem;">
@@ -166,6 +213,34 @@
                    data-date="{{ d.isoformat() }}"
                    onclick="openDay('{{ d.isoformat() }}')">
                 <div class="daynum">{{ d.day }}</div>
+
+                {# ✅ icono + texto dentro de la celda #}
+                {% set raw = (pm.plan_type or 'Descanso') %}
+                {% set norm = raw|lower %}
+                {% if norm in ['swim','natacion','natación'] %}
+                  {% set icon = 'icons/natacion.png' %}
+                  {% set label = 'Natación' %}
+                {% elif norm in ['pista','run_pista','track'] %}
+                  {% set icon = 'icons/pista.png' %}
+                  {% set label = 'Pista' %}
+                {% elif norm in ['run','running'] %}
+                  {% set icon = 'icons/run.png' %}
+                  {% set label = 'Run' %}
+                {% elif norm in ['bike','bici','cycling'] %}
+                  {% set icon = 'icons/bike.png' %}
+                  {% set label = 'Bike' %}
+                {% elif norm in ['fuerza','strength','gym'] %}
+                  {% set icon = 'icons/fuerza.png' %}
+                  {% set label = 'Fuerza' %}
+                {% else %}
+                  {% set icon = 'icons/descanso.png' %}
+                  {% set label = 'Descanso' %}
+                {% endif %}
+
+                <div class="ptype-icon">
+                  <img src="{{ url_for('static', filename=icon) }}" alt="{{ label }}">
+                  <span>{{ label }}</span>
+                </div>
               </div>
             {% else %}
               <div class="month-cell empty"></div>

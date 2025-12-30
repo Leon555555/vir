@@ -386,7 +386,7 @@
           <!-- DERECHA -->
           <div class="col-lg-8">
 
-            <!-- EJERCICIOS (solo fuerza al abrir bloque fuerza) -->
+            <!-- EJERCICIOS (solo fuerza/strecth al abrir bloque) -->
             <div class="day-section d-none" id="strengthSection">
               <div class="day-section-title">Ejercicios</div>
               <div id="strengthItems" class="row g-3"></div>
@@ -576,9 +576,11 @@ function badgeHtml(type){
   const map = {
     "TABATA": "bg-danger",
     "FUERZA": "bg-info",
+    "STRETCH": "bg-info",
     "RUN": "bg-success",
     "BIKE": "bg-warning text-dark",
     "SWIM": "bg-primary",
+    "EJERCICIO": "bg-dark",
     "FREE": "bg-secondary",
     "NOTE": "bg-light text-dark",
     "VIDEO": "bg-dark"
@@ -590,6 +592,8 @@ function typeLabel(type){
   const t = (type||"").toLowerCase();
   if(t === "tabata") return "TABATA";
   if(t === "fuerza") return "FUERZA";
+  if(t === "stretch") return "STRETCH";
+  if(t === "ejercicio") return "EJERCICIO";
   if(t === "run") return "RUN";
   if(t === "bike") return "BIKE";
   if(t === "swim") return "SWIM";
@@ -667,9 +671,9 @@ async function saveAvailability(){
 
 /* =========================
    BLOQUES (RENDER UNIVERSAL)
-   - Fuerza: muestra ejercicios (verdes + kilos)
-   - Tabata: solo ▶ Reproducir (sin Builder para atleta)
-   - Video: muestra video embed
+   - Fuerza/Stretch: muestra ejercicios (verdes + kilos)
+   - Tabata: ▶ Reproducir
+   - Ejercicio: muestra video del banco (ejercicio suelto)
 ========================= */
 function renderBlocksInto(elId, blocks){
   const wrap = document.getElementById(elId);
@@ -693,7 +697,8 @@ function renderBlocksInto(elId, blocks){
     if(type === "free"){ icon = "bi-wind"; }
     if(type === "note"){ icon = "bi-chat-left-text"; }
     if(type === "fuerza"){ icon = "bi-barbell"; }
-    if(type === "video"){ icon = "bi-play-btn-fill"; }
+    if(type === "stretch"){ icon = "bi-universal-access-circle"; }
+    if(type === "ejercicio"){ icon = "bi-play-btn-fill"; }
 
     const div = document.createElement("div");
     div.className = "block-card";
@@ -715,8 +720,8 @@ function renderBlocksInto(elId, blocks){
       return;
     }
 
-    if(type === "fuerza"){
-      const rname = cleanText(b.rutina?.nombre || "Fuerza");
+    if(type === "fuerza" || type === "stretch"){
+      const rname = cleanText(b.rutina?.nombre || (type === "stretch" ? "Estiramientos" : "Fuerza"));
       const itemsCount = Array.isArray(b.items) ? b.items.length : 0;
       div.innerHTML = `
         <div class="block-head">
@@ -727,7 +732,7 @@ function renderBlocksInto(elId, blocks){
               <div class="block-sub">${itemsCount} ejercicio(s) · kilos + video + check</div>
             </div>
           </div>
-          ${badgeHtml("FUERZA")}
+          ${badgeHtml(typeLabel(b.type))}
         </div>
 
         <div class="block-actions">
@@ -767,9 +772,10 @@ function renderBlocksInto(elId, blocks){
       return;
     }
 
-    if(type === "video"){
-      const title = cleanText(b.title || "Video");
-      const src = (b.src || b.video_src || "").trim();
+    if(type === "ejercicio"){
+      const ej = b.ejercicio || {};
+      const title = cleanText(ej.nombre || "Ejercicio");
+      const src = (ej.video_url || "").trim();
       div.innerHTML = `
         <div class="block-head">
           <div class="block-left">
@@ -779,7 +785,7 @@ function renderBlocksInto(elId, blocks){
               <div class="block-sub">${src ? "Reproducí y seguí." : "Sin video"}</div>
             </div>
           </div>
-          ${badgeHtml("VIDEO")}
+          ${badgeHtml("EJERCICIO")}
         </div>
         ${src ? `
           <div class="mt-2">
@@ -829,9 +835,9 @@ function renderBlocksInto(elId, blocks){
 }
 
 function updateProgress(){
-  // cuenta solo fuerza del MAIN (si existe), si no, suma checks sobre todos los items cargados en strength view
-  const blocks = Array.isArray(CURRENT_PAYLOAD?.main_blocks) ? CURRENT_PAYLOAD.main_blocks : (Array.isArray(CURRENT_PAYLOAD?.blocks) ? CURRENT_PAYLOAD.blocks : []);
-  const force = blocks.find(b => (b.type||"").toLowerCase()==="fuerza" && b.ok && Array.isArray(b.items));
+  // ✅ Fuente real: MAIN viene como data.blocks (tu API actual)
+  const blocks = Array.isArray(CURRENT_PAYLOAD?.blocks) ? CURRENT_PAYLOAD.blocks : [];
+  const force = blocks.find(b => ["fuerza","stretch"].includes((b.type||"").toLowerCase()) && b.ok && Array.isArray(b.items));
   const total = force?.items?.length || 0;
   const done = total ? force.items.filter(it => CURRENT_CHECKS.has(String(it.id))).length : 0;
 
@@ -937,7 +943,7 @@ function renderStrength(items){
   });
 }
 
-// ahora strength puede venir del MAIN o de warmup/finisher (según donde clickeaste)
+// strength puede venir del MAIN o de warmup/finisher (según dónde clickeaste)
 function toggleStrength(blockIndex, sourceElId){
   const sec = document.getElementById("strengthSection");
   const isHidden = sec.classList.contains("d-none");
@@ -946,7 +952,7 @@ function toggleStrength(blockIndex, sourceElId){
     let sourceBlocks = [];
     if(sourceElId === "warmupBlocks") sourceBlocks = CURRENT_PAYLOAD?.warmup_blocks || [];
     else if(sourceElId === "finisherBlocks") sourceBlocks = CURRENT_PAYLOAD?.finisher_blocks || [];
-    else sourceBlocks = CURRENT_PAYLOAD?.main_blocks || CURRENT_PAYLOAD?.blocks || [];
+    else sourceBlocks = CURRENT_PAYLOAD?.blocks || [];
 
     const b = Array.isArray(sourceBlocks) ? sourceBlocks[blockIndex] : null;
     const items = (b && b.ok && Array.isArray(b.items)) ? b.items : [];
@@ -1005,7 +1011,7 @@ function openDay(isoDate){
       CURRENT_PAYLOAD = data;
 
       const p = data.plan || {};
-      document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
+      document.getElementById("dayModalTitle").textContent = cleanText(p.plan_type || "Detalle del día");
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
       // disponibilidad
@@ -1018,7 +1024,7 @@ function openDay(isoDate){
 
       // ✅ render de warmup/main/finisher como BLOQUES
       const wBlocks = Array.isArray(data.warmup_blocks) ? data.warmup_blocks : [];
-      const mBlocks = Array.isArray(data.main_blocks) ? data.main_blocks : (Array.isArray(data.blocks) ? data.blocks : []);
+      const mBlocks = Array.isArray(data.blocks) ? data.blocks : [];             // ✅ FIX: main = blocks
       const fBlocks = Array.isArray(data.finisher_blocks) ? data.finisher_blocks : [];
 
       renderBlocksInto("warmupBlocks", wBlocks);

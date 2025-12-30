@@ -1325,6 +1325,94 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
+# ✅ NUEVO: BUILDER GENERICO DE BLOQUES (main / warmup / finisher)
+# =============================================================
+def _build_blocks_payload_from_text(raw_text: str) -> List[Dict[str, Any]]:
+    """
+    Convierte un texto tipo plan.main / warmup / finisher (con líneas TABATA:RUTINA:ID, EJ:ID, RUN:..., etc)
+    a un payload listo para front:
+      - rutinas => items + urls
+      - tabata => cfg + start_url
+      - ejercicio => video_url
+      - texto => {type, text}
+    """
+    blocks_src = _split_blocks_from_main(raw_text or "")
+    blocks: List[Dict[str, Any]] = []
+
+    for b in blocks_src:
+        btype = b["type"]
+        raw = (b.get("raw") or "").strip()
+
+        if btype == "tabata":
+            rid = parse_rutina_ref(raw)  # soporta "RUTINA:10" o "10"
+            rutina = Rutina.query.get(rid) if rid else None
+            if not rutina:
+                blocks.append({"type": "tabata", "ok": False, "error": "Rutina no encontrada"})
+                continue
+
+            items = _items_payload_for_rutina(rutina.id)
+            cfg = _get_tabata_cfg(rutina, len(items))
+
+            blocks.append({
+                "type": "tabata",
+                "ok": True,
+                "rutina": _rutina_payload(rutina),
+                "cfg": cfg,
+                "items": items,
+                "start_url": url_for("main.rutina_tabata_player", rutina_id=rutina.id),
+                "settings_url": url_for("main.rutina_tabata_settings", rutina_id=rutina.id) if admin_ok() else "",
+            })
+            continue
+
+        if btype in ("fuerza", "stretch"):
+            rid = parse_rutina_ref(raw)  # soporta "RUTINA:10" o "10"
+            rutina = Rutina.query.get(rid) if rid else None
+            if not rutina:
+                blocks.append({"type": btype, "ok": False, "error": "Rutina no encontrada"})
+                continue
+
+            items = _items_payload_for_rutina(rutina.id)
+            blocks.append({
+                "type": btype,
+                "ok": True,
+                "rutina": _rutina_payload(rutina),
+                "items": items,
+                "builder_url": url_for("main.rutina_builder", rutina_id=rutina.id) if admin_ok() else "",
+            })
+            continue
+
+        if btype == "ejercicio":
+            eid = parse_ejercicio_ref(raw)  # soporta EJ:123 / EJERCICIO:123 / 123
+            ej = Ejercicio.query.get(eid) if eid else None
+            if not ej:
+                blocks.append({"type": "ejercicio", "ok": False, "error": "Ejercicio no encontrado"})
+                continue
+
+            video_url = ""
+            if getattr(ej, "video_filename", ""):
+                video_url = url_for("static", filename=f"videos/{ej.video_filename}")
+
+            blocks.append({
+                "type": "ejercicio",
+                "ok": True,
+                "ejercicio": {
+                    "id": ej.id,
+                    "nombre": ej.nombre,
+                    "categoria": getattr(ej, "categoria", "") or "",
+                    "descripcion": getattr(ej, "descripcion", "") or "",
+                    "video_url": video_url,
+                }
+            })
+            continue
+
+        if btype in ("run", "bike", "swim", "free", "note"):
+            blocks.append({"type": btype, "ok": True, "text": raw})
+            continue
+
+    return blocks
+
+
+# =============================================================
 # API: DAY DETAIL — DEVUELVE blocks
 # =============================================================
 @main_bp.route("/api/day_detail")
@@ -1356,98 +1444,32 @@ def api_day_detail():
     checks = AthleteCheck.query.filter_by(user_id=user_id, fecha=fecha, done=True).all()
     done_ids = [c.rutina_item_id for c in checks if c.rutina_item_id is not None]
 
-    blocks_src = _split_blocks_from_main(plan.main or "")
-    blocks: List[Dict[str, Any]] = []
+    # ✅ MAIN blocks (principal)
+    main_blocks = _build_blocks_payload_from_text(plan.main or "")
 
-    legacy_items_payload: List[Dict[str, Any]] = []
+    # ✅ NUEVO: warmup/finisher como BLOQUES
+    warmup_blocks = _build_blocks_payload_from_text(plan.warmup or "")
+    finisher_blocks = _build_blocks_payload_from_text(plan.finisher or "")
+
+    # legacy (compat)
     legacy_rutina = None
+    legacy_items_payload: List[Dict[str, Any]] = []
     legacy_is_tabata = False
     legacy_tabata_cfg = None
 
-    for b in blocks_src:
-        btype = b["type"]
-        raw = (b["raw"] or "").strip()
-
-        if btype == "tabata":
-            rid = None
-            if raw.upper().startswith("RUTINA:"):
-                rid = parse_rutina_ref(raw)
-            if not rid:
-                rid = parse_rutina_ref(raw)
-
-            rutina = Rutina.query.get(rid) if rid else None
-            if not rutina:
-                blocks.append({"type": "tabata", "ok": False, "error": "Rutina no encontrada"})
-                continue
-
-            items = _items_payload_for_rutina(rutina.id)
-            cfg = _get_tabata_cfg(rutina, len(items))
-
-            blocks.append({
-                "type": "tabata",
-                "ok": True,
-                "rutina": _rutina_payload(rutina),
-                "cfg": cfg,
-                "items": items,
-                "start_url": url_for("main.rutina_tabata_player", rutina_id=rutina.id),
-                "settings_url": url_for("main.rutina_tabata_settings", rutina_id=rutina.id) if admin_ok() else "",
-            })
-
-            if legacy_rutina is None:
-                legacy_rutina = rutina
-                legacy_is_tabata = True
-                legacy_tabata_cfg = cfg
-                legacy_items_payload = items
+    for b in main_blocks:
+        if not b.get("ok"):
             continue
-
-        if btype in ("fuerza", "stretch"):
-            rid = parse_rutina_ref(raw)
-            rutina = Rutina.query.get(rid) if rid else None
-            if not rutina:
-                blocks.append({"type": btype, "ok": False, "error": "Rutina no encontrada"})
-                continue
-
-            items = _items_payload_for_rutina(rutina.id)
-            blocks.append({
-                "type": btype,  # fuerza o stretch
-                "ok": True,
-                "rutina": _rutina_payload(rutina),
-                "items": items,
-                "builder_url": url_for("main.rutina_builder", rutina_id=rutina.id) if admin_ok() else "",
-            })
-
-            if legacy_rutina is None:
-                legacy_rutina = rutina
-                legacy_items_payload = items
-            continue
-
-        if btype == "ejercicio":
-            eid = parse_ejercicio_ref(raw)
-            ej = Ejercicio.query.get(eid) if eid else None
-            if not ej:
-                blocks.append({"type": "ejercicio", "ok": False, "error": "Ejercicio no encontrado"})
-                continue
-
-            video_url = ""
-            if getattr(ej, "video_filename", ""):
-                video_url = url_for("static", filename=f"videos/{ej.video_filename}")
-
-            blocks.append({
-                "type": "ejercicio",
-                "ok": True,
-                "ejercicio": {
-                    "id": ej.id,
-                    "nombre": ej.nombre,
-                    "categoria": getattr(ej, "categoria", "") or "",
-                    "descripcion": getattr(ej, "descripcion", "") or "",
-                    "video_url": video_url,
-                }
-            })
-            continue
-
-        if btype in ("run", "bike", "swim", "free", "note"):
-            blocks.append({"type": btype, "ok": True, "text": raw})
-            continue
+        if b.get("type") == "tabata" and b.get("rutina"):
+            legacy_rutina = b["rutina"]
+            legacy_items_payload = b.get("items") or []
+            legacy_is_tabata = True
+            legacy_tabata_cfg = b.get("cfg")
+            break
+        if b.get("type") in ("fuerza", "stretch") and b.get("rutina"):
+            legacy_rutina = b["rutina"]
+            legacy_items_payload = b.get("items") or []
+            break
 
     return jsonify({
         "ok": True,
@@ -1459,9 +1481,18 @@ def api_day_detail():
             "puede_entrenar": plan.puede_entrenar,
             "comentario_atleta": plan.comentario_atleta,
         },
-        "blocks": blocks,
-        "rutina": ({"id": legacy_rutina.id, "nombre": legacy_rutina.nombre} if legacy_rutina else None),
+
+        # ✅ MAIN (principal)
+        "blocks": main_blocks,
+
+        # ✅ NUEVO
+        "warmup_blocks": warmup_blocks,
+        "finisher_blocks": finisher_blocks,
+
+        # legacy
+        "rutina": ({"id": legacy_rutina.get("id"), "nombre": legacy_rutina.get("nombre")} if legacy_rutina else None),
         "items": legacy_items_payload,
+
         "checks": done_ids,
         "log": {
             "did_train": bool(log.did_train),

@@ -141,6 +141,7 @@
                 <!-- =========================
                      ✅ BLOQUES 1..4
                      b{i}_type / b{i}_rutina / b{i}_text
+                     + UI extra para EJ (ejercicio suelto)
                 ========================== -->
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -173,6 +174,8 @@
                             <option value="">(vacío)</option>
                             <option value="TABATA">TABATA</option>
                             <option value="FUERZA">FUERZA</option>
+                            <option value="STRETCH">STRETCH</option>
+                            <option value="EJ">EJ (ejercicio suelto)</option>
                             <option value="RUN">RUN</option>
                             <option value="BIKE">BIKE</option>
                             <option value="SWIM">SWIM</option>
@@ -181,6 +184,7 @@
                           </select>
                         </div>
 
+                        <!-- Rutina (TABATA/FUERZA/STRETCH) -->
                         <div class="col-md-4" id="{{ day_id }}_b{{i}}_rutina_wrap">
                           <label class="text-muted" style="font-weight:900;">Rutina</label>
                           <select class="form-select" name="b{{i}}_rutina" id="{{ day_id }}_b{{i}}_rutina"
@@ -192,11 +196,52 @@
                           </select>
                         </div>
 
+                        <!-- Texto (RUN/BIKE/SWIM/FREE/NOTE) -->
                         <div class="col-md-8" id="{{ day_id }}_b{{i}}_text_wrap">
                           <label class="text-muted" style="font-weight:900;">Texto</label>
                           <input class="form-control" name="b{{i}}_text" id="{{ day_id }}_b{{i}}_text"
-                                 placeholder="Ej: 10km suave / 6x400 / 60' Z2 / técnica"
+                                 placeholder="Ej: 10km suave / 6x400 / 60' Z2 / técnica / comentario"
                                  {% if blocked %}disabled{% endif %}>
+                        </div>
+
+                        <!-- Ejercicio suelto (EJ) -->
+                        <div class="col-md-8" id="{{ day_id }}_b{{i}}_ej_wrap">
+                          <label class="text-muted" style="font-weight:900;">Ejercicio (Banco)</label>
+
+                          <!-- selector -->
+                          <select class="form-select"
+                                  id="{{ day_id }}_b{{i}}_ej_select"
+                                  onchange="syncEjToText('{{ day_id }}', {{ i }})"
+                                  {% if blocked %}disabled{% endif %}>
+                            <option value="">(seleccionar ejercicio)</option>
+                            {% for g in muscle_groups_order %}
+                              {% set arr = ejercicios_por_grupo.get(g, []) %}
+                              {% if arr and arr|length %}
+                                <optgroup label="{{ g }}">
+                                  {% for e in arr %}
+                                    <option value="{{ e.id }}">{{ e.nombre }}</option>
+                                  {% endfor %}
+                                </optgroup>
+                              {% endif %}
+                            {% endfor %}
+                          </select>
+
+                          <!-- guardamos el id en b{i}_text (porque routes.py espera text para EJ) -->
+                          <div class="d-flex gap-2 mt-2">
+                            <input class="form-control"
+                                   name="b{{i}}_text"
+                                   id="{{ day_id }}_b{{i}}_ej_text"
+                                   placeholder="ID ejercicio (auto) · ej: 123"
+                                   {% if blocked %}disabled{% endif %}>
+                            <button class="btn btn-outline-light" type="button"
+                                    onclick="openEjPreview('{{ day_id }}', {{ i }})" {% if blocked %}disabled{% endif %}>
+                              <i class="bi bi-eye"></i>
+                            </button>
+                          </div>
+
+                          <div class="text-muted small mt-1">
+                            Se guarda como <span class="badge bg-dark border">EJ:&lt;id&gt;</span> (video y descripción aparecen en el perfil del atleta).
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -306,18 +351,42 @@
 
   {% endif %}
 </div>
+
+<!-- Modal preview ejercicio -->
+<div class="modal fade" id="ejPreviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-dark text-light border border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="ejPreviewTitle">Ejercicio</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="ejPreviewBody">
+        <div class="text-muted">Seleccioná un ejercicio para previsualizar.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 /**
- * Este planificador trabaja con 4 bloques:
- *  b{i}_type (TABATA/FUERZA/RUN/BIKE/SWIM/FREE/NOTE)
- *  b{i}_rutina (solo TABATA/FUERZA)
- *  b{i}_text   (solo los otros tipos)
+ * BLOQUES:
+ *  - TABATA / FUERZA / STRETCH => rutina
+ *  - EJ => ejercicio suelto (guardamos ID en b{i}_text)
+ *  - RUN/BIKE/SWIM/FREE/NOTE => texto
  *
- * Y tiene un botón “Autocargar desde Main” que intenta
- * leer "main" (texto histórico) y distribuirlo en 4 bloques.
+ * Botón Autocargar desde Main soporta:
+ *  TABATA:RUTINA:12
+ *  FUERZA:RUTINA:12
+ *  STRETCH:RUTINA:12   o ESTIRAMIENTOS:RUTINA:12
+ *  EJ:34 o EJERCICIO:34
+ *  RUN:...
+ *  BIKE:...
+ *  SWIM:...
+ *  FREE:...
+ *  NOTE:...
  */
 
 function syncBlockUI(dayId, i){
@@ -326,27 +395,65 @@ function syncBlockUI(dayId, i){
 
   const rutWrap = document.getElementById(`${dayId}_b${i}_rutina_wrap`);
   const txtWrap = document.getElementById(`${dayId}_b${i}_text_wrap`);
-  const badge = document.getElementById(`${dayId}_b${i}_badge`);
+  const ejWrap  = document.getElementById(`${dayId}_b${i}_ej_wrap`);
+  const badge   = document.getElementById(`${dayId}_b${i}_badge`);
 
   badge.textContent = val || "—";
-  badge.className = "badge " + (val === "TABATA" ? "bg-danger" :
-                                val === "FUERZA" ? "bg-info" :
-                                val === "RUN" ? "bg-success" :
-                                val === "BIKE" ? "bg-warning text-dark" :
-                                val === "SWIM" ? "bg-primary" :
-                                val === "FREE" ? "bg-secondary" :
-                                val === "NOTE" ? "bg-light text-dark" : "bg-dark");
+  badge.className = "badge " + (
+    val === "TABATA"  ? "bg-danger" :
+    val === "FUERZA"  ? "bg-info" :
+    val === "STRETCH" ? "bg-success" :
+    val === "EJ"      ? "bg-warning text-dark" :
+    val === "RUN"     ? "bg-success" :
+    val === "BIKE"    ? "bg-warning text-dark" :
+    val === "SWIM"    ? "bg-primary" :
+    val === "FREE"    ? "bg-secondary" :
+    val === "NOTE"    ? "bg-light text-dark" : "bg-dark"
+  );
 
-  if(val === "TABATA" || val === "FUERZA"){
+  // hide all by default
+  rutWrap.style.display = "none";
+  txtWrap.style.display = "none";
+  ejWrap.style.display  = "none";
+
+  if(val === "TABATA" || val === "FUERZA" || val === "STRETCH"){
     rutWrap.style.display = "";
-    txtWrap.style.display = "none";
-  }else if(val){
-    rutWrap.style.display = "none";
+  } else if(val === "EJ"){
+    ejWrap.style.display = "";
+  } else if(val){
     txtWrap.style.display = "";
-  }else{
-    rutWrap.style.display = "none";
-    txtWrap.style.display = "none";
   }
+}
+
+function extractRutinaId(line){
+  const s = String(line||"").trim();
+  const up = s.toUpperCase().replaceAll(" ", "");
+
+  if(up.includes("RUTINA:")){
+    const after = up.split("RUTINA:")[1] || "";
+    const n = parseInt(after, 10);
+    return Number.isFinite(n) ? String(n) : "";
+  }
+  const n2 = parseInt(s, 10);
+  return Number.isFinite(n2) ? String(n2) : "";
+}
+
+function extractEjId(line){
+  const s = String(line||"").trim();
+  const up = s.toUpperCase().replaceAll(" ", "");
+
+  if(up.startsWith("EJ:")){
+    const after = up.split("EJ:")[1] || "";
+    const n = parseInt(after, 10);
+    return Number.isFinite(n) ? String(n) : "";
+  }
+  if(up.startsWith("EJERCICIO:")){
+    const after = up.split("EJERCICIO:")[1] || "";
+    const n = parseInt(after, 10);
+    return Number.isFinite(n) ? String(n) : "";
+  }
+  const n2 = parseInt(s, 10);
+  return Number.isFinite(n2) ? String(n2) : "";
 }
 
 function parseMainToBlocks(mainText){
@@ -356,62 +463,54 @@ function parseMainToBlocks(mainText){
   for(const line of lines){
     const up = line.toUpperCase();
 
-    // TABATA:RUTINA:12
     if(up.startsWith("TABATA:")){
-      out.push({type:"TABATA", rutina: extractRutinaId(line), text:""});
+      out.push({type:"TABATA", rutina: extractRutinaId(line), text:"", ej:""});
       continue;
     }
     if(up.startsWith("FUERZA:")){
-      out.push({type:"FUERZA", rutina: extractRutinaId(line), text:""});
+      out.push({type:"FUERZA", rutina: extractRutinaId(line), text:"", ej:""});
       continue;
     }
-    if(up.startsWith("RUN:")){
-      out.push({type:"RUN", rutina:"", text: line.split(":",1)[0] ? line.split(":",2)[1].trim() : ""});
+    if(up.startsWith("STRETCH:") || up.startsWith("ESTIRAMIENTOS:")){
+      out.push({type:"STRETCH", rutina: extractRutinaId(line), text:"", ej:""});
       continue;
     }
-    if(up.startsWith("BIKE:")){
-      out.push({type:"BIKE", rutina:"", text: line.split(":",2)[1].trim()});
-      continue;
-    }
-    if(up.startsWith("SWIM:") || up.startsWith("NATACION:") || up.startsWith("NATACIÓN:")){
-      out.push({type:"SWIM", rutina:"", text: line.split(":",2)[1].trim()});
-      continue;
-    }
-    if(up.startsWith("FREE:")){
-      out.push({type:"FREE", rutina:"", text: line.split(":",2)[1].trim()});
-      continue;
-    }
-    if(up.startsWith("NOTE:") || up.startsWith("NOTA:")){
-      out.push({type:"NOTE", rutina:"", text: line.split(":",2)[1].trim()});
+    if(up.startsWith("EJ:") || up.startsWith("EJERCICIO:")){
+      out.push({type:"EJ", rutina:"", text:"", ej: extractEjId(line)});
       continue;
     }
 
-    // Si viene algo tipo "RUTINA:12" o "12" => asumimos FUERZA
+    if(up.startsWith("RUN:")){
+      out.push({type:"RUN", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
+      continue;
+    }
+    if(up.startsWith("BIKE:")){
+      out.push({type:"BIKE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
+      continue;
+    }
+    if(up.startsWith("SWIM:") || up.startsWith("NATACION:") || up.startsWith("NATACIÓN:")){
+      out.push({type:"SWIM", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
+      continue;
+    }
+    if(up.startsWith("FREE:")){
+      out.push({type:"FREE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
+      continue;
+    }
+    if(up.startsWith("NOTE:") || up.startsWith("NOTA:")){
+      out.push({type:"NOTE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
+      continue;
+    }
+
+    // legacy: "RUTINA:12" o "12" => fuerza
     const rid = extractRutinaId(line);
     if(rid){
-      out.push({type:"FUERZA", rutina: rid, text:""});
+      out.push({type:"FUERZA", rutina: rid, text:"", ej:""});
     }else{
-      out.push({type:"FREE", rutina:"", text: line});
+      out.push({type:"FREE", rutina:"", text: line, ej:""});
     }
   }
 
   return out.slice(0,4);
-}
-
-function extractRutinaId(line){
-  const s = String(line||"").trim();
-  const up = s.toUpperCase().replaceAll(" ", "");
-
-  // TABATA:RUTINA:12 -> 12
-  if(up.includes("RUTINA:")){
-    const after = up.split("RUTINA:")[1] || "";
-    const n = parseInt(after, 10);
-    return Number.isFinite(n) ? String(n) : "";
-  }
-
-  // solo número
-  const n2 = parseInt(s, 10);
-  return Number.isFinite(n2) ? String(n2) : "";
 }
 
 function fillFromMain(dayId){
@@ -420,22 +519,70 @@ function fillFromMain(dayId){
   const blocks = parseMainToBlocks(main);
 
   for(let i=1; i<=4; i++){
-    const b = blocks[i-1] || {type:"", rutina:"", text:""};
+    const b = blocks[i-1] || {type:"", rutina:"", text:"", ej:""};
 
     const typeEl = document.getElementById(`${dayId}_b${i}_type`);
     const rutEl  = document.getElementById(`${dayId}_b${i}_rutina`);
     const txtEl  = document.getElementById(`${dayId}_b${i}_text`);
 
+    // EJ UI
+    const ejSelect = document.getElementById(`${dayId}_b${i}_ej_select`);
+    const ejText   = document.getElementById(`${dayId}_b${i}_ej_text`);
+
     typeEl.value = b.type || "";
+
     if(rutEl) rutEl.value = b.rutina || "";
     if(txtEl) txtEl.value = b.text || "";
+
+    if(ejText) ejText.value = b.ej || "";
+    if(ejSelect){
+      ejSelect.value = b.ej || "";
+    }
 
     syncBlockUI(dayId, i);
   }
 }
 
+function syncEjToText(dayId, i){
+  const ejSelect = document.getElementById(`${dayId}_b${i}_ej_select`);
+  const ejText   = document.getElementById(`${dayId}_b${i}_ej_text`);
+  if(!ejSelect || !ejText) return;
+  ejText.value = ejSelect.value || "";
+}
+
+function openEjPreview(dayId, i){
+  const ejText   = document.getElementById(`${dayId}_b${i}_ej_text`);
+  const ejSelect = document.getElementById(`${dayId}_b${i}_ej_select`);
+  const id = (ejText && ejText.value) ? ejText.value.trim() : (ejSelect && ejSelect.value ? ejSelect.value : "");
+  const title = document.getElementById("ejPreviewTitle");
+  const body  = document.getElementById("ejPreviewBody");
+  const modalEl = document.getElementById("ejPreviewModal");
+
+  if(!id){
+    title.textContent = "Ejercicio";
+    body.innerHTML = `<div class="text-muted">Seleccioná un ejercicio primero.</div>`;
+    new bootstrap.Modal(modalEl).show();
+    return;
+  }
+
+  // Preview “liviano”: mostramos el nombre del option si existe
+  let name = "";
+  if(ejSelect){
+    const opt = ejSelect.querySelector(`option[value="${CSS.escape(id)}"]`);
+    if(opt) name = opt.textContent || "";
+  }
+
+  title.textContent = name ? `EJ ${id} · ${name}` : `EJ ${id}`;
+  body.innerHTML = `
+    <div class="text-soft">Este bloque se guardará como:</div>
+    <div class="mt-2"><span class="badge bg-dark border">EJ:${id}</span></div>
+    <div class="text-muted small mt-3">El video y la descripción se verán en el perfil del atleta.</div>
+  `;
+
+  new bootstrap.Modal(modalEl).show();
+}
+
 (function initAll(){
-  // Inicializa todos los bloques según el valor default (vacío)
   const selects = document.querySelectorAll("select[id$='_type']");
   selects.forEach(sel => {
     const m = sel.id.match(/^(day_\d+)_b(\d+)_type$/);

@@ -3,8 +3,6 @@
 
 {# ============================================================
    ✅ Macro: icono + texto para plan_type (sin templates extra)
-   Usa tus PNG en /static/icons/
-   fuerza.png, run.png, pista.png, bike.png, natacion.png, descanso.png
 ============================================================ #}
 {% macro activity_badge(plan_type, size='') %}
   {% set raw = (plan_type or 'Descanso') %}
@@ -30,7 +28,6 @@
     {% set icon = 'icons/descanso.png' %}
     {% set label = 'Descanso' %}
   {% else %}
-    {# fallback #}
     {% set icon = 'icons/descanso.png' %}
     {% set label = t %}
   {% endif %}
@@ -301,7 +298,6 @@
             </div>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <!-- ✅ BOTÓN PREMIUM “NO PUEDO ENTRENAR” -->
               <button class="btn btn-sm btn-outline-danger" type="button" id="cantTrainBtn" onclick="toggleAvailabilityPanel(true)">
                 <i class="bi bi-slash-circle me-1"></i> No puedo entrenar
               </button>
@@ -332,40 +328,35 @@
       <div class="modal-body">
         <div class="row g-3">
 
-          <!-- IZQUIERDA -->
+          <!-- IZQUIERDA (Activación → Principal → Enfriamiento) -->
           <div class="col-lg-4">
-            <div class="day-section" id="planSection">
-              <div class="day-section-title">Plan</div>
 
-              <div class="plan-card" id="warmupCard">
-                <div class="plan-k">Activación</div>
-                <div class="plan-v" id="planWarmup">—</div>
-              </div>
-
-              <!-- ✅ SESIÓN EN EL MEDIO (solo run/bike/swim) -->
-              <div class="day-section d-none mt-2" id="midSessionSection">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                  <div>
-                    <div class="day-section-title" style="margin:0;">Principal</div>
-                    <div class="text-muted" id="blocksMetaMid">—</div>
-                  </div>
-                </div>
-                <div id="dayBlocksMid" class="blocks-wrap">
-                  <div class="text-muted">—</div>
-                </div>
-              </div>
-
-              <div class="plan-card" id="finisherCard">
-                <div class="plan-k">Enfriamiento</div>
-                <div class="plan-v" id="planFinisher">—</div>
-              </div>
-
-              <div class="text-muted mt-2" style="font-size:.92rem;">
-                Seguí el orden: activación → principal → enfriamiento.
+            <!-- ✅ ACTIVACIÓN (BLOQUES) -->
+            <div class="day-section" id="warmupSection">
+              <div class="day-section-title">1 · Activación</div>
+              <div id="warmupBlocks" class="blocks-wrap">
+                <div class="text-muted">—</div>
               </div>
             </div>
 
-            <!-- ✅ DISPONIBILIDAD (colapsado, premium) -->
+            <!-- ✅ PRINCIPAL (BLOQUES) -->
+            <div class="day-section mt-3" id="mainSection">
+              <div class="day-section-title">2 · Bloque principal</div>
+              <div class="text-muted" id="blocksMeta">—</div>
+              <div id="dayBlocks" class="blocks-wrap mt-2">
+                <div class="text-muted">Cargando...</div>
+              </div>
+            </div>
+
+            <!-- ✅ ENFRIAMIENTO (BLOQUES) -->
+            <div class="day-section mt-3" id="finisherSection">
+              <div class="day-section-title">3 · Enfriamiento</div>
+              <div id="finisherBlocks" class="blocks-wrap">
+                <div class="text-muted">—</div>
+              </div>
+            </div>
+
+            <!-- ✅ DISPONIBILIDAD -->
             <div class="day-section mt-3 d-none" id="availabilityPanel">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="day-section-title" style="margin:0;">Disponibilidad</div>
@@ -395,22 +386,8 @@
           <!-- DERECHA -->
           <div class="col-lg-8">
 
-            <!-- ✅ SESIÓN NORMAL (fuerza/tabata y resto) -->
-            <div class="day-section" id="sessionRightSection">
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                <div>
-                  <div class="day-section-title">Sesión</div>
-                  <div class="text-muted" id="blocksMeta">—</div>
-                </div>
-              </div>
-
-              <div id="dayBlocks" class="blocks-wrap">
-                <div class="text-muted">Cargando...</div>
-              </div>
-            </div>
-
-            <!-- EJERCICIOS (solo fuerza al abrir) -->
-            <div class="day-section mt-3 d-none" id="strengthSection">
+            <!-- EJERCICIOS (solo fuerza al abrir bloque fuerza) -->
+            <div class="day-section d-none" id="strengthSection">
               <div class="day-section-title">Ejercicios</div>
               <div id="strengthItems" class="row g-3"></div>
             </div>
@@ -481,28 +458,6 @@
   font-size: .78rem;
   color: rgba(255,255,255,.72);
   margin-bottom: 10px;
-}
-
-.plan-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 16px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-.plan-k{
-  font-weight: 900;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.72);
-  font-size: .78rem;
-}
-.plan-v{
-  margin-top: 6px;
-  font-size: 1.00rem;
-  font-weight: 800;
-  color: rgba(255,255,255,.92);
-  white-space: pre-line;
 }
 
 .blocks-wrap{ display:grid; gap:12px; }
@@ -625,7 +580,8 @@ function badgeHtml(type){
     "BIKE": "bg-warning text-dark",
     "SWIM": "bg-primary",
     "FREE": "bg-secondary",
-    "NOTE": "bg-light text-dark"
+    "NOTE": "bg-light text-dark",
+    "VIDEO": "bg-dark"
   };
   const cls = map[t] || "bg-secondary";
   return `<span class="badge ${cls}" style="font-weight:900; letter-spacing:.06em;">${escapeHtml(t||"BLOQUE")}</span>`;
@@ -639,6 +595,7 @@ function typeLabel(type){
   if(t === "swim") return "SWIM";
   if(t === "free") return "FREE";
   if(t === "note") return "NOTE";
+  if(t === "video") return "VIDEO";
   return (type||"BLOQUE").toUpperCase();
 }
 
@@ -695,7 +652,6 @@ async function saveAvailability(){
 
     setAvailUI(noPuedo ? "no" : "si", comentario);
 
-    // pintar celda del mes si está visible
     const cell = document.querySelector(`.month-cell[data-date="${CSS.escape(CURRENT_DAY)}"]`);
     if(cell){
       if(noPuedo) cell.classList.add("blocked");
@@ -710,7 +666,10 @@ async function saveAvailability(){
 }
 
 /* =========================
-   BLOQUES
+   BLOQUES (RENDER UNIVERSAL)
+   - Fuerza: muestra ejercicios (verdes + kilos)
+   - Tabata: solo ▶ Reproducir (sin Builder para atleta)
+   - Video: muestra video embed
 ========================= */
 function renderBlocksInto(elId, blocks){
   const wrap = document.getElementById(elId);
@@ -718,7 +677,7 @@ function renderBlocksInto(elId, blocks){
 
   const arr = Array.isArray(blocks) ? blocks : [];
   if(!arr.length){
-    wrap.innerHTML = `<div class="text-muted">No hay sesión definida para este día.</div>`;
+    wrap.innerHTML = `<div class="text-muted">—</div>`;
     return;
   }
 
@@ -734,6 +693,7 @@ function renderBlocksInto(elId, blocks){
     if(type === "free"){ icon = "bi-wind"; }
     if(type === "note"){ icon = "bi-chat-left-text"; }
     if(type === "fuerza"){ icon = "bi-barbell"; }
+    if(type === "video"){ icon = "bi-play-btn-fill"; }
 
     const div = document.createElement("div");
     div.className = "block-card";
@@ -764,14 +724,14 @@ function renderBlocksInto(elId, blocks){
             <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
-              <div class="block-sub">${itemsCount} ejercicio(s) · video + check</div>
+              <div class="block-sub">${itemsCount} ejercicio(s) · kilos + video + check</div>
             </div>
           </div>
           ${badgeHtml("FUERZA")}
         </div>
 
         <div class="block-actions">
-          <button class="btn btn-outline-light" type="button" onclick="toggleStrength(${idx})">
+          <button class="btn btn-outline-light" type="button" onclick="toggleStrength(${idx}, '${elId}')">
             Ver ejercicios
           </button>
         </div>
@@ -791,7 +751,7 @@ function renderBlocksInto(elId, blocks){
       div.innerHTML = `
         <div class="block-head">
           <div class="block-left">
-            <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
+            <div class="block-icon"><i class="bi ${icon} text-danger"></i></div>
             <div>
               <div class="block-title">${escapeHtml(rname)}</div>
               <div class="block-sub">${work}s trabajo · ${rest}s descanso · ${rounds} ejercicios · ${sets} set(s)</div>
@@ -802,6 +762,33 @@ function renderBlocksInto(elId, blocks){
         <div class="block-actions">
           <a class="btn btn-danger" href="${startUrl}" target="_blank" rel="noopener">▶ Reproducir</a>
         </div>
+      `;
+      wrap.appendChild(div);
+      return;
+    }
+
+    if(type === "video"){
+      const title = cleanText(b.title || "Video");
+      const src = (b.src || b.video_src || "").trim();
+      div.innerHTML = `
+        <div class="block-head">
+          <div class="block-left">
+            <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
+            <div>
+              <div class="block-title">${escapeHtml(title)}</div>
+              <div class="block-sub">${src ? "Reproducí y seguí." : "Sin video"}</div>
+            </div>
+          </div>
+          ${badgeHtml("VIDEO")}
+        </div>
+        ${src ? `
+          <div class="mt-2">
+            <video class="w-100" controls playsinline preload="metadata"
+                   style="border-radius:16px;border:1px solid rgba(255,255,255,.14);background:#000;max-height:320px;">
+              <source src="${src}" type="video/mp4">
+            </video>
+          </div>
+        ` : ``}
       `;
       wrap.appendChild(div);
       return;
@@ -842,7 +829,8 @@ function renderBlocksInto(elId, blocks){
 }
 
 function updateProgress(){
-  const blocks = Array.isArray(CURRENT_PAYLOAD?.blocks) ? CURRENT_PAYLOAD.blocks : [];
+  // cuenta solo fuerza del MAIN (si existe), si no, suma checks sobre todos los items cargados en strength view
+  const blocks = Array.isArray(CURRENT_PAYLOAD?.main_blocks) ? CURRENT_PAYLOAD.main_blocks : (Array.isArray(CURRENT_PAYLOAD?.blocks) ? CURRENT_PAYLOAD.blocks : []);
   const force = blocks.find(b => (b.type||"").toLowerCase()==="fuerza" && b.ok && Array.isArray(b.items));
   const total = force?.items?.length || 0;
   const done = total ? force.items.filter(it => CURRENT_CHECKS.has(String(it.id))).length : 0;
@@ -853,7 +841,7 @@ function updateProgress(){
 }
 
 /* =========================
-   FUERZA (mostrar/ocultar)
+   FUERZA (verdes + kilos)
 ========================= */
 function posterDataUrl(title){
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -875,20 +863,20 @@ function posterDataUrl(title){
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
+function pickWeight(it){
+  const w = (it.peso ?? it.kg ?? it.kilos ?? it.weight ?? it.carga ?? it.load ?? null);
+  if(w === null || w === undefined) return "";
+  const n = String(w).trim();
+  if(!n || n === "0" || n.toLowerCase() === "none") return "";
+  return n;
+}
+
 function renderStrength(items){
   const wrap = document.getElementById("strengthItems");
   wrap.innerHTML = "";
   if(!items || !items.length){
     wrap.innerHTML = `<div class="text-muted">No hay ejercicios para mostrar.</div>`;
     return;
-  }
-
-  function pickWeight(it){
-    const w = (it.peso ?? it.kg ?? it.kilos ?? it.weight ?? it.carga ?? it.load ?? null);
-    if(w === null || w === undefined) return "";
-    const n = String(w).trim();
-    if(!n || n === "0" || n.toLowerCase() === "none") return "";
-    return n;
   }
 
   items.forEach(it => {
@@ -909,8 +897,8 @@ function renderStrength(items){
     const kgTxt = kgVal ? `${kgVal} kg` : "";
 
     const parts = [];
-    if(series) parts.push(series);
-    if(reps) parts.push(reps);
+    if(series) parts.push(`${series} series`);
+    if(reps) parts.push(`${reps} reps`);
     if(kgTxt) parts.push(kgTxt);
     if(desc) parts.push(`Desc ${desc}`);
     if(nota) parts.push(cleanText(nota));
@@ -949,13 +937,20 @@ function renderStrength(items){
   });
 }
 
-function toggleStrength(blockIndex){
+// ahora strength puede venir del MAIN o de warmup/finisher (según donde clickeaste)
+function toggleStrength(blockIndex, sourceElId){
   const sec = document.getElementById("strengthSection");
   const isHidden = sec.classList.contains("d-none");
 
   if(isHidden){
-    const b = (CURRENT_PAYLOAD && Array.isArray(CURRENT_PAYLOAD.blocks)) ? CURRENT_PAYLOAD.blocks[blockIndex] : null;
+    let sourceBlocks = [];
+    if(sourceElId === "warmupBlocks") sourceBlocks = CURRENT_PAYLOAD?.warmup_blocks || [];
+    else if(sourceElId === "finisherBlocks") sourceBlocks = CURRENT_PAYLOAD?.finisher_blocks || [];
+    else sourceBlocks = CURRENT_PAYLOAD?.main_blocks || CURRENT_PAYLOAD?.blocks || [];
+
+    const b = Array.isArray(sourceBlocks) ? sourceBlocks[blockIndex] : null;
     const items = (b && b.ok && Array.isArray(b.items)) ? b.items : [];
+
     sec.classList.remove("d-none");
     renderStrength(items);
     updateProgress();
@@ -966,7 +961,7 @@ function toggleStrength(blockIndex){
 }
 
 /* =========================
-   OPEN DAY + REORDEN RUN/BIKE/SWIM
+   OPEN DAY
 ========================= */
 function openDay(isoDate){
   CURRENT_DAY = isoDate;
@@ -982,39 +977,26 @@ function openDay(isoDate){
   CURRENT_PAYLOAD = null;
   CURRENT_CHECKS = new Set();
 
-  // reset UI
   document.getElementById("dayModalDate").textContent = isoDate;
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
   document.getElementById("daySubtitle").textContent = "Lo que toca hoy.";
 
+  document.getElementById("warmupBlocks").innerHTML = `<div class="text-muted">—</div>`;
   document.getElementById("dayBlocks").innerHTML = `<div class="text-muted">Cargando...</div>`;
+  document.getElementById("finisherBlocks").innerHTML = `<div class="text-muted">—</div>`;
   document.getElementById("blocksMeta").textContent = "—";
-
-  document.getElementById("dayBlocksMid").innerHTML = `<div class="text-muted">—</div>`;
-  document.getElementById("blocksMetaMid").textContent = "—";
 
   document.getElementById("strengthSection").classList.add("d-none");
   document.getElementById("strengthItems").innerHTML = "";
-
-  document.getElementById("warmupCard").style.display = "";
-  document.getElementById("finisherCard").style.display = "";
-
-  document.getElementById("planWarmup").textContent = "—";
-  document.getElementById("planFinisher").textContent = "—";
 
   document.getElementById("progressBar").style.width = "0%";
   document.getElementById("progressLabel").textContent = "—";
 
   document.getElementById("blockedChip").classList.add("d-none");
 
-  // availability panel reset (cerrado por defecto)
   document.getElementById("availabilityPanel").classList.add("d-none");
   setAvailUI("si","");
-
-  // default sections visible
-  document.getElementById("midSessionSection").classList.add("d-none");
-  document.getElementById("sessionRightSection").classList.remove("d-none");
 
   fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
     .then(r => r.json())
@@ -1023,30 +1005,10 @@ function openDay(isoDate){
       CURRENT_PAYLOAD = data;
 
       const p = data.plan || {};
-      const planType = String(p.plan_type || "").toLowerCase();
-      const isEndurance = (planType === "run" || planType === "bike" || planType === "swim");
-
       document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
-      // warmup / finisher (no mostrar none)
-      const warm = cleanText(p.warmup || "");
-      if(!warm || warm.toLowerCase()==="none"){
-        document.getElementById("warmupCard").style.display = "none";
-      }else{
-        document.getElementById("planWarmup").textContent = warm;
-        document.getElementById("warmupCard").style.display = "";
-      }
-
-      const fin = cleanText(p.finisher || "");
-      if(!fin || fin.toLowerCase()==="none"){
-        document.getElementById("finisherCard").style.display = "none";
-      }else{
-        document.getElementById("planFinisher").textContent = fin;
-        document.getElementById("finisherCard").style.display = "";
-      }
-
-      // ✅ disponibilidad desde backend
+      // disponibilidad
       setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
 
       document.getElementById("didTrain").checked = !!data.log?.did_train;
@@ -1054,27 +1016,19 @@ function openDay(isoDate){
 
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
-      // bloques
-      const blocks = Array.isArray(data.blocks) ? data.blocks : [];
-      const blocksCount = blocks.length;
+      // ✅ render de warmup/main/finisher como BLOQUES
+      const wBlocks = Array.isArray(data.warmup_blocks) ? data.warmup_blocks : [];
+      const mBlocks = Array.isArray(data.main_blocks) ? data.main_blocks : (Array.isArray(data.blocks) ? data.blocks : []);
+      const fBlocks = Array.isArray(data.finisher_blocks) ? data.finisher_blocks : [];
 
-      if(isEndurance){
-        document.getElementById("midSessionSection").classList.remove("d-none");
-        document.getElementById("sessionRightSection").classList.add("d-none");
+      renderBlocksInto("warmupBlocks", wBlocks);
+      renderBlocksInto("dayBlocks", mBlocks);
+      renderBlocksInto("finisherBlocks", fBlocks);
 
-        document.getElementById("blocksMetaMid").textContent = blocksCount ? `${blocksCount} bloque(s)` : "—";
-        renderBlocksInto("dayBlocksMid", blocks);
-      }else{
-        document.getElementById("midSessionSection").classList.add("d-none");
-        document.getElementById("sessionRightSection").classList.remove("d-none");
+      const blocksCount = mBlocks.length;
+      document.getElementById("blocksMeta").textContent = blocksCount ? `${blocksCount} bloque(s)` : "—";
 
-        document.getElementById("blocksMeta").textContent = blocksCount ? `${blocksCount} bloque(s)` : "—";
-        renderBlocksInto("dayBlocks", blocks);
-      }
-
-      // progreso fuerza
       updateProgress();
-
       DAY_MODAL.show();
     })
     .catch(err => {
@@ -1098,11 +1052,9 @@ function toggleItem(itemId, done){
     .then(j => {
       if(!j.ok) throw new Error(j.error || "Error");
 
-      // estado local
       if(done) CURRENT_CHECKS.add(String(itemId));
       else CURRENT_CHECKS.delete(String(itemId));
 
-      // ✅ UI instantánea: verde + pill
       const card = document.getElementById(`exCard-${itemId}`);
       if(card) card.classList.toggle("done", !!done);
 

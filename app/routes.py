@@ -204,6 +204,58 @@ def parse_rutina_ref(main_field: str) -> Optional[int]:
         return None
 
 
+def parse_ejercicio_ref(raw: str) -> Optional[int]:
+    """
+    Acepta:
+      EJ:123
+      EJERCICIO:123
+      123 (si lo pasas como raw)
+    """
+    s = (raw or "").strip()
+    if not s:
+        return None
+    up = s.upper().replace(" ", "")
+    if up.startswith("EJ:"):
+        try:
+            return int(up.split("EJ:", 1)[1])
+        except Exception:
+            return None
+    if up.startswith("EJERCICIO:"):
+        try:
+            return int(up.split("EJERCICIO:", 1)[1])
+        except Exception:
+            return None
+    try:
+        return int(s)
+    except Exception:
+        return None
+
+
+# =============================================================
+# ✅ FIXES PRO (sin romper arquitectura)
+# =============================================================
+def get_strava_account(user_id: int):
+    """IntegrationAccount(provider='strava') o None."""
+    try:
+        return IntegrationAccount.query.filter_by(user_id=user_id, provider="strava").first()
+    except Exception:
+        return None
+
+
+def compute_streak(user_id: int, today: date) -> int:
+    """Streak real: días consecutivos did_train=True hacia atrás desde hoy."""
+    streak = 0
+    cur = today
+    while True:
+        lg = AthleteLog.query.filter_by(user_id=user_id, fecha=cur).first()
+        if lg and bool(getattr(lg, "did_train", False)):
+            streak += 1
+            cur = cur - timedelta(days=1)
+        else:
+            break
+    return streak
+
+
 # =============================================================
 # PARSER DE BLOQUES DESDE plan.main (una línea = un bloque)
 # =============================================================
@@ -221,6 +273,17 @@ def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
         if up.startswith("FUERZA:"):
             payload = line.split(":", 1)[1].strip()
             out.append({"type": "fuerza", "raw": payload, "label": "FUERZA"})
+            continue
+
+        # ✅ NUEVO: Estiramientos como rutina (igual que fuerza)
+        if up.startswith("STRETCH:") or up.startswith("ESTIRAMIENTOS:"):
+            payload = line.split(":", 1)[1].strip()
+            out.append({"type": "stretch", "raw": payload, "label": "ESTIRAMIENTOS"})
+            continue
+
+        # ✅ NUEVO: Ejercicio suelto (video + texto)
+        if up.startswith("EJ:") or up.startswith("EJERCICIO:"):
+            out.append({"type": "ejercicio", "raw": line, "label": "EJERCICIO"})
             continue
 
         if up.startswith("RUN:"):
@@ -290,6 +353,7 @@ def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
             "nombre": it.nombre,
             "series": getattr(it, "series", None),
             "reps": getattr(it, "reps", None),
+            "peso": getattr(it, "peso", None),  # ✅ kilos / peso
             "descanso": getattr(it, "descanso", None),
             "nota": getattr(it, "nota", "") or "",
             "video_src": video_src,
@@ -485,8 +549,10 @@ def perfil_usuario(user_id: int):
     center = parse_center_any(center_raw, fallback=date.today())
     hoy = date.today()
 
-    strava_account = getattr(user, "strava_account", None)
+    # ✅ Strava account robusto
+    strava_account = get_strava_account(user.id)
 
+    # Consistencia semana
     week_goal = 5
     fechas_semana = week_dates(hoy)
     done_week = set()
@@ -500,7 +566,9 @@ def perfil_usuario(user_id: int):
         done_week.add(l.fecha)
 
     week_done = len(done_week)
-    streak = week_done  # simple
+
+    # ✅ streak real
+    streak = compute_streak(user.id, hoy)
 
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
     if not plan_hoy:
@@ -938,6 +1006,7 @@ def rutina_tabata_player(rutina_id: int):
         items_payload.append({
             "id": it.id,
             "nombre": it.nombre,
+            "peso": getattr(it, "peso", None),  # ✅ peso visible en tabata también
             "nota": getattr(it, "nota", "") or "",
             "video_src": video_src,
         })
@@ -1093,13 +1162,21 @@ def save_day():
         if not btype:
             continue
 
-        allowed = {"TABATA", "FUERZA", "RUN", "BIKE", "SWIM", "FREE", "NOTE"}
+        # ✅ ampliado
+        allowed = {"TABATA", "FUERZA", "STRETCH", "RUN", "BIKE", "SWIM", "FREE", "NOTE", "EJ"}
         if btype not in allowed:
             continue
 
-        if btype in {"TABATA", "FUERZA"}:
+        if btype in {"TABATA", "FUERZA", "STRETCH"}:
             if rid:
                 lines.append(f"{btype}:RUTINA:{rid}")
+        elif btype == "EJ":
+            # permite: EJ:123 o EJERCICIO:123 o "123"
+            if txt:
+                if txt.upper().startswith("EJ:") or txt.upper().startswith("EJERCICIO:"):
+                    lines.append(txt)
+                else:
+                    lines.append(f"EJ:{txt}")
         else:
             if txt:
                 lines.append(f"{btype}:{txt}")
@@ -1323,16 +1400,16 @@ def api_day_detail():
                 legacy_items_payload = items
             continue
 
-        if btype == "fuerza":
+        if btype in ("fuerza", "stretch"):
             rid = parse_rutina_ref(raw)
             rutina = Rutina.query.get(rid) if rid else None
             if not rutina:
-                blocks.append({"type": "fuerza", "ok": False, "error": "Rutina no encontrada"})
+                blocks.append({"type": btype, "ok": False, "error": "Rutina no encontrada"})
                 continue
 
             items = _items_payload_for_rutina(rutina.id)
             blocks.append({
-                "type": "fuerza",
+                "type": btype,  # fuerza o stretch
                 "ok": True,
                 "rutina": _rutina_payload(rutina),
                 "items": items,
@@ -1342,6 +1419,30 @@ def api_day_detail():
             if legacy_rutina is None:
                 legacy_rutina = rutina
                 legacy_items_payload = items
+            continue
+
+        if btype == "ejercicio":
+            eid = parse_ejercicio_ref(raw)
+            ej = Ejercicio.query.get(eid) if eid else None
+            if not ej:
+                blocks.append({"type": "ejercicio", "ok": False, "error": "Ejercicio no encontrado"})
+                continue
+
+            video_url = ""
+            if getattr(ej, "video_filename", ""):
+                video_url = url_for("static", filename=f"videos/{ej.video_filename}")
+
+            blocks.append({
+                "type": "ejercicio",
+                "ok": True,
+                "ejercicio": {
+                    "id": ej.id,
+                    "nombre": ej.nombre,
+                    "categoria": getattr(ej, "categoria", "") or "",
+                    "descripcion": getattr(ej, "descripcion", "") or "",
+                    "video_url": video_url,
+                }
+            })
             continue
 
         if btype in ("run", "bike", "swim", "free", "note"):

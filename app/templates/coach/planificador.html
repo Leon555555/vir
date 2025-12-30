@@ -133,15 +133,54 @@
                   </select>
                 </div>
 
+                <!-- =========================
+                     ✅ WARMUP como BLOQUES (drag & drop)
+                     Se guarda en textarea warmup como líneas
+                ========================== -->
                 <div class="col-12">
-                  <label class="text-muted" style="font-weight:900;letter-spacing:.10em;">WARMUP</label>
-                  <textarea class="form-control" name="warmup" rows="2" {% if blocked %}disabled{% endif %}>{{ p.warmup or '' }}</textarea>
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <label class="text-muted mb-0" style="font-weight:900;letter-spacing:.10em;">WARMUP</label>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-sm btn-outline-light" type="button"
+                              onclick="addNoteToZone('{{ day_id }}','warmup')"
+                              {% if blocked %}disabled{% endif %}>
+                        <i class="bi bi-chat-left-text"></i> Nota
+                      </button>
+                      <button class="btn btn-sm btn-outline-light" type="button"
+                              onclick="toggleRaw('{{ day_id }}','warmup')"
+                              {% if blocked %}disabled{% endif %}>
+                        <i class="bi bi-code-slash"></i> Texto
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="vr-dropzone mt-2"
+                       id="{{ day_id }}_warmup_zone"
+                       data-zone="warmup"
+                       data-day="{{ day_id }}"
+                       {% if blocked %}data-disabled="1"{% endif %}>
+                    <div class="vr-dropzone-hint">
+                      Arrastrá aquí rutinas / ejercicios / notas (WARMUP)
+                    </div>
+                    <div class="vr-zone-list" id="{{ day_id }}_warmup_list"></div>
+                  </div>
+
+                  <textarea class="form-control mt-2 d-none"
+                            name="warmup"
+                            id="{{ day_id }}_warmup_raw"
+                            rows="3"
+                            {% if blocked %}disabled{% endif %}>{{ p.warmup or '' }}</textarea>
+
+                  <!-- Hidden mirror para que NO rompa: si el raw está oculto, igual se envía -->
+                  <textarea class="form-control d-none"
+                            name="warmup"
+                            id="{{ day_id }}_warmup_submit"
+                            rows="1"
+                            {% if blocked %}disabled{% endif %}>{{ p.warmup or '' }}</textarea>
                 </div>
 
                 <!-- =========================
-                     ✅ BLOQUES 1..4
-                     b{i}_type / b{i}_rutina / b{i}_text
-                     + UI extra para EJ (ejercicio suelto)
+                     ✅ BLOQUES 1..4 (drop para autocompletar)
                 ========================== -->
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -157,10 +196,20 @@
                   <input type="hidden" name="main" id="{{ day_id }}_main" value="{{ p.main or '' }}">
 
                   {% for i in range(1,5) %}
-                    <div class="mt-2 p-2" style="border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.18);">
+                    <div class="mt-2 p-2 vr-block-wrap"
+                         id="{{ day_id }}_block{{ i }}"
+                         data-day="{{ day_id }}"
+                         data-block="{{ i }}"
+                         {% if blocked %}data-disabled="1"{% endif %}
+                         style="border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.18);">
                       <div class="d-flex justify-content-between align-items-center">
                         <div class="text-muted" style="font-weight:950;letter-spacing:.12em;">BLOQUE {{ i }}</div>
-                        <span class="badge bg-dark" id="{{ day_id }}_b{{i}}_badge">—</span>
+                        <div class="d-flex gap-2 align-items-center">
+                          <span class="badge bg-dark" id="{{ day_id }}_b{{i}}_badge">—</span>
+                          <span class="badge bg-secondary-subtle text-dark border vr-drop-badge">
+                            Drop aquí
+                          </span>
+                        </div>
                       </div>
 
                       <div class="row g-2 mt-1">
@@ -208,7 +257,6 @@
                         <div class="col-md-8" id="{{ day_id }}_b{{i}}_ej_wrap">
                           <label class="text-muted" style="font-weight:900;">Ejercicio (Banco)</label>
 
-                          <!-- selector -->
                           <select class="form-select"
                                   id="{{ day_id }}_b{{i}}_ej_select"
                                   onchange="syncEjToText('{{ day_id }}', {{ i }})"
@@ -226,7 +274,6 @@
                             {% endfor %}
                           </select>
 
-                          <!-- guardamos el id en b{i}_text (porque routes.py espera text para EJ) -->
                           <div class="d-flex gap-2 mt-2">
                             <input class="form-control"
                                    name="b{{i}}_text"
@@ -248,9 +295,48 @@
                   {% endfor %}
                 </div>
 
+                <!-- =========================
+                     ✅ COOLDOWN como BLOQUES (drag & drop)
+                ========================== -->
                 <div class="col-12">
-                  <label class="text-muted" style="font-weight:900;letter-spacing:.10em;">ENFRIAMIENTO</label>
-                  <textarea class="form-control" name="finisher" rows="2" {% if blocked %}disabled{% endif %}>{{ p.finisher or '' }}</textarea>
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <label class="text-muted mb-0" style="font-weight:900;letter-spacing:.10em;">ENFRIAMIENTO</label>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-sm btn-outline-light" type="button"
+                              onclick="addNoteToZone('{{ day_id }}','finisher')"
+                              {% if blocked %}disabled{% endif %}>
+                        <i class="bi bi-chat-left-text"></i> Nota
+                      </button>
+                      <button class="btn btn-sm btn-outline-light" type="button"
+                              onclick="toggleRaw('{{ day_id }}','finisher')"
+                              {% if blocked %}disabled{% endif %}>
+                        <i class="bi bi-code-slash"></i> Texto
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="vr-dropzone mt-2"
+                       id="{{ day_id }}_finisher_zone"
+                       data-zone="finisher"
+                       data-day="{{ day_id }}"
+                       {% if blocked %}data-disabled="1"{% endif %}>
+                    <div class="vr-dropzone-hint">
+                      Arrastrá aquí rutinas / ejercicios / notas (COOLDOWN)
+                    </div>
+                    <div class="vr-zone-list" id="{{ day_id }}_finisher_list"></div>
+                  </div>
+
+                  <textarea class="form-control mt-2 d-none"
+                            name="finisher"
+                            id="{{ day_id }}_finisher_raw"
+                            rows="3"
+                            {% if blocked %}disabled{% endif %}>{{ p.finisher or '' }}</textarea>
+
+                  <textarea class="form-control d-none"
+                            name="finisher"
+                            id="{{ day_id }}_finisher_submit"
+                            rows="1"
+                            {% if blocked %}disabled{% endif %}>{{ p.finisher or '' }}</textarea>
                 </div>
 
                 <div class="col-12">
@@ -294,21 +380,37 @@
 
         <hr>
 
-        <div class="text-muted" style="font-weight:950;letter-spacing:.14em;text-transform:uppercase;">Rutinas</div>
+        <div class="text-muted" style="font-weight:950;letter-spacing:.14em;text-transform:uppercase;">Rutinas (arrastrables)</div>
         <div class="mt-2" style="max-height:260px; overflow:auto;">
           {% for r in rutinas %}
-            <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px dashed rgba(255,255,255,.10);">
-              <div style="font-weight:900;">{{ r.nombre }}</div>
+            <div class="d-flex justify-content-between align-items-center py-2"
+                 style="border-bottom:1px dashed rgba(255,255,255,.10);">
+              <div style="font-weight:900;" class="d-flex align-items-center gap-2">
+                <span class="vr-drag-item badge bg-dark border"
+                      draggable="true"
+                      data-kind="rutina"
+                      data-id="{{ r.id }}"
+                      data-name="{{ r.nombre|e }}"
+                      data-type="FUERZA"
+                      title="Arrastrar">
+                  <i class="bi bi-grip-vertical"></i>
+                </span>
+                <span>{{ r.nombre }}</span>
+              </div>
               <a class="btn btn-sm btn-outline-light" href="{{ url_for('main.rutina_builder', rutina_id=r.id) }}">
                 Builder
               </a>
             </div>
           {% endfor %}
+          <div class="text-muted small mt-2">
+            Tip: por defecto una rutina cae como <span class="badge bg-dark border">FUERZA</span>.
+            Si querés que caiga como TABATA o STRETCH, elegilo luego en el bloque (o lo cambiás en el warmup/cooldown).
+          </div>
         </div>
 
         <hr>
 
-        <div class="text-muted" style="font-weight:950;letter-spacing:.14em;text-transform:uppercase;">Ejercicios (por grupo)</div>
+        <div class="text-muted" style="font-weight:950;letter-spacing:.14em;text-transform:uppercase;">Ejercicios (arrastrables)</div>
 
         <div class="accordion mt-2" id="accGroups">
           {% for g in muscle_groups_order %}
@@ -326,7 +428,17 @@
                   <div class="accordion-body" style="background:rgba(0,0,0,.18);">
                     {% for e in arr %}
                       <div class="py-2" style="border-bottom:1px dashed rgba(255,255,255,.10);">
-                        <div style="font-weight:900;">{{ e.nombre }}</div>
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="vr-drag-item badge bg-dark border"
+                                draggable="true"
+                                data-kind="ej"
+                                data-id="{{ e.id }}"
+                                data-name="{{ e.nombre|e }}"
+                                title="Arrastrar">
+                            <i class="bi bi-grip-vertical"></i>
+                          </span>
+                          <div style="font-weight:900;">{{ e.nombre }}</div>
+                        </div>
                         <div class="text-muted" style="font-size:.92rem;">{{ e.categoria or '' }}</div>
                         {% if e.video_url %}
                           <div class="mt-2">
@@ -370,23 +482,19 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- SortableJS (solo front, no cambia arquitectura) -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+
 <script>
 /**
- * BLOQUES:
- *  - TABATA / FUERZA / STRETCH => rutina
- *  - EJ => ejercicio suelto (guardamos ID en b{i}_text)
- *  - RUN/BIKE/SWIM/FREE/NOTE => texto
- *
- * Botón Autocargar desde Main soporta:
- *  TABATA:RUTINA:12
+ * OBJETIVO: drag & drop SIN tocar backend.
+ * Guardamos warmup/finisher como textarea con líneas tipo:
  *  FUERZA:RUTINA:12
- *  STRETCH:RUTINA:12   o ESTIRAMIENTOS:RUTINA:12
- *  EJ:34 o EJERCICIO:34
- *  RUN:...
- *  BIKE:...
- *  SWIM:...
- *  FREE:...
- *  NOTE:...
+ *  TABATA:RUTINA:5
+ *  STRETCH:RUTINA:7
+ *  EJ:34
+ *  NOTE:algo
+ *  FREE:algo
  */
 
 function syncBlockUI(dayId, i){
@@ -411,7 +519,6 @@ function syncBlockUI(dayId, i){
     val === "NOTE"    ? "bg-light text-dark" : "bg-dark"
   );
 
-  // hide all by default
   rutWrap.style.display = "none";
   txtWrap.style.display = "none";
   ejWrap.style.display  = "none";
@@ -428,7 +535,6 @@ function syncBlockUI(dayId, i){
 function extractRutinaId(line){
   const s = String(line||"").trim();
   const up = s.toUpperCase().replaceAll(" ", "");
-
   if(up.includes("RUTINA:")){
     const after = up.split("RUTINA:")[1] || "";
     const n = parseInt(after, 10);
@@ -441,7 +547,6 @@ function extractRutinaId(line){
 function extractEjId(line){
   const s = String(line||"").trim();
   const up = s.toUpperCase().replaceAll(" ", "");
-
   if(up.startsWith("EJ:")){
     const after = up.split("EJ:")[1] || "";
     const n = parseInt(after, 10);
@@ -459,49 +564,36 @@ function extractEjId(line){
 function parseMainToBlocks(mainText){
   const lines = String(mainText||"").split("\n").map(x => x.trim()).filter(Boolean);
   const out = [];
-
   for(const line of lines){
     const up = line.toUpperCase();
-
     if(up.startsWith("TABATA:")){
-      out.push({type:"TABATA", rutina: extractRutinaId(line), text:"", ej:""});
-      continue;
+      out.push({type:"TABATA", rutina: extractRutinaId(line), text:"", ej:""}); continue;
     }
     if(up.startsWith("FUERZA:")){
-      out.push({type:"FUERZA", rutina: extractRutinaId(line), text:"", ej:""});
-      continue;
+      out.push({type:"FUERZA", rutina: extractRutinaId(line), text:"", ej:""}); continue;
     }
     if(up.startsWith("STRETCH:") || up.startsWith("ESTIRAMIENTOS:")){
-      out.push({type:"STRETCH", rutina: extractRutinaId(line), text:"", ej:""});
-      continue;
+      out.push({type:"STRETCH", rutina: extractRutinaId(line), text:"", ej:""}); continue;
     }
     if(up.startsWith("EJ:") || up.startsWith("EJERCICIO:")){
-      out.push({type:"EJ", rutina:"", text:"", ej: extractEjId(line)});
-      continue;
+      out.push({type:"EJ", rutina:"", text:"", ej: extractEjId(line)}); continue;
     }
-
     if(up.startsWith("RUN:")){
-      out.push({type:"RUN", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
-      continue;
+      out.push({type:"RUN", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""}); continue;
     }
     if(up.startsWith("BIKE:")){
-      out.push({type:"BIKE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
-      continue;
+      out.push({type:"BIKE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""}); continue;
     }
     if(up.startsWith("SWIM:") || up.startsWith("NATACION:") || up.startsWith("NATACIÓN:")){
-      out.push({type:"SWIM", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
-      continue;
+      out.push({type:"SWIM", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""}); continue;
     }
     if(up.startsWith("FREE:")){
-      out.push({type:"FREE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
-      continue;
+      out.push({type:"FREE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""}); continue;
     }
     if(up.startsWith("NOTE:") || up.startsWith("NOTA:")){
-      out.push({type:"NOTE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""});
-      continue;
+      out.push({type:"NOTE", rutina:"", text: line.split(":",2)[1]?.trim() || "", ej:""}); continue;
     }
 
-    // legacy: "RUTINA:12" o "12" => fuerza
     const rid = extractRutinaId(line);
     if(rid){
       out.push({type:"FUERZA", rutina: rid, text:"", ej:""});
@@ -509,7 +601,6 @@ function parseMainToBlocks(mainText){
       out.push({type:"FREE", rutina:"", text: line, ej:""});
     }
   }
-
   return out.slice(0,4);
 }
 
@@ -525,19 +616,14 @@ function fillFromMain(dayId){
     const rutEl  = document.getElementById(`${dayId}_b${i}_rutina`);
     const txtEl  = document.getElementById(`${dayId}_b${i}_text`);
 
-    // EJ UI
     const ejSelect = document.getElementById(`${dayId}_b${i}_ej_select`);
     const ejText   = document.getElementById(`${dayId}_b${i}_ej_text`);
 
     typeEl.value = b.type || "";
-
     if(rutEl) rutEl.value = b.rutina || "";
     if(txtEl) txtEl.value = b.text || "";
-
     if(ejText) ejText.value = b.ej || "";
-    if(ejSelect){
-      ejSelect.value = b.ej || "";
-    }
+    if(ejSelect) ejSelect.value = b.ej || "";
 
     syncBlockUI(dayId, i);
   }
@@ -565,7 +651,6 @@ function openEjPreview(dayId, i){
     return;
   }
 
-  // Preview “liviano”: mostramos el nombre del option si existe
   let name = "";
   if(ejSelect){
     const opt = ejSelect.querySelector(`option[value="${CSS.escape(id)}"]`);
@@ -582,7 +667,285 @@ function openEjPreview(dayId, i){
   new bootstrap.Modal(modalEl).show();
 }
 
+/* =========================
+   Warmup/Cooldown UI (bloques)
+========================= */
+
+function toggleRaw(dayId, zone){
+  const raw = document.getElementById(`${dayId}_${zone}_raw`);
+  if(!raw) return;
+  raw.classList.toggle("d-none");
+}
+
+function zoneLineFromItem(item){
+  // item: {kind:'rutina'|'ej'|'note', id?, name?, type?, text?}
+  if(item.kind === "rutina"){
+    const t = (item.type || "FUERZA").toUpperCase();
+    return `${t}:RUTINA:${item.id}`;
+  }
+  if(item.kind === "ej"){
+    return `EJ:${item.id}`;
+  }
+  if(item.kind === "note"){
+    return `NOTE:${(item.text||"").trim()}`;
+  }
+  return "";
+}
+
+function parseZoneLines(text){
+  const lines = String(text||"").split("\n").map(x => x.trim()).filter(Boolean);
+  const items = [];
+  for(const line of lines){
+    const up = line.toUpperCase();
+    if(up.startsWith("EJ:") || up.startsWith("EJERCICIO:")){
+      items.push({kind:"ej", id: extractEjId(line), name:"Ejercicio"});
+      continue;
+    }
+    if(up.startsWith("TABATA:") || up.startsWith("FUERZA:") || up.startsWith("STRETCH:") || up.startsWith("ESTIRAMIENTOS:")){
+      const t = up.startsWith("TABATA:") ? "TABATA" : up.startsWith("STRETCH:") || up.startsWith("ESTIRAMIENTOS:") ? "STRETCH" : "FUERZA";
+      items.push({kind:"rutina", type:t, id: extractRutinaId(line), name:"Rutina"});
+      continue;
+    }
+    if(up.startsWith("NOTE:") || up.startsWith("NOTA:")){
+      items.push({kind:"note", text: line.split(":",2)[1]?.trim() || ""});
+      continue;
+    }
+    if(up.startsWith("FREE:")){
+      items.push({kind:"note", text: line.split(":",2)[1]?.trim() || ""});
+      continue;
+    }
+    // fallback: treat as note
+    items.push({kind:"note", text: line});
+  }
+  return items;
+}
+
+function renderZoneItem(dayId, zone, item){
+  const el = document.createElement("div");
+  el.className = "vr-zone-item";
+  el.setAttribute("data-kind", item.kind);
+
+  if(item.kind === "rutina"){
+    el.setAttribute("data-id", item.id || "");
+    el.setAttribute("data-type", (item.type || "FUERZA").toUpperCase());
+    const t = (item.type || "FUERZA").toUpperCase();
+    el.innerHTML = `
+      <div class="d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark border"><i class="bi bi-grip-vertical"></i></span>
+          <span class="badge ${t==='TABATA'?'bg-danger':t==='STRETCH'?'bg-success':'bg-info'}" style="font-weight:900;">${t}</span>
+          <span class="text-soft" style="font-weight:900;">Rutina #${item.id}</span>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="cycleRutinaType(this)"><i class="bi bi-arrow-repeat"></i></button>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeZoneItem(this)"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
+    `;
+  } else if(item.kind === "ej"){
+    el.setAttribute("data-id", item.id || "");
+    el.innerHTML = `
+      <div class="d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark border"><i class="bi bi-grip-vertical"></i></span>
+          <span class="badge bg-warning text-dark" style="font-weight:900;">EJ</span>
+          <span class="text-soft" style="font-weight:900;">Ejercicio #${item.id}</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeZoneItem(this)"><i class="bi bi-x-lg"></i></button>
+      </div>
+    `;
+  } else {
+    const txt = (item.text || "").trim();
+    el.setAttribute("data-text", txt);
+    el.innerHTML = `
+      <div class="d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark border"><i class="bi bi-grip-vertical"></i></span>
+          <span class="badge bg-light text-dark" style="font-weight:900;">NOTE</span>
+          <span class="text-soft">${escapeHtml(txt || "—")}</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeZoneItem(this)"><i class="bi bi-x-lg"></i></button>
+      </div>
+    `;
+  }
+
+  el.setAttribute("data-day", dayId);
+  el.setAttribute("data-zone", zone);
+  return el;
+}
+
+function escapeHtml(s){
+  return String(s||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function removeZoneItem(btn){
+  const item = btn.closest(".vr-zone-item");
+  if(!item) return;
+  const dayId = item.getAttribute("data-day");
+  const zone  = item.getAttribute("data-zone");
+  item.remove();
+  syncZoneToTextarea(dayId, zone);
+}
+
+function cycleRutinaType(btn){
+  const item = btn.closest(".vr-zone-item");
+  if(!item) return;
+  const cur = (item.getAttribute("data-type") || "FUERZA").toUpperCase();
+  const next = cur === "FUERZA" ? "TABATA" : cur === "TABATA" ? "STRETCH" : "FUERZA";
+  item.setAttribute("data-type", next);
+
+  // update badge
+  const badge = item.querySelector(".badge.bg-info, .badge.bg-danger, .badge.bg-success");
+  if(badge){
+    badge.textContent = next;
+    badge.className = "badge " + (next==='TABATA'?'bg-danger':next==='STRETCH'?'bg-success':'bg-info');
+    badge.style.fontWeight = "900";
+  }
+
+  const dayId = item.getAttribute("data-day");
+  const zone  = item.getAttribute("data-zone");
+  syncZoneToTextarea(dayId, zone);
+}
+
+function addNoteToZone(dayId, zone){
+  const z = document.getElementById(`${dayId}_${zone}_list`);
+  if(!z) return;
+  const txt = prompt("Nota / comentario:");
+  if(txt === null) return;
+  const item = renderZoneItem(dayId, zone, {kind:"note", text: txt});
+  z.appendChild(item);
+  syncZoneToTextarea(dayId, zone);
+}
+
+function syncZoneToTextarea(dayId, zone){
+  const list = document.getElementById(`${dayId}_${zone}_list`);
+  const raw  = document.getElementById(`${dayId}_${zone}_raw`);
+  const sub  = document.getElementById(`${dayId}_${zone}_submit`);
+  if(!list || !sub) return;
+
+  const items = Array.from(list.querySelectorAll(".vr-zone-item")).map(el => {
+    const kind = el.getAttribute("data-kind") || "note";
+    if(kind === "rutina"){
+      return {kind:"rutina", id: el.getAttribute("data-id"), type: el.getAttribute("data-type") || "FUERZA"};
+    }
+    if(kind === "ej"){
+      return {kind:"ej", id: el.getAttribute("data-id")};
+    }
+    return {kind:"note", text: el.getAttribute("data-text") || el.textContent || ""};
+  });
+
+  const lines = items.map(zoneLineFromItem).filter(Boolean);
+  sub.value = lines.join("\n");
+  if(raw) raw.value = sub.value;
+}
+
+function hydrateZoneFromTextarea(dayId, zone){
+  const sub  = document.getElementById(`${dayId}_${zone}_submit`);
+  const list = document.getElementById(`${dayId}_${zone}_list`);
+  const hint = document.querySelector(`#${dayId}_${zone}_zone .vr-dropzone-hint`);
+  if(!sub || !list) return;
+
+  list.innerHTML = "";
+  const items = parseZoneLines(sub.value || "");
+  for(const it of items){
+    list.appendChild(renderZoneItem(dayId, zone, it));
+  }
+  if(hint){
+    hint.style.display = (items.length ? "none" : "");
+  }
+}
+
+function updateZoneHint(dayId, zone){
+  const list = document.getElementById(`${dayId}_${zone}_list`);
+  const hint = document.querySelector(`#${dayId}_${zone}_zone .vr-dropzone-hint`);
+  if(!list || !hint) return;
+  hint.style.display = (list.querySelectorAll(".vr-zone-item").length ? "none" : "");
+}
+
+/* =========================
+   Drag from banco (HTML5 drag)
+========================= */
+
+let VR_DRAG = null;
+
+function handleDragStart(e){
+  const t = e.currentTarget;
+  VR_DRAG = {
+    kind: t.getAttribute("data-kind"),
+    id: t.getAttribute("data-id"),
+    name: t.getAttribute("data-name") || "",
+    type: t.getAttribute("data-type") || "FUERZA"
+  };
+  try{
+    e.dataTransfer.setData("text/plain", JSON.stringify(VR_DRAG));
+  }catch(err){}
+  e.dataTransfer.effectAllowed = "copy";
+}
+
+function getDragPayload(e){
+  if(VR_DRAG) return VR_DRAG;
+  try{
+    const s = e.dataTransfer.getData("text/plain");
+    return s ? JSON.parse(s) : null;
+  }catch(err){
+    return null;
+  }
+}
+
+function dropIntoZone(e, dayId, zone){
+  e.preventDefault();
+  const payload = getDragPayload(e);
+  if(!payload) return;
+
+  const list = document.getElementById(`${dayId}_${zone}_list`);
+  if(!list) return;
+
+  if(payload.kind === "rutina"){
+    list.appendChild(renderZoneItem(dayId, zone, {kind:"rutina", id: payload.id, type: payload.type || "FUERZA"}));
+  } else if(payload.kind === "ej"){
+    list.appendChild(renderZoneItem(dayId, zone, {kind:"ej", id: payload.id}));
+  } else {
+    list.appendChild(renderZoneItem(dayId, zone, {kind:"note", text: payload.name || ""}));
+  }
+
+  syncZoneToTextarea(dayId, zone);
+  updateZoneHint(dayId, zone);
+}
+
+function dropIntoBlock(e, dayId, blockN){
+  e.preventDefault();
+  const payload = getDragPayload(e);
+  if(!payload) return;
+
+  // set inputs based on payload
+  if(payload.kind === "rutina"){
+    const typeEl = document.getElementById(`${dayId}_b${blockN}_type`);
+    const rutEl  = document.getElementById(`${dayId}_b${blockN}_rutina`);
+    if(typeEl) typeEl.value = "FUERZA"; // default; luego podés cambiar a TABATA/STRETCH
+    if(rutEl) rutEl.value = payload.id || "";
+    syncBlockUI(dayId, blockN);
+  } else if(payload.kind === "ej"){
+    const typeEl = document.getElementById(`${dayId}_b${blockN}_type`);
+    const ejSel  = document.getElementById(`${dayId}_b${blockN}_ej_select`);
+    const ejTxt  = document.getElementById(`${dayId}_b${blockN}_ej_text`);
+    if(typeEl) typeEl.value = "EJ";
+    if(ejSel) ejSel.value = payload.id || "";
+    if(ejTxt) ejTxt.value = payload.id || "";
+    syncBlockUI(dayId, blockN);
+  }
+}
+
+/* =========================
+   Init all
+========================= */
+
 (function initAll(){
+  // 1) init block UI states
   const selects = document.querySelectorAll("select[id$='_type']");
   selects.forEach(sel => {
     const m = sel.id.match(/^(day_\d+)_b(\d+)_type$/);
@@ -590,6 +953,101 @@ function openEjPreview(dayId, i){
       syncBlockUI(m[1], parseInt(m[2],10));
     }
   });
+
+  // 2) bind draggables
+  document.querySelectorAll(".vr-drag-item").forEach(el => {
+    el.addEventListener("dragstart", handleDragStart);
+  });
+
+  // 3) init zones + sortable within list
+  document.querySelectorAll(".vr-dropzone").forEach(zoneEl => {
+    const dayId = zoneEl.getAttribute("data-day");
+    const zone  = zoneEl.getAttribute("data-zone");
+    const disabled = zoneEl.getAttribute("data-disabled") === "1";
+    if(!dayId || !zone || disabled) return;
+
+    // hydrate from saved textarea
+    hydrateZoneFromTextarea(dayId, zone);
+    updateZoneHint(dayId, zone);
+
+    zoneEl.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+    zoneEl.addEventListener("drop", (e)=> dropIntoZone(e, dayId, zone));
+
+    const list = document.getElementById(`${dayId}_${zone}_list`);
+    if(list){
+      new Sortable(list, {
+        animation: 150,
+        handle: ".bi-grip-vertical",
+        onEnd: () => {
+          syncZoneToTextarea(dayId, zone);
+          updateZoneHint(dayId, zone);
+        }
+      });
+    }
+
+    // if user edits raw, re-hydrate
+    const raw = document.getElementById(`${dayId}_${zone}_raw`);
+    if(raw){
+      raw.addEventListener("input", ()=>{
+        const sub = document.getElementById(`${dayId}_${zone}_submit`);
+        if(sub) sub.value = raw.value;
+        hydrateZoneFromTextarea(dayId, zone);
+        updateZoneHint(dayId, zone);
+      });
+    }
+  });
+
+  // 4) init block drop targets
+  document.querySelectorAll(".vr-block-wrap").forEach(blockEl => {
+    const dayId = blockEl.getAttribute("data-day");
+    const bn = parseInt(blockEl.getAttribute("data-block") || "0", 10);
+    const disabled = blockEl.getAttribute("data-disabled") === "1";
+    if(!dayId || !bn || disabled) return;
+
+    blockEl.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+    blockEl.addEventListener("drop", (e)=> dropIntoBlock(e, dayId, bn));
+  });
 })();
 </script>
+
+<style>
+/* UI pro sin tocar tu CSS base */
+.vr-dropzone{
+  border:1px dashed rgba(255,255,255,.18);
+  border-radius:14px;
+  padding:10px;
+  background: rgba(0,0,0,.14);
+}
+.vr-dropzone:hover{
+  border-color: rgba(13,202,240,.55);
+}
+.vr-dropzone-hint{
+  color: rgba(255,255,255,.55);
+  font-size: .92rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  margin-bottom: 8px;
+}
+.vr-zone-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.vr-zone-item{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  padding:10px;
+  background: rgba(0,0,0,.18);
+}
+.vr-drop-badge{
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.vr-drag-item{
+  cursor: grab;
+}
+.vr-drag-item:active{
+  cursor: grabbing;
+}
+</style>
 {% endblock %}

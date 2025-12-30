@@ -257,10 +257,10 @@ def compute_streak(user_id: int, today: date) -> int:
 
 
 # =============================================================
-# PARSER DE BLOQUES DESDE plan.main (una línea = un bloque)
+# PARSER DE BLOQUES DESDE TEXTO (una línea = un bloque)
 # =============================================================
-def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
-    lines = [l.strip() for l in (main_text or "").splitlines() if l.strip()]
+def _split_blocks_from_text(txt: str) -> List[Dict[str, str]]:
+    lines = [l.strip() for l in (txt or "").splitlines() if l.strip()]
     out: List[Dict[str, str]] = []
     for line in lines:
         up = line.upper()
@@ -275,13 +275,11 @@ def _split_blocks_from_main(main_text: str) -> List[Dict[str, str]]:
             out.append({"type": "fuerza", "raw": payload, "label": "FUERZA"})
             continue
 
-        # ✅ NUEVO: Estiramientos como rutina (igual que fuerza)
         if up.startswith("STRETCH:") or up.startswith("ESTIRAMIENTOS:"):
             payload = line.split(":", 1)[1].strip()
             out.append({"type": "stretch", "raw": payload, "label": "ESTIRAMIENTOS"})
             continue
 
-        # ✅ NUEVO: Ejercicio suelto (video + texto)
         if up.startswith("EJ:") or up.startswith("EJERCICIO:"):
             out.append({"type": "ejercicio", "raw": line, "label": "EJERCICIO"})
             continue
@@ -353,7 +351,7 @@ def _items_payload_for_rutina(rutina_id: int) -> List[Dict[str, Any]]:
             "nombre": it.nombre,
             "series": getattr(it, "series", None),
             "reps": getattr(it, "reps", None),
-            "peso": getattr(it, "peso", None),  # ✅ kilos / peso
+            "peso": getattr(it, "peso", None),
             "descanso": getattr(it, "descanso", None),
             "nota": getattr(it, "nota", "") or "",
             "video_src": video_src,
@@ -453,12 +451,18 @@ def admin_db_fix_tabata():
         return f"ERROR: {str(e)}", 500
 
 
+def _diaplan_has_blocks() -> bool:
+    return hasattr(DiaPlan, "blocks")
+
+
 def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     """
-    ✅ Evita crashear si DiaPlan tiene atributo 'blocks' pero DB todavía no lo tiene.
-    Carga solo columnas seguras con load_only (no selecciona blocks).
+    ✅ Crea planes faltantes.
+    ✅ Si existe DiaPlan.blocks, lo incluye.
+    ✅ Si DB aún no tiene la columna, no rompe.
     """
-    q = DiaPlan.query.options(load_only(
+    # base columnas seguras
+    cols = [
         DiaPlan.id,
         DiaPlan.user_id,
         DiaPlan.fecha,
@@ -469,7 +473,19 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
         DiaPlan.puede_entrenar,
         DiaPlan.comentario_atleta,
         DiaPlan.propuesto_score,
-    ))
+    ]
+
+    q = DiaPlan.query
+
+    # intentar incluir blocks SOLO si existe en el modelo
+    if _diaplan_has_blocks():
+        try:
+            cols2 = cols + [DiaPlan.blocks]  # type: ignore[attr-defined]
+            q = q.options(load_only(*cols2))
+        except Exception:
+            q = q.options(load_only(*cols))
+    else:
+        q = q.options(load_only(*cols))
 
     existing = q.filter(
         DiaPlan.user_id == user_id,
@@ -481,8 +497,15 @@ def ensure_week_plans(user_id: int, fechas: List[date]) -> Dict[date, DiaPlan]:
     for f in fechas:
         if f not in by_date:
             p = DiaPlan(user_id=user_id, fecha=f, plan_type="Descanso")
+            # si existe blocks en modelo, inicializarlo vacío
+            if _diaplan_has_blocks():
+                try:
+                    p.blocks = {}  # type: ignore[attr-defined]
+                except Exception:
+                    pass
             db.session.add(p)
             by_date[f] = p
+
     db.session.commit()
     return by_date
 
@@ -552,7 +575,6 @@ def perfil_usuario(user_id: int):
     # ✅ Strava account robusto
     strava_account = get_strava_account(user.id)
 
-    # Consistencia semana
     week_goal = 5
     fechas_semana = week_dates(hoy)
     done_week = set()
@@ -566,8 +588,6 @@ def perfil_usuario(user_id: int):
         done_week.add(l.fecha)
 
     week_done = len(done_week)
-
-    # ✅ streak real
     streak = compute_streak(user.id, hoy)
 
     plan_hoy = DiaPlan.query.filter_by(user_id=user.id, fecha=hoy).first()
@@ -1006,7 +1026,7 @@ def rutina_tabata_player(rutina_id: int):
         items_payload.append({
             "id": it.id,
             "nombre": it.nombre,
-            "peso": getattr(it, "peso", None),  # ✅ peso visible en tabata también
+            "peso": getattr(it, "peso", None),
             "nota": getattr(it, "nota", "") or "",
             "video_src": video_src,
         })
@@ -1122,11 +1142,34 @@ def coach_copiar_semana(user_id: int):
         p_dst.finisher = p_src.finisher
         p_dst.propuesto_score = p_src.propuesto_score
 
+        # ✅ MUY IMPORTANTE: copiar blocks si existe
+        if _diaplan_has_blocks():
+            try:
+                p_dst.blocks = getattr(p_src, "blocks", None) or {}
+            except Exception:
+                pass
+
         copied += 1
 
     db.session.commit()
     flash(f"✅ Semana copiada: {copied} días. (Saltados por 'no puedo': {skipped_no_puedo})", "success")
     return redirect(url_for("main.coach_planificador", user_id=user_id, center=center.isoformat()))
+
+
+def _build_blocks_json(warmup: str, main: str, finisher: str) -> Dict[str, Any]:
+    """
+    JSON estable para que el PLANIFICADOR pueda reconstruir chips/bloques al recargar.
+    No rompe si el front no lo usa.
+    """
+    return {
+        "warmup_text": warmup or "",
+        "main_text": main or "",
+        "finisher_text": finisher or "",
+        "warmup_blocks_src": _split_blocks_from_text(warmup or ""),
+        "main_blocks_src": _split_blocks_from_text(main or ""),
+        "finisher_blocks_src": _split_blocks_from_text(finisher or ""),
+        "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
+    }
 
 
 @main_bp.route("/dia/save", methods=["POST"])
@@ -1150,9 +1193,15 @@ def save_day():
 
     plan_type = (request.form.get("plan_type") or "Descanso").strip()
     plan.plan_type = plan_type
-    plan.warmup = (request.form.get("warmup") or "").strip()
-    plan.finisher = (request.form.get("finisher") or "").strip()
 
+    # estos vienen del planificador (pueden ser texto o líneas tipo NOTE:/FUERZA:/etc)
+    warmup_txt = (request.form.get("warmup") or "").strip()
+    finisher_txt = (request.form.get("finisher") or "").strip()
+
+    plan.warmup = warmup_txt
+    plan.finisher = finisher_txt
+
+    # MAIN: o viene armado manual o con b1..b4
     lines: List[str] = []
     for i in range(1, 5):
         btype = (request.form.get(f"b{i}_type") or "").strip().upper()
@@ -1162,7 +1211,6 @@ def save_day():
         if not btype:
             continue
 
-        # ✅ ampliado
         allowed = {"TABATA", "FUERZA", "STRETCH", "RUN", "BIKE", "SWIM", "FREE", "NOTE", "EJ"}
         if btype not in allowed:
             continue
@@ -1171,7 +1219,6 @@ def save_day():
             if rid:
                 lines.append(f"{btype}:RUTINA:{rid}")
         elif btype == "EJ":
-            # permite: EJ:123 o EJERCICIO:123 o "123"
             if txt:
                 if txt.upper().startswith("EJ:") or txt.upper().startswith("EJERCICIO:"):
                     lines.append(txt)
@@ -1182,12 +1229,20 @@ def save_day():
                 lines.append(f"{btype}:{txt}")
 
     manual_main = (request.form.get("main") or "").strip()
-    plan.main = "\n".join(lines) if lines else manual_main
+    main_txt = "\n".join(lines) if lines else manual_main
+    plan.main = main_txt
 
     try:
         plan.propuesto_score = int(request.form.get("propuesto_score", 0))
     except Exception:
         plan.propuesto_score = 0
+
+    # ✅ CLAVE: persistir blocks JSON si existe (para que al volver al atleta, el planificador lo reconstruya)
+    if _diaplan_has_blocks():
+        try:
+            plan.blocks = _build_blocks_json(plan.warmup, plan.main, plan.finisher)  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
     db.session.commit()
     flash("✅ Día guardado", "success")
@@ -1325,95 +1380,7 @@ def admin_delete_user(user_id: int):
 
 
 # =============================================================
-# ✅ NUEVO: BUILDER GENERICO DE BLOQUES (main / warmup / finisher)
-# =============================================================
-def _build_blocks_payload_from_text(raw_text: str) -> List[Dict[str, Any]]:
-    """
-    Convierte un texto tipo plan.main / warmup / finisher (con líneas TABATA:RUTINA:ID, EJ:ID, RUN:..., etc)
-    a un payload listo para front:
-      - rutinas => items + urls
-      - tabata => cfg + start_url
-      - ejercicio => video_url
-      - texto => {type, text}
-    """
-    blocks_src = _split_blocks_from_main(raw_text or "")
-    blocks: List[Dict[str, Any]] = []
-
-    for b in blocks_src:
-        btype = b["type"]
-        raw = (b.get("raw") or "").strip()
-
-        if btype == "tabata":
-            rid = parse_rutina_ref(raw)  # soporta "RUTINA:10" o "10"
-            rutina = Rutina.query.get(rid) if rid else None
-            if not rutina:
-                blocks.append({"type": "tabata", "ok": False, "error": "Rutina no encontrada"})
-                continue
-
-            items = _items_payload_for_rutina(rutina.id)
-            cfg = _get_tabata_cfg(rutina, len(items))
-
-            blocks.append({
-                "type": "tabata",
-                "ok": True,
-                "rutina": _rutina_payload(rutina),
-                "cfg": cfg,
-                "items": items,
-                "start_url": url_for("main.rutina_tabata_player", rutina_id=rutina.id),
-                "settings_url": url_for("main.rutina_tabata_settings", rutina_id=rutina.id) if admin_ok() else "",
-            })
-            continue
-
-        if btype in ("fuerza", "stretch"):
-            rid = parse_rutina_ref(raw)  # soporta "RUTINA:10" o "10"
-            rutina = Rutina.query.get(rid) if rid else None
-            if not rutina:
-                blocks.append({"type": btype, "ok": False, "error": "Rutina no encontrada"})
-                continue
-
-            items = _items_payload_for_rutina(rutina.id)
-            blocks.append({
-                "type": btype,
-                "ok": True,
-                "rutina": _rutina_payload(rutina),
-                "items": items,
-                "builder_url": url_for("main.rutina_builder", rutina_id=rutina.id) if admin_ok() else "",
-            })
-            continue
-
-        if btype == "ejercicio":
-            eid = parse_ejercicio_ref(raw)  # soporta EJ:123 / EJERCICIO:123 / 123
-            ej = Ejercicio.query.get(eid) if eid else None
-            if not ej:
-                blocks.append({"type": "ejercicio", "ok": False, "error": "Ejercicio no encontrado"})
-                continue
-
-            video_url = ""
-            if getattr(ej, "video_filename", ""):
-                video_url = url_for("static", filename=f"videos/{ej.video_filename}")
-
-            blocks.append({
-                "type": "ejercicio",
-                "ok": True,
-                "ejercicio": {
-                    "id": ej.id,
-                    "nombre": ej.nombre,
-                    "categoria": getattr(ej, "categoria", "") or "",
-                    "descripcion": getattr(ej, "descripcion", "") or "",
-                    "video_url": video_url,
-                }
-            })
-            continue
-
-        if btype in ("run", "bike", "swim", "free", "note"):
-            blocks.append({"type": btype, "ok": True, "text": raw})
-            continue
-
-    return blocks
-
-
-# =============================================================
-# API: DAY DETAIL — DEVUELVE blocks
+# API: DAY DETAIL — DEVUELVE warmup/main/finisher blocks
 # =============================================================
 @main_bp.route("/api/day_detail")
 @login_required
@@ -1444,32 +1411,110 @@ def api_day_detail():
     checks = AthleteCheck.query.filter_by(user_id=user_id, fecha=fecha, done=True).all()
     done_ids = [c.rutina_item_id for c in checks if c.rutina_item_id is not None]
 
-    # ✅ MAIN blocks (principal)
-    main_blocks = _build_blocks_payload_from_text(plan.main or "")
+    def compile_blocks_from_text(txt: str) -> List[Dict[str, Any]]:
+        blocks_src = _split_blocks_from_text(txt or "")
+        blocks: List[Dict[str, Any]] = []
 
-    # ✅ NUEVO: warmup/finisher como BLOQUES
-    warmup_blocks = _build_blocks_payload_from_text(plan.warmup or "")
-    finisher_blocks = _build_blocks_payload_from_text(plan.finisher or "")
+        for b in blocks_src:
+            btype = b["type"]
+            raw = (b["raw"] or "").strip()
 
-    # legacy (compat)
+            if btype == "tabata":
+                rid = None
+                if raw.upper().startswith("RUTINA:"):
+                    rid = parse_rutina_ref(raw)
+                if not rid:
+                    rid = parse_rutina_ref(raw)
+
+                rutina = Rutina.query.get(rid) if rid else None
+                if not rutina:
+                    blocks.append({"type": "tabata", "ok": False, "error": "Rutina no encontrada"})
+                    continue
+
+                items = _items_payload_for_rutina(rutina.id)
+                cfg = _get_tabata_cfg(rutina, len(items))
+
+                blocks.append({
+                    "type": "tabata",
+                    "ok": True,
+                    "rutina": _rutina_payload(rutina),
+                    "cfg": cfg,
+                    "items": items,
+                    "start_url": url_for("main.rutina_tabata_player", rutina_id=rutina.id),
+                    "settings_url": url_for("main.rutina_tabata_settings", rutina_id=rutina.id) if admin_ok() else "",
+                })
+                continue
+
+            if btype in ("fuerza", "stretch"):
+                rid = parse_rutina_ref(raw)
+                rutina = Rutina.query.get(rid) if rid else None
+                if not rutina:
+                    blocks.append({"type": btype, "ok": False, "error": "Rutina no encontrada"})
+                    continue
+
+                items = _items_payload_for_rutina(rutina.id)
+                blocks.append({
+                    "type": btype,
+                    "ok": True,
+                    "rutina": _rutina_payload(rutina),
+                    "items": items,
+                    "builder_url": url_for("main.rutina_builder", rutina_id=rutina.id) if admin_ok() else "",
+                })
+                continue
+
+            if btype == "ejercicio":
+                eid = parse_ejercicio_ref(raw)
+                ej = Ejercicio.query.get(eid) if eid else None
+                if not ej:
+                    blocks.append({"type": "ejercicio", "ok": False, "error": "Ejercicio no encontrado"})
+                    continue
+
+                video_url = ""
+                if getattr(ej, "video_filename", ""):
+                    video_url = url_for("static", filename=f"videos/{ej.video_filename}")
+
+                blocks.append({
+                    "type": "ejercicio",
+                    "ok": True,
+                    "ejercicio": {
+                        "id": ej.id,
+                        "nombre": ej.nombre,
+                        "categoria": getattr(ej, "categoria", "") or "",
+                        "descripcion": getattr(ej, "descripcion", "") or "",
+                        "video_url": video_url,
+                    }
+                })
+                continue
+
+            if btype in ("run", "bike", "swim", "free", "note"):
+                blocks.append({"type": btype, "ok": True, "text": raw})
+                continue
+
+            blocks.append({"type": btype, "ok": True, "text": raw})
+
+        return blocks
+
+    # ✅ armar bloques por sección
+    warmup_blocks = compile_blocks_from_text(plan.warmup or "")
+    main_blocks = compile_blocks_from_text(plan.main or "")
+    finisher_blocks = compile_blocks_from_text(plan.finisher or "")
+
+    # legacy (para título principal)
     legacy_rutina = None
     legacy_items_payload: List[Dict[str, Any]] = []
     legacy_is_tabata = False
     legacy_tabata_cfg = None
 
-    for b in main_blocks:
-        if not b.get("ok"):
-            continue
-        if b.get("type") == "tabata" and b.get("rutina"):
-            legacy_rutina = b["rutina"]
-            legacy_items_payload = b.get("items") or []
-            legacy_is_tabata = True
-            legacy_tabata_cfg = b.get("cfg")
-            break
-        if b.get("type") in ("fuerza", "stretch") and b.get("rutina"):
-            legacy_rutina = b["rutina"]
-            legacy_items_payload = b.get("items") or []
-            break
+    for b in (main_blocks or []):
+        t = (b.get("type") or "").lower()
+        if b.get("ok") and t in ("fuerza", "stretch", "tabata") and b.get("rutina"):
+            rid = b["rutina"].get("id")
+            if rid:
+                legacy_rutina = Rutina.query.get(rid)
+                legacy_items_payload = b.get("items") or []
+                legacy_is_tabata = (t == "tabata")
+                legacy_tabata_cfg = b.get("cfg")
+                break
 
     return jsonify({
         "ok": True,
@@ -1481,18 +1526,15 @@ def api_day_detail():
             "puede_entrenar": plan.puede_entrenar,
             "comentario_atleta": plan.comentario_atleta,
         },
-
-        # ✅ MAIN (principal)
-        "blocks": main_blocks,
-
-        # ✅ NUEVO
         "warmup_blocks": warmup_blocks,
+        "main_blocks": main_blocks,
         "finisher_blocks": finisher_blocks,
 
-        # legacy
-        "rutina": ({"id": legacy_rutina.get("id"), "nombre": legacy_rutina.get("nombre")} if legacy_rutina else None),
-        "items": legacy_items_payload,
+        # compat
+        "blocks": main_blocks,
 
+        "rutina": ({"id": legacy_rutina.id, "nombre": legacy_rutina.nombre} if legacy_rutina else None),
+        "items": legacy_items_payload,
         "checks": done_ids,
         "log": {
             "did_train": bool(log.did_train),
@@ -1589,8 +1631,15 @@ def athlete_save_availability():
 
     plan.puede_entrenar = "no" if no_puedo else "si"
     plan.comentario_atleta = comentario
-    db.session.commit()
 
+    # opcional: actualizar blocks (sin borrar nada) si existe
+    if _diaplan_has_blocks():
+        try:
+            plan.blocks = _build_blocks_json(plan.warmup, plan.main, plan.finisher)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    db.session.commit()
     return jsonify({"ok": True})
 
 

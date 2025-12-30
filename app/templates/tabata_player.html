@@ -9,15 +9,14 @@
   </div>
 
   <div class="d-flex gap-2">
-    {# ✅ Builder SOLO coach/admin (atleta NO lo ve) #}
-    {% if (admin_ok or is_admin or (current_user.is_authenticated and current_user.is_admin)) %}
+    {# ✅ SOLO ADMIN ve Builder #}
+    {% if is_admin %}
       <a class="btn btn-outline-info" href="{{ url_for('main.rutina_builder', rutina_id=rutina.id) }}">
         <i class="bi bi-sliders"></i> Builder
       </a>
     {% endif %}
 
-    <a class="btn btn-outline-light"
-       href="{{ url_for('main.dashboard_entrenador') if admin_ok else url_for('main.perfil_redirect') }}">
+    <a class="btn btn-outline-light" href="{{ url_for('main.dashboard_entrenador') if admin_ok else url_for('main.perfil_redirect') }}">
       <i class="bi bi-arrow-left"></i> Volver
     </a>
   </div>
@@ -83,7 +82,7 @@
       </div>
 
       <div class="text-muted mt-2" style="font-size:.92rem;">
-        ✅ El video se repite automáticamente durante el trabajo.
+        ✅ El video se repite automáticamente durante el trabajo.  
         🔊 Beeps en 3–2–1 antes de cambiar de fase.
       </div>
 
@@ -93,7 +92,6 @@
   <!-- CONFIG + LISTA -->
   <div class="col-12 col-lg-5">
 
-    {# ✅ Config SOLO admin/coach #}
     {% if is_admin %}
     <div class="card glass p-3 p-md-4 mb-3">
       <div class="fw-bold mb-2" style="letter-spacing:.12em;text-transform:uppercase;">Configurar tiempos</div>
@@ -137,7 +135,7 @@
       <div class="fw-bold mb-2" style="letter-spacing:.12em;text-transform:uppercase;">Lista de ejercicios</div>
 
       {% if items_payload|length == 0 %}
-        <div class="alert alert-warning vr-alert">Esta rutina no tiene ejercicios. Andá al Builder y agregalos.</div>
+        <div class="alert alert-warning vr-alert">Esta rutina no tiene ejercicios. Avisá al coach.</div>
       {% else %}
         <div class="list-group" style="gap:10px;">
           {% for it in items_payload %}

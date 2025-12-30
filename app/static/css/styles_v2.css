@@ -723,3 +723,35 @@ body.vr-body{
 .vr-sidebar .card{
   overflow: hidden;
 }
+
+/* ============================================================
+   ✅ FUERZA: marcar ejercicio en verde + pill HECHO
+   (usado por perfil.html -> .exercise-card.done)
+============================================================ */
+.exercise-card{
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.exercise-card.done{
+  border-color: rgba(34,197,94,.55) !important;
+  background: rgba(34,197,94,.10) !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,.12), 0 10px 30px rgba(0,0,0,.35);
+}
+
+.exercise-done-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  font-size: .78rem;
+  border: 1px solid rgba(34,197,94,.50);
+  background: rgba(34,197,94,.14);
+  color: rgba(255,255,255,.95);
+}
+
+.exercise-meta{
+  font-weight: 800;
+  letter-spacing: .02em;
+}

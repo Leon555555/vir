@@ -543,7 +543,27 @@
   border-radius: 18px;
   overflow:hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
+.exercise-card.done{
+  border-color: rgba(34,197,94,.55) !important;
+  background: rgba(34,197,94,.10) !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,.12), 0 10px 30px rgba(0,0,0,.35);
+}
+.exercise-done-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  font-size: .78rem;
+  border: 1px solid rgba(34,197,94,.50);
+  background: rgba(34,197,94,.14);
+  color: rgba(255,255,255,.95);
+}
+
 .exercise-head{
   padding: 10px 12px;
   display:flex;
@@ -552,7 +572,7 @@
   gap:10px;
 }
 .exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
-.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); }
+.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); font-weight:800; letter-spacing:.02em; }
 .exercise-video{ padding: 10px 12px 12px; }
 .exercise-video video{
   width:100%;
@@ -675,6 +695,7 @@ async function saveAvailability(){
 
     setAvailUI(noPuedo ? "no" : "si", comentario);
 
+    // pintar celda del mes si está visible
     const cell = document.querySelector(`.month-cell[data-date="${CSS.escape(CURRENT_DAY)}"]`);
     if(cell){
       if(noPuedo) cell.classList.add("blocked");
@@ -862,27 +883,51 @@ function renderStrength(items){
     return;
   }
 
+  function pickWeight(it){
+    const w = (it.peso ?? it.kg ?? it.kilos ?? it.weight ?? it.carga ?? it.load ?? null);
+    if(w === null || w === undefined) return "";
+    const n = String(w).trim();
+    if(!n || n === "0" || n.toLowerCase() === "none") return "";
+    return n;
+  }
+
   items.forEach(it => {
     const col = document.createElement("div");
     col.className = "col-12";
 
-    const checked = CURRENT_CHECKS.has(String(it.id)) ? "checked" : "";
+    const isDone = CURRENT_CHECKS.has(String(it.id));
+    const checked = isDone ? "checked" : "";
     const vidSrc = it.video_src || "";
     const poster = posterDataUrl(it.nombre);
 
+    const series = String(it.series || "").trim();
+    const reps   = String(it.reps || "").trim();
+    const desc   = String(it.descanso || "").trim();
+    const nota   = String(it.nota || "").trim();
+
+    const kgVal = pickWeight(it);
+    const kgTxt = kgVal ? `${kgVal} kg` : "";
+
+    const parts = [];
+    if(series) parts.push(series);
+    if(reps) parts.push(reps);
+    if(kgTxt) parts.push(kgTxt);
+    if(desc) parts.push(`Desc ${desc}`);
+    if(nota) parts.push(cleanText(nota));
+
     col.innerHTML = `
-      <div class="exercise-card">
+      <div class="exercise-card ${isDone ? "done" : ""}" id="exCard-${it.id}">
         <div class="exercise-head">
           <div>
             <div class="exercise-name">${escapeHtml(cleanText(it.nombre || "Ejercicio"))}</div>
-            <div class="exercise-meta">
-              ${escapeHtml(it.series || "")}${it.series ? " · " : ""}${escapeHtml(it.reps || "")}
-              ${it.descanso ? (" · Desc " + escapeHtml(it.descanso)) : ""}
-              ${it.nota ? (" · " + escapeHtml(cleanText(it.nota))) : ""}
-            </div>
+            <div class="exercise-meta">${escapeHtml(parts.join(" · ") || "—")}</div>
           </div>
 
           <div class="d-flex align-items-center gap-2">
+            <span class="exercise-done-pill ${isDone ? "" : "d-none"}" id="exPill-${it.id}">
+              <i class="bi bi-check2-circle"></i> HECHO
+            </span>
+
             <div class="form-check form-switch m-0">
               <input class="form-check-input" type="checkbox" ${checked}
                      onchange="toggleItem(${it.id}, this.checked)">
@@ -937,6 +982,7 @@ function openDay(isoDate){
   CURRENT_PAYLOAD = null;
   CURRENT_CHECKS = new Set();
 
+  // reset UI
   document.getElementById("dayModalDate").textContent = isoDate;
   document.getElementById("dayModalTitle").textContent = "Cargando...";
   document.getElementById("dayModalType").textContent = "—";
@@ -962,9 +1008,11 @@ function openDay(isoDate){
 
   document.getElementById("blockedChip").classList.add("d-none");
 
+  // availability panel reset (cerrado por defecto)
   document.getElementById("availabilityPanel").classList.add("d-none");
   setAvailUI("si","");
 
+  // default sections visible
   document.getElementById("midSessionSection").classList.add("d-none");
   document.getElementById("sessionRightSection").classList.remove("d-none");
 
@@ -978,13 +1026,10 @@ function openDay(isoDate){
       const planType = String(p.plan_type || "").toLowerCase();
       const isEndurance = (planType === "run" || planType === "bike" || planType === "swim");
 
-      // ✅ micro-fix: título lógico aunque no haya rutina (run/bike/swim)
-      const title = cleanText(data.rutina?.nombre || (isEndurance ? "Sesión del día" : "Detalle del día"));
-      document.getElementById("dayModalTitle").textContent = title;
-
-      // ✅ micro-fix: en el chip ponemos plan_type “limpio”
+      document.getElementById("dayModalTitle").textContent = cleanText(data.rutina?.nombre || "Detalle del día");
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
+      // warmup / finisher (no mostrar none)
       const warm = cleanText(p.warmup || "");
       if(!warm || warm.toLowerCase()==="none"){
         document.getElementById("warmupCard").style.display = "none";
@@ -1001,6 +1046,7 @@ function openDay(isoDate){
         document.getElementById("finisherCard").style.display = "";
       }
 
+      // ✅ disponibilidad desde backend
       setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
 
       document.getElementById("didTrain").checked = !!data.log?.did_train;
@@ -1008,6 +1054,7 @@ function openDay(isoDate){
 
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
+      // bloques
       const blocks = Array.isArray(data.blocks) ? data.blocks : [];
       const blocksCount = blocks.length;
 
@@ -1025,7 +1072,9 @@ function openDay(isoDate){
         renderBlocksInto("dayBlocks", blocks);
       }
 
+      // progreso fuerza
       updateProgress();
+
       DAY_MODAL.show();
     })
     .catch(err => {
@@ -1048,8 +1097,18 @@ function toggleItem(itemId, done){
     .then(r => r.json())
     .then(j => {
       if(!j.ok) throw new Error(j.error || "Error");
+
+      // estado local
       if(done) CURRENT_CHECKS.add(String(itemId));
       else CURRENT_CHECKS.delete(String(itemId));
+
+      // ✅ UI instantánea: verde + pill
+      const card = document.getElementById(`exCard-${itemId}`);
+      if(card) card.classList.toggle("done", !!done);
+
+      const pill = document.getElementById(`exPill-${itemId}`);
+      if(pill) pill.classList.toggle("d-none", !done);
+
       updateProgress();
     })
     .catch(err => { console.error(err); alert("Error guardando check: " + err.message); });

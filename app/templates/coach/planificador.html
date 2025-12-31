@@ -108,10 +108,34 @@
                 </div>
               </div>
 
-              <div class="d-flex gap-2 align-items-center">
+              <!-- ✅ RESUMEN VISIBLE (W/P/E) -->
+              <div class="d-flex flex-column align-items-end gap-1">
                 <span class="badge bg-secondary" style="font-weight:900;">
                   {{ p.plan_type or 'Descanso' }}
                 </span>
+
+                {% set wtxt = (p.warmup or '').strip() %}
+                {% set mtxt = (p.main or '').strip() %}
+                {% set ftxt = (p.finisher or '').strip() %}
+                {% set has_w = (wtxt|length > 0) %}
+                {% set has_m = (mtxt|length > 0) %}
+                {% set has_f = (ftxt|length > 0) %}
+
+                <div class="d-flex gap-1 flex-wrap justify-content-end">
+                  <span class="badge {% if has_w %}bg-success{% else %}bg-secondary{% endif %}" style="font-weight:900;">W</span>
+                  <span class="badge {% if has_m %}bg-info text-dark{% else %}bg-secondary{% endif %}" style="font-weight:900;">P</span>
+                  <span class="badge {% if has_f %}bg-warning text-dark{% else %}bg-secondary{% endif %}" style="font-weight:900;">E</span>
+                </div>
+
+                {% if has_w or has_m or has_f %}
+                  <div class="text-muted small" style="max-width:260px; text-align:right; opacity:.9;">
+                    {% if has_w %}<div>W: {{ wtxt.splitlines()[0] }}</div>{% endif %}
+                    {% if has_m %}<div>P: {{ mtxt.splitlines()[0] }}</div>{% endif %}
+                    {% if has_f %}<div>E: {{ ftxt.splitlines()[0] }}</div>{% endif %}
+                  </div>
+                {% else %}
+                  <div class="text-muted small">Sin contenido</div>
+                {% endif %}
               </div>
             </div>
 
@@ -135,7 +159,8 @@
 
                 <!-- =========================
                      ✅ WARMUP como BLOQUES (drag & drop)
-                     Se guarda en textarea warmup como líneas
+                     Se guarda en warmup_submit (name="warmup")
+                     RAW auxiliar: name="warmup_raw" (NO rompe backend)
                 ========================== -->
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -165,13 +190,14 @@
                     <div class="vr-zone-list" id="{{ day_id }}_warmup_list"></div>
                   </div>
 
+                  <!-- RAW auxiliar (visible/edición) -->
                   <textarea class="form-control mt-2 d-none"
-                            name="warmup"
+                            name="warmup_raw"
                             id="{{ day_id }}_warmup_raw"
                             rows="3"
                             {% if blocked %}disabled{% endif %}>{{ p.warmup or '' }}</textarea>
 
-                  <!-- Hidden mirror para que NO rompa: si el raw está oculto, igual se envía -->
+                  <!-- ✅ SOLO ESTE SE ENVÍA COMO warmup -->
                   <textarea class="form-control d-none"
                             name="warmup"
                             id="{{ day_id }}_warmup_submit"
@@ -296,7 +322,9 @@
                 </div>
 
                 <!-- =========================
-                     ✅ COOLDOWN como BLOQUES (drag & drop)
+                     ✅ ENFRIAMIENTO como BLOQUES (drag & drop)
+                     Se guarda en finisher_submit (name="finisher")
+                     RAW auxiliar: name="finisher_raw"
                 ========================== -->
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -326,12 +354,14 @@
                     <div class="vr-zone-list" id="{{ day_id }}_finisher_list"></div>
                   </div>
 
+                  <!-- RAW auxiliar (visible/edición) -->
                   <textarea class="form-control mt-2 d-none"
-                            name="finisher"
+                            name="finisher_raw"
                             id="{{ day_id }}_finisher_raw"
                             rows="3"
                             {% if blocked %}disabled{% endif %}>{{ p.finisher or '' }}</textarea>
 
+                  <!-- ✅ SOLO ESTE SE ENVÍA como finisher -->
                   <textarea class="form-control d-none"
                             name="finisher"
                             id="{{ day_id }}_finisher_submit"
@@ -678,7 +708,6 @@ function toggleRaw(dayId, zone){
 }
 
 function zoneLineFromItem(item){
-  // item: {kind:'rutina'|'ej'|'note', id?, name?, type?, text?}
   if(item.kind === "rutina"){
     const t = (item.type || "FUERZA").toUpperCase();
     return `${t}:RUTINA:${item.id}`;
@@ -702,7 +731,7 @@ function parseZoneLines(text){
       continue;
     }
     if(up.startsWith("TABATA:") || up.startsWith("FUERZA:") || up.startsWith("STRETCH:") || up.startsWith("ESTIRAMIENTOS:")){
-      const t = up.startsWith("TABATA:") ? "TABATA" : up.startsWith("STRETCH:") || up.startsWith("ESTIRAMIENTOS:") ? "STRETCH" : "FUERZA";
+      const t = up.startsWith("TABATA:") ? "TABATA" : (up.startsWith("STRETCH:") || up.startsWith("ESTIRAMIENTOS:")) ? "STRETCH" : "FUERZA";
       items.push({kind:"rutina", type:t, id: extractRutinaId(line), name:"Rutina"});
       continue;
     }
@@ -714,10 +743,18 @@ function parseZoneLines(text){
       items.push({kind:"note", text: line.split(":",2)[1]?.trim() || ""});
       continue;
     }
-    // fallback: treat as note
     items.push({kind:"note", text: line});
   }
   return items;
+}
+
+function escapeHtml(s){
+  return String(s||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
 function renderZoneItem(dayId, zone, item){
@@ -774,15 +811,6 @@ function renderZoneItem(dayId, zone, item){
   return el;
 }
 
-function escapeHtml(s){
-  return String(s||"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
 function removeZoneItem(btn){
   const item = btn.closest(".vr-zone-item");
   if(!item) return;
@@ -790,20 +818,20 @@ function removeZoneItem(btn){
   const zone  = item.getAttribute("data-zone");
   item.remove();
   syncZoneToTextarea(dayId, zone);
+  updateZoneHint(dayId, zone);
 }
 
 function cycleRutinaType(btn){
   const item = btn.closest(".vr-zone-item");
   if(!item) return;
   const cur = (item.getAttribute("data-type") || "FUERZA").toUpperCase();
-  const next = cur === "FUERZA" ? "TABATA" : cur === "TABATA" ? "STRETCH" : "FUERZA";
+  const next = cur === "FUERZA" ? "TABATA" : (cur === "TABATA" ? "STRETCH" : "FUERZA");
   item.setAttribute("data-type", next);
 
-  // update badge
   const badge = item.querySelector(".badge.bg-info, .badge.bg-danger, .badge.bg-success");
   if(badge){
     badge.textContent = next;
-    badge.className = "badge " + (next==='TABATA'?'bg-danger':next==='STRETCH'?'bg-success':'bg-info');
+    badge.className = "badge " + (next==='TABATA'?'bg-danger':(next==='STRETCH'?'bg-success':'bg-info'));
     badge.style.fontWeight = "900";
   }
 
@@ -820,6 +848,7 @@ function addNoteToZone(dayId, zone){
   const item = renderZoneItem(dayId, zone, {kind:"note", text: txt});
   z.appendChild(item);
   syncZoneToTextarea(dayId, zone);
+  updateZoneHint(dayId, zone);
 }
 
 function syncZoneToTextarea(dayId, zone){
@@ -836,7 +865,7 @@ function syncZoneToTextarea(dayId, zone){
     if(kind === "ej"){
       return {kind:"ej", id: el.getAttribute("data-id")};
     }
-    return {kind:"note", text: el.getAttribute("data-text") || el.textContent || ""};
+    return {kind:"note", text: el.getAttribute("data-text") || ""}; // ✅ limpio
   });
 
   const lines = items.map(zoneLineFromItem).filter(Boolean);
@@ -881,9 +910,7 @@ function handleDragStart(e){
     name: t.getAttribute("data-name") || "",
     type: t.getAttribute("data-type") || "FUERZA"
   };
-  try{
-    e.dataTransfer.setData("text/plain", JSON.stringify(VR_DRAG));
-  }catch(err){}
+  try{ e.dataTransfer.setData("text/plain", JSON.stringify(VR_DRAG)); }catch(err){}
   e.dataTransfer.effectAllowed = "copy";
 }
 
@@ -922,11 +949,10 @@ function dropIntoBlock(e, dayId, blockN){
   const payload = getDragPayload(e);
   if(!payload) return;
 
-  // set inputs based on payload
   if(payload.kind === "rutina"){
     const typeEl = document.getElementById(`${dayId}_b${blockN}_type`);
     const rutEl  = document.getElementById(`${dayId}_b${blockN}_rutina`);
-    if(typeEl) typeEl.value = "FUERZA"; // default; luego podés cambiar a TABATA/STRETCH
+    if(typeEl) typeEl.value = "FUERZA";
     if(rutEl) rutEl.value = payload.id || "";
     syncBlockUI(dayId, blockN);
   } else if(payload.kind === "ej"){
@@ -945,7 +971,6 @@ function dropIntoBlock(e, dayId, blockN){
 ========================= */
 
 (function initAll(){
-  // 1) init block UI states
   const selects = document.querySelectorAll("select[id$='_type']");
   selects.forEach(sel => {
     const m = sel.id.match(/^(day_\d+)_b(\d+)_type$/);
@@ -954,19 +979,16 @@ function dropIntoBlock(e, dayId, blockN){
     }
   });
 
-  // 2) bind draggables
   document.querySelectorAll(".vr-drag-item").forEach(el => {
     el.addEventListener("dragstart", handleDragStart);
   });
 
-  // 3) init zones + sortable within list
   document.querySelectorAll(".vr-dropzone").forEach(zoneEl => {
     const dayId = zoneEl.getAttribute("data-day");
     const zone  = zoneEl.getAttribute("data-zone");
     const disabled = zoneEl.getAttribute("data-disabled") === "1";
     if(!dayId || !zone || disabled) return;
 
-    // hydrate from saved textarea
     hydrateZoneFromTextarea(dayId, zone);
     updateZoneHint(dayId, zone);
 
@@ -985,7 +1007,6 @@ function dropIntoBlock(e, dayId, blockN){
       });
     }
 
-    // if user edits raw, re-hydrate
     const raw = document.getElementById(`${dayId}_${zone}_raw`);
     if(raw){
       raw.addEventListener("input", ()=>{
@@ -997,7 +1018,6 @@ function dropIntoBlock(e, dayId, blockN){
     }
   });
 
-  // 4) init block drop targets
   document.querySelectorAll(".vr-block-wrap").forEach(blockEl => {
     const dayId = blockEl.getAttribute("data-day");
     const bn = parseInt(blockEl.getAttribute("data-block") || "0", 10);
@@ -1011,7 +1031,6 @@ function dropIntoBlock(e, dayId, blockN){
 </script>
 
 <style>
-/* UI pro sin tocar tu CSS base */
 .vr-dropzone{
   border:1px dashed rgba(255,255,255,.18);
   border-radius:14px;

@@ -1,17 +1,17 @@
 # app/models.py
 from __future__ import annotations
 
-from datetime import datetime, date
-from typing import Optional
-
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from flask_login import UserMixin
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import deferred
 
 from app.extensions import db
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -23,22 +23,6 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
 
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    # Flask-Login
-    def get_id(self):
-        return str(self.id)
-
-    @property
-    def is_authenticated(self):
-        return True
-
-    @property
-    def is_active(self):
-        return True
-
-    @property
-    def is_anonymous(self):
-        return False
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -66,11 +50,12 @@ class DiaPlan(db.Model):
 
     puede_entrenar = db.Column(db.String(5), default="si", nullable=False)  # si/no
     comentario_atleta = db.Column(db.String(200), default="", nullable=False)
-
     propuesto_score = db.Column(db.Integer, default=0, nullable=False)
 
-    # ✅ NUEVO: bloques del día (para tabata + run + ejercicios sueltos etc)
-    blocks = db.Column(JSONB, default=list, nullable=False)
+    # ✅ CRITICAL FIX:
+    # Si tu DB todavía no tiene la columna "blocks", NO la queremos tocar en INSERT.
+    # Por eso: deferred + nullable + sin default.
+    blocks = deferred(db.Column(JSONB, nullable=True))
 
     user = db.relationship("User", backref=db.backref("planes", lazy=True))
 
@@ -89,10 +74,15 @@ class Rutina(db.Model):
 
     created_by = db.Column(db.Integer, nullable=True)
 
-    # Si existe -> rutina se puede usar como Tabata
+    # ✅ Igual: si no existe aún en DB, al ser nullable y sin default, no molesta.
     tabata_preset = db.Column(JSONB, nullable=True)
 
-    items = db.relationship("RutinaItem", backref="rutina", lazy=True, cascade="all, delete-orphan")
+    items = db.relationship(
+        "RutinaItem",
+        backref="rutina",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
 
 
 class Ejercicio(db.Model):
@@ -142,7 +132,7 @@ class AthleteLog(db.Model):
     main_done = db.Column(db.Text, default="", nullable=False)
     finisher_done = db.Column(db.Text, default="", nullable=False)
 
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "fecha", name="uq_athlete_logs_user_fecha"),
@@ -159,7 +149,7 @@ class AthleteCheck(db.Model):
     rutina_item_id = db.Column(db.Integer, db.ForeignKey("rutina_items.id"), nullable=False, index=True)
     done = db.Column(db.Boolean, default=False, nullable=False)
 
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "fecha", "rutina_item_id", name="uq_athlete_checks_unique"),
@@ -179,7 +169,7 @@ class IntegrationAccount(db.Model):
 
     external_user_id = db.Column(db.String(80), nullable=True)
 
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "provider", name="uq_integration_accounts_user_provider"),

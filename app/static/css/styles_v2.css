@@ -754,3 +754,60 @@ body.vr-body{
   border-color: rgba(34,211,238,.55) !important;
   box-shadow: 0 0 0 2px rgba(34,211,238,.22) !important;
 }
+
+/* ============================================================
+   ✅ FIX MOBILE CALENDARIO MES (NO SUPERPOSICIÓN)
+   - Evita que el texto se salga del tile
+   - Ellipsis (…)
+   - En pantallas muy chicas: solo icono
+============================================================ */
+
+/* clave: nada puede "dibujarse" fuera de la celda */
+.month-cell{
+  overflow: hidden; /* ✅ evita superposición entre celdas */
+}
+
+/* contenedor icono+texto dentro del día */
+.month-cell .ptype-icon{
+  max-width: 100%;
+  min-width: 0;            /* ✅ necesario para ellipsis en flex */
+  overflow: hidden;
+  flex-wrap: nowrap;       /* no permitir saltos raros */
+}
+
+/* texto del plan: truncado prolijo */
+.month-cell .ptype-icon span{
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis; /* ✅ “DESCA…” */
+  white-space: nowrap;     /* ✅ en una línea */
+}
+
+/* en mobile: más compacto + aseguramos altura */
+@media (max-width: 520px){
+  .month-cell{
+    min-height: 74px;     /* un poco más compacto y consistente */
+    padding: 8px;
+  }
+  .month-cell .ptype-icon{
+    margin-top: 6px;
+    gap: 6px;
+  }
+  .month-cell .ptype-icon img{
+    width: 16px;
+    height: 16px;
+  }
+  .month-cell .ptype-icon span{
+    font-size: .74rem;
+    letter-spacing: .05em;
+  }
+}
+
+/* en pantallas muy chicas: SOLO ICONO (queda premium, cero pisadas) */
+@media (max-width: 420px){
+  .month-cell .ptype-icon span{
+    display: none;
+  }
+}

@@ -70,9 +70,20 @@
           <i class="bi bi-calendar3"></i> Planificar
         </a>
       {% endif %}
-      <a class="btn btn-outline-light" href="{{ url_for('main.perfil_redirect') }}">
-        <i class="bi bi-arrow-left"></i> Volver
-      </a>
+
+      {# ✅ FIX 1: “Volver” no tiene sentido en la home móvil.
+         - Si estás en view=today: oculto en móvil (d-none d-md-inline-flex)
+         - Si NO estás en view=today: se muestra siempre (como antes)
+      #}
+      {% if view == 'today' %}
+        <a class="btn btn-outline-light d-none d-md-inline-flex" href="{{ url_for('main.perfil_redirect') }}">
+          <i class="bi bi-arrow-left"></i> Volver
+        </a>
+      {% else %}
+        <a class="btn btn-outline-light" href="{{ url_for('main.perfil_redirect') }}">
+          <i class="bi bi-arrow-left"></i> Volver
+        </a>
+      {% endif %}
 
       <div class="mini-stat">
         <div class="mini-title">RACHA</div>
@@ -671,9 +682,6 @@ async function saveAvailability(){
 
 /* =========================
    BLOQUES (RENDER UNIVERSAL)
-   - Fuerza/Stretch: muestra ejercicios (verdes + kilos)
-   - Tabata: ▶ Reproducir
-   - Ejercicio: muestra video del banco (ejercicio suelto)
 ========================= */
 function renderBlocksInto(elId, blocks){
   const wrap = document.getElementById(elId);
@@ -835,7 +843,6 @@ function renderBlocksInto(elId, blocks){
 }
 
 function updateProgress(){
-  // ✅ Fuente real: MAIN viene como data.blocks (tu API actual)
   const blocks = Array.isArray(CURRENT_PAYLOAD?.blocks) ? CURRENT_PAYLOAD.blocks : [];
   const force = blocks.find(b => ["fuerza","stretch"].includes((b.type||"").toLowerCase()) && b.ok && Array.isArray(b.items));
   const total = force?.items?.length || 0;
@@ -846,9 +853,6 @@ function updateProgress(){
   document.getElementById("progressLabel").textContent = total ? `Hechos ${done} / ${total}` : "—";
 }
 
-/* =========================
-   FUERZA (verdes + kilos)
-========================= */
 function posterDataUrl(title){
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const svg = `
@@ -943,7 +947,6 @@ function renderStrength(items){
   });
 }
 
-// strength puede venir del MAIN o de warmup/finisher (según dónde clickeaste)
 function toggleStrength(blockIndex, sourceElId){
   const sec = document.getElementById("strengthSection");
   const isHidden = sec.classList.contains("d-none");
@@ -966,9 +969,6 @@ function toggleStrength(blockIndex, sourceElId){
   }
 }
 
-/* =========================
-   OPEN DAY
-========================= */
 function openDay(isoDate){
   CURRENT_DAY = isoDate;
 
@@ -1014,7 +1014,6 @@ function openDay(isoDate){
       document.getElementById("dayModalTitle").textContent = cleanText(p.plan_type || "Detalle del día");
       document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
 
-      // disponibilidad
       setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
 
       document.getElementById("didTrain").checked = !!data.log?.did_train;
@@ -1022,9 +1021,8 @@ function openDay(isoDate){
 
       CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
 
-      // ✅ render de warmup/main/finisher como BLOQUES
       const wBlocks = Array.isArray(data.warmup_blocks) ? data.warmup_blocks : [];
-      const mBlocks = Array.isArray(data.blocks) ? data.blocks : [];             // ✅ FIX: main = blocks
+      const mBlocks = Array.isArray(data.blocks) ? data.blocks : [];
       const fBlocks = Array.isArray(data.finisher_blocks) ? data.finisher_blocks : [];
 
       renderBlocksInto("warmupBlocks", wBlocks);
@@ -1043,9 +1041,6 @@ function openDay(isoDate){
     });
 }
 
-/* =========================
-   CHECKS + LOG
-========================= */
 function toggleItem(itemId, done){
   const form = new FormData();
   form.append("user_id", String(CURRENT_USER));

@@ -84,16 +84,20 @@
     <!-- IZQUIERDA: días -->
     <div>
 
-      <div class="vr-days-grid">
+      <!-- ✅ AHORA: 7 días visibles + expand -->
+      <div class="vr-days-grid vr-days-grid-7" id="daysGrid">
         {% for f in fechas %}
           {% set p = planes[f] %}
           {% set blocked = ((p.puede_entrenar or 'si') == 'no') %}
           {% set cmt = (p.comentario_atleta or '') %}
           {% set day_id = "day_" ~ f.isoformat().replace('-','') %}
 
-          <div class="vr-day-card">
+          <div class="vr-day-card vr-day-collapsed"
+               data-day="{{ f.isoformat() }}"
+               id="{{ day_id }}">
 
-            <div class="vr-day-title">
+            <!-- HEADER (siempre visible) -->
+            <div class="vr-day-title vr-day-clickable">
               <div>
                 <div style="font-weight:950;letter-spacing:.10em;">
                   {{ f.strftime('%A %d/%m')|upper }}
@@ -128,7 +132,7 @@
                 </div>
 
                 {% if has_w or has_m or has_f %}
-                  <div class="text-muted small" style="max-width:260px; text-align:right; opacity:.9;">
+                  <div class="text-muted small vr-day-lines">
                     {% if has_w %}<div>W: {{ wtxt.splitlines()[0] }}</div>{% endif %}
                     {% if has_m %}<div>P: {{ mtxt.splitlines()[0] }}</div>{% endif %}
                     {% if has_f %}<div>E: {{ ftxt.splitlines()[0] }}</div>{% endif %}
@@ -136,258 +140,268 @@
                 {% else %}
                   <div class="text-muted small">Sin contenido</div>
                 {% endif %}
+
+                <div class="d-flex gap-2 mt-1">
+                  <button type="button"
+                          class="btn btn-sm btn-outline-info"
+                          onclick="expandDay(event, '{{ f.isoformat() }}')"
+                          {% if blocked %}disabled{% endif %}>
+                    Planificar
+                  </button>
+
+                  <button type="button"
+                          class="btn btn-sm btn-outline-light d-none"
+                          data-close-btn
+                          onclick="collapseDay(event)">
+                    Cerrar
+                  </button>
+                </div>
               </div>
             </div>
 
-            <form method="post" action="{{ url_for('main.save_day') }}" class="vr-day-body">
-              <input type="hidden" name="user_id" value="{{ atleta.id }}">
-              <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
+            <!-- ✅ EDITOR (oculto hasta expand) -->
+            <div class="vr-day-editor">
 
-              <div class="row g-2">
-                <div class="col-12">
-                  <label class="text-muted" style="font-weight:900;letter-spacing:.10em;">TIPO</label>
-                  <select class="form-select" name="plan_type" {% if blocked %}disabled{% endif %}>
-                    {% set cur = (p.plan_type or 'Descanso')|lower %}
-                    <option value="Descanso" {% if cur=='descanso' %}selected{% endif %}>Descanso</option>
-                    <option value="Fuerza" {% if cur=='fuerza' %}selected{% endif %}>Fuerza</option>
-                    <option value="Run" {% if cur=='run' %}selected{% endif %}>Run</option>
-                    <option value="Pista" {% if cur=='pista' %}selected{% endif %}>Pista</option>
-                    <option value="Bike" {% if cur=='bike' %}selected{% endif %}>Bike</option>
-                    <option value="Swim" {% if cur=='swim' or cur in ['natacion','natación'] %}selected{% endif %}>Swim</option>
-                  </select>
-                </div>
+              <form method="post" action="{{ url_for('main.save_day') }}" class="vr-day-body">
+                <input type="hidden" name="user_id" value="{{ atleta.id }}">
+                <input type="hidden" name="fecha" value="{{ f.isoformat() }}">
 
-                <!-- =========================
-                     ✅ WARMUP como BLOQUES (drag & drop)
-                     Se guarda en warmup_submit (name="warmup")
-                     RAW auxiliar: name="warmup_raw" (NO rompe backend)
-                ========================== -->
-                <div class="col-12">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <label class="text-muted mb-0" style="font-weight:900;letter-spacing:.10em;">WARMUP</label>
-                    <div class="d-flex gap-2">
-                      <button class="btn btn-sm btn-outline-light" type="button"
-                              onclick="addNoteToZone('{{ day_id }}','warmup')"
-                              {% if blocked %}disabled{% endif %}>
-                        <i class="bi bi-chat-left-text"></i> Nota
-                      </button>
-                      <button class="btn btn-sm btn-outline-light" type="button"
-                              onclick="toggleRaw('{{ day_id }}','warmup')"
-                              {% if blocked %}disabled{% endif %}>
-                        <i class="bi bi-code-slash"></i> Texto
-                      </button>
-                    </div>
+                <div class="row g-2">
+                  <div class="col-12">
+                    <label class="text-muted" style="font-weight:900;letter-spacing:.10em;">TIPO</label>
+                    <select class="form-select" name="plan_type" {% if blocked %}disabled{% endif %}>
+                      {% set cur = (p.plan_type or 'Descanso')|lower %}
+                      <option value="Descanso" {% if cur=='descanso' %}selected{% endif %}>Descanso</option>
+                      <option value="Fuerza" {% if cur=='fuerza' %}selected{% endif %}>Fuerza</option>
+                      <option value="Run" {% if cur=='run' %}selected{% endif %}>Run</option>
+                      <option value="Pista" {% if cur=='pista' %}selected{% endif %}>Pista</option>
+                      <option value="Bike" {% if cur=='bike' %}selected{% endif %}>Bike</option>
+                      <option value="Swim" {% if cur=='swim' or cur in ['natacion','natación'] %}selected{% endif %}>Swim</option>
+                    </select>
                   </div>
 
-                  <div class="vr-dropzone mt-2"
-                       id="{{ day_id }}_warmup_zone"
-                       data-zone="warmup"
-                       data-day="{{ day_id }}"
-                       {% if blocked %}data-disabled="1"{% endif %}>
-                    <div class="vr-dropzone-hint">
-                      Arrastrá aquí rutinas / ejercicios / notas (WARMUP)
+                  <!-- =========================
+                       ✅ WARMUP como BLOQUES (drag & drop)
+                  ========================== -->
+                  <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <label class="text-muted mb-0" style="font-weight:900;letter-spacing:.10em;">WARMUP</label>
+                      <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-light" type="button"
+                                onclick="addNoteToZone('{{ day_id }}','warmup')"
+                                {% if blocked %}disabled{% endif %}>
+                          <i class="bi bi-chat-left-text"></i> Nota
+                        </button>
+                        <button class="btn btn-sm btn-outline-light" type="button"
+                                onclick="toggleRaw('{{ day_id }}','warmup')"
+                                {% if blocked %}disabled{% endif %}>
+                          <i class="bi bi-code-slash"></i> Texto
+                        </button>
+                      </div>
                     </div>
-                    <div class="vr-zone-list" id="{{ day_id }}_warmup_list"></div>
+
+                    <div class="vr-dropzone mt-2"
+                         id="{{ day_id }}_warmup_zone"
+                         data-zone="warmup"
+                         data-day="{{ day_id }}"
+                         {% if blocked %}data-disabled="1"{% endif %}>
+                      <div class="vr-dropzone-hint">
+                        Arrastrá aquí rutinas / ejercicios / notas (WARMUP)
+                      </div>
+                      <div class="vr-zone-list" id="{{ day_id }}_warmup_list"></div>
+                    </div>
+
+                    <textarea class="form-control mt-2 d-none"
+                              name="warmup_raw"
+                              id="{{ day_id }}_warmup_raw"
+                              rows="3"
+                              {% if blocked %}disabled{% endif %}>{{ p.warmup or '' }}</textarea>
+
+                    <textarea class="form-control d-none"
+                              name="warmup"
+                              id="{{ day_id }}_warmup_submit"
+                              rows="1"
+                              {% if blocked %}disabled{% endif %}>{{ p.warmup or '' }}</textarea>
                   </div>
 
-                  <!-- RAW auxiliar (visible/edición) -->
-                  <textarea class="form-control mt-2 d-none"
-                            name="warmup_raw"
-                            id="{{ day_id }}_warmup_raw"
-                            rows="3"
-                            {% if blocked %}disabled{% endif %}>{{ p.warmup or '' }}</textarea>
-
-                  <!-- ✅ SOLO ESTE SE ENVÍA COMO warmup -->
-                  <textarea class="form-control d-none"
-                            name="warmup"
-                            id="{{ day_id }}_warmup_submit"
-                            rows="1"
-                            {% if blocked %}disabled{% endif %}>{{ p.warmup or '' }}</textarea>
-                </div>
-
-                <!-- =========================
-                     ✅ BLOQUES 1..4 (drop para autocompletar)
-                ========================== -->
-                <div class="col-12">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div class="text-muted" style="font-weight:950;letter-spacing:.14em;text-transform:uppercase;">
-                      Principal (hasta 4 bloques)
+                  <!-- =========================
+                       ✅ BLOQUES 1..4
+                  ========================== -->
+                  <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <div class="text-muted" style="font-weight:950;letter-spacing:.14em;text-transform:uppercase;">
+                        Principal (hasta 4 bloques)
+                      </div>
+                      <button class="btn btn-sm btn-outline-light" type="button"
+                              onclick="fillFromMain('{{ day_id }}')" {% if blocked %}disabled{% endif %}>
+                        <i class="bi bi-magic"></i> Autocargar desde Main
+                      </button>
                     </div>
-                    <button class="btn btn-sm btn-outline-light" type="button"
-                            onclick="fillFromMain('{{ day_id }}')" {% if blocked %}disabled{% endif %}>
-                      <i class="bi bi-magic"></i> Autocargar desde Main
+
+                    <input type="hidden" name="main" id="{{ day_id }}_main" value="{{ p.main or '' }}">
+
+                    {% for i in range(1,5) %}
+                      <div class="mt-2 p-2 vr-block-wrap"
+                           id="{{ day_id }}_block{{ i }}"
+                           data-day="{{ day_id }}"
+                           data-block="{{ i }}"
+                           {% if blocked %}data-disabled="1"{% endif %}
+                           style="border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.18);">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <div class="text-muted" style="font-weight:950;letter-spacing:.12em;">BLOQUE {{ i }}</div>
+                          <div class="d-flex gap-2 align-items-center">
+                            <span class="badge bg-dark" id="{{ day_id }}_b{{i}}_badge">—</span>
+                            <span class="badge bg-secondary-subtle text-dark border vr-drop-badge">
+                              Drop aquí
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="row g-2 mt-1">
+                          <div class="col-md-4">
+                            <label class="text-muted" style="font-weight:900;">Tipo</label>
+                            <select class="form-select"
+                                    name="b{{i}}_type"
+                                    id="{{ day_id }}_b{{i}}_type"
+                                    onchange="syncBlockUI('{{ day_id }}', {{ i }})"
+                                    {% if blocked %}disabled{% endif %}>
+                              <option value="">(vacío)</option>
+                              <option value="TABATA">TABATA</option>
+                              <option value="FUERZA">FUERZA</option>
+                              <option value="STRETCH">STRETCH</option>
+                              <option value="EJ">EJ (ejercicio suelto)</option>
+                              <option value="RUN">RUN</option>
+                              <option value="BIKE">BIKE</option>
+                              <option value="SWIM">SWIM</option>
+                              <option value="FREE">FREE</option>
+                              <option value="NOTE">NOTE</option>
+                            </select>
+                          </div>
+
+                          <div class="col-md-4" id="{{ day_id }}_b{{i}}_rutina_wrap">
+                            <label class="text-muted" style="font-weight:900;">Rutina</label>
+                            <select class="form-select" name="b{{i}}_rutina" id="{{ day_id }}_b{{i}}_rutina"
+                                    {% if blocked %}disabled{% endif %}>
+                              <option value="">(seleccionar)</option>
+                              {% for r in rutinas %}
+                                <option value="{{ r.id }}">{{ r.nombre }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+
+                          <div class="col-md-8" id="{{ day_id }}_b{{i}}_text_wrap">
+                            <label class="text-muted" style="font-weight:900;">Texto</label>
+                            <input class="form-control" name="b{{i}}_text" id="{{ day_id }}_b{{i}}_text"
+                                   placeholder="Ej: 10km suave / 6x400 / 60' Z2 / técnica / comentario"
+                                   {% if blocked %}disabled{% endif %}>
+                          </div>
+
+                          <div class="col-md-8" id="{{ day_id }}_b{{i}}_ej_wrap">
+                            <label class="text-muted" style="font-weight:900;">Ejercicio (Banco)</label>
+
+                            <select class="form-select"
+                                    id="{{ day_id }}_b{{i}}_ej_select"
+                                    onchange="syncEjToText('{{ day_id }}', {{ i }})"
+                                    {% if blocked %}disabled{% endif %}>
+                              <option value="">(seleccionar ejercicio)</option>
+                              {% for g in muscle_groups_order %}
+                                {% set arr = ejercicios_por_grupo.get(g, []) %}
+                                {% if arr and arr|length %}
+                                  <optgroup label="{{ g }}">
+                                    {% for e in arr %}
+                                      <option value="{{ e.id }}">{{ e.nombre }}</option>
+                                    {% endfor %}
+                                  </optgroup>
+                                {% endif %}
+                              {% endfor %}
+                            </select>
+
+                            <div class="d-flex gap-2 mt-2">
+                              <input class="form-control"
+                                     name="b{{i}}_text"
+                                     id="{{ day_id }}_b{{i}}_ej_text"
+                                     placeholder="ID ejercicio (auto) · ej: 123"
+                                     {% if blocked %}disabled{% endif %}>
+                              <button class="btn btn-outline-light" type="button"
+                                      onclick="openEjPreview('{{ day_id }}', {{ i }})" {% if blocked %}disabled{% endif %}>
+                                <i class="bi bi-eye"></i>
+                              </button>
+                            </div>
+
+                            <div class="text-muted small mt-1">
+                              Se guarda como <span class="badge bg-dark border">EJ:&lt;id&gt;</span> (video y descripción aparecen en el perfil del atleta).
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+
+                  <!-- =========================
+                       ✅ ENFRIAMIENTO como BLOQUES
+                  ========================== -->
+                  <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <label class="text-muted mb-0" style="font-weight:900;letter-spacing:.10em;">ENFRIAMIENTO</label>
+                      <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-light" type="button"
+                                onclick="addNoteToZone('{{ day_id }}','finisher')"
+                                {% if blocked %}disabled{% endif %}>
+                          <i class="bi bi-chat-left-text"></i> Nota
+                        </button>
+                        <button class="btn btn-sm btn-outline-light" type="button"
+                                onclick="toggleRaw('{{ day_id }}','finisher')"
+                                {% if blocked %}disabled{% endif %}>
+                          <i class="bi bi-code-slash"></i> Texto
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="vr-dropzone mt-2"
+                         id="{{ day_id }}_finisher_zone"
+                         data-zone="finisher"
+                         data-day="{{ day_id }}"
+                         {% if blocked %}data-disabled="1"{% endif %}>
+                      <div class="vr-dropzone-hint">
+                        Arrastrá aquí rutinas / ejercicios / notas (COOLDOWN)
+                      </div>
+                      <div class="vr-zone-list" id="{{ day_id }}_finisher_list"></div>
+                    </div>
+
+                    <textarea class="form-control mt-2 d-none"
+                              name="finisher_raw"
+                              id="{{ day_id }}_finisher_raw"
+                              rows="3"
+                              {% if blocked %}disabled{% endif %}>{{ p.finisher or '' }}</textarea>
+
+                    <textarea class="form-control d-none"
+                              name="finisher"
+                              id="{{ day_id }}_finisher_submit"
+                              rows="1"
+                              {% if blocked %}disabled{% endif %}>{{ p.finisher or '' }}</textarea>
+                  </div>
+
+                  <div class="col-12">
+                    <label class="text-muted" style="font-weight:900;letter-spacing:.10em;">SCORE (opcional)</label>
+                    <input class="form-control" name="propuesto_score" value="{{ p.propuesto_score or 0 }}" {% if blocked %}disabled{% endif %}>
+                  </div>
+
+                  <div class="col-12 d-grid">
+                    <button class="btn btn-primary" type="submit" {% if blocked %}disabled{% endif %}>
+                      💾 Guardar día
                     </button>
                   </div>
 
-                  <input type="hidden" name="main" id="{{ day_id }}_main" value="{{ p.main or '' }}">
-
-                  {% for i in range(1,5) %}
-                    <div class="mt-2 p-2 vr-block-wrap"
-                         id="{{ day_id }}_block{{ i }}"
-                         data-day="{{ day_id }}"
-                         data-block="{{ i }}"
-                         {% if blocked %}data-disabled="1"{% endif %}
-                         style="border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.18);">
-                      <div class="d-flex justify-content-between align-items-center">
-                        <div class="text-muted" style="font-weight:950;letter-spacing:.12em;">BLOQUE {{ i }}</div>
-                        <div class="d-flex gap-2 align-items-center">
-                          <span class="badge bg-dark" id="{{ day_id }}_b{{i}}_badge">—</span>
-                          <span class="badge bg-secondary-subtle text-dark border vr-drop-badge">
-                            Drop aquí
-                          </span>
-                        </div>
-                      </div>
-
-                      <div class="row g-2 mt-1">
-                        <div class="col-md-4">
-                          <label class="text-muted" style="font-weight:900;">Tipo</label>
-                          <select class="form-select"
-                                  name="b{{i}}_type"
-                                  id="{{ day_id }}_b{{i}}_type"
-                                  onchange="syncBlockUI('{{ day_id }}', {{ i }})"
-                                  {% if blocked %}disabled{% endif %}>
-                            <option value="">(vacío)</option>
-                            <option value="TABATA">TABATA</option>
-                            <option value="FUERZA">FUERZA</option>
-                            <option value="STRETCH">STRETCH</option>
-                            <option value="EJ">EJ (ejercicio suelto)</option>
-                            <option value="RUN">RUN</option>
-                            <option value="BIKE">BIKE</option>
-                            <option value="SWIM">SWIM</option>
-                            <option value="FREE">FREE</option>
-                            <option value="NOTE">NOTE</option>
-                          </select>
-                        </div>
-
-                        <!-- Rutina (TABATA/FUERZA/STRETCH) -->
-                        <div class="col-md-4" id="{{ day_id }}_b{{i}}_rutina_wrap">
-                          <label class="text-muted" style="font-weight:900;">Rutina</label>
-                          <select class="form-select" name="b{{i}}_rutina" id="{{ day_id }}_b{{i}}_rutina"
-                                  {% if blocked %}disabled{% endif %}>
-                            <option value="">(seleccionar)</option>
-                            {% for r in rutinas %}
-                              <option value="{{ r.id }}">{{ r.nombre }}</option>
-                            {% endfor %}
-                          </select>
-                        </div>
-
-                        <!-- Texto (RUN/BIKE/SWIM/FREE/NOTE) -->
-                        <div class="col-md-8" id="{{ day_id }}_b{{i}}_text_wrap">
-                          <label class="text-muted" style="font-weight:900;">Texto</label>
-                          <input class="form-control" name="b{{i}}_text" id="{{ day_id }}_b{{i}}_text"
-                                 placeholder="Ej: 10km suave / 6x400 / 60' Z2 / técnica / comentario"
-                                 {% if blocked %}disabled{% endif %}>
-                        </div>
-
-                        <!-- Ejercicio suelto (EJ) -->
-                        <div class="col-md-8" id="{{ day_id }}_b{{i}}_ej_wrap">
-                          <label class="text-muted" style="font-weight:900;">Ejercicio (Banco)</label>
-
-                          <select class="form-select"
-                                  id="{{ day_id }}_b{{i}}_ej_select"
-                                  onchange="syncEjToText('{{ day_id }}', {{ i }})"
-                                  {% if blocked %}disabled{% endif %}>
-                            <option value="">(seleccionar ejercicio)</option>
-                            {% for g in muscle_groups_order %}
-                              {% set arr = ejercicios_por_grupo.get(g, []) %}
-                              {% if arr and arr|length %}
-                                <optgroup label="{{ g }}">
-                                  {% for e in arr %}
-                                    <option value="{{ e.id }}">{{ e.nombre }}</option>
-                                  {% endfor %}
-                                </optgroup>
-                              {% endif %}
-                            {% endfor %}
-                          </select>
-
-                          <div class="d-flex gap-2 mt-2">
-                            <input class="form-control"
-                                   name="b{{i}}_text"
-                                   id="{{ day_id }}_b{{i}}_ej_text"
-                                   placeholder="ID ejercicio (auto) · ej: 123"
-                                   {% if blocked %}disabled{% endif %}>
-                            <button class="btn btn-outline-light" type="button"
-                                    onclick="openEjPreview('{{ day_id }}', {{ i }})" {% if blocked %}disabled{% endif %}>
-                              <i class="bi bi-eye"></i>
-                            </button>
-                          </div>
-
-                          <div class="text-muted small mt-1">
-                            Se guarda como <span class="badge bg-dark border">EJ:&lt;id&gt;</span> (video y descripción aparecen en el perfil del atleta).
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  {% endfor %}
                 </div>
+              </form>
 
-                <!-- =========================
-                     ✅ ENFRIAMIENTO como BLOQUES (drag & drop)
-                     Se guarda en finisher_submit (name="finisher")
-                     RAW auxiliar: name="finisher_raw"
-                ========================== -->
-                <div class="col-12">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <label class="text-muted mb-0" style="font-weight:900;letter-spacing:.10em;">ENFRIAMIENTO</label>
-                    <div class="d-flex gap-2">
-                      <button class="btn btn-sm btn-outline-light" type="button"
-                              onclick="addNoteToZone('{{ day_id }}','finisher')"
-                              {% if blocked %}disabled{% endif %}>
-                        <i class="bi bi-chat-left-text"></i> Nota
-                      </button>
-                      <button class="btn btn-sm btn-outline-light" type="button"
-                              onclick="toggleRaw('{{ day_id }}','finisher')"
-                              {% if blocked %}disabled{% endif %}>
-                        <i class="bi bi-code-slash"></i> Texto
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="vr-dropzone mt-2"
-                       id="{{ day_id }}_finisher_zone"
-                       data-zone="finisher"
-                       data-day="{{ day_id }}"
-                       {% if blocked %}data-disabled="1"{% endif %}>
-                    <div class="vr-dropzone-hint">
-                      Arrastrá aquí rutinas / ejercicios / notas (COOLDOWN)
-                    </div>
-                    <div class="vr-zone-list" id="{{ day_id }}_finisher_list"></div>
-                  </div>
-
-                  <!-- RAW auxiliar (visible/edición) -->
-                  <textarea class="form-control mt-2 d-none"
-                            name="finisher_raw"
-                            id="{{ day_id }}_finisher_raw"
-                            rows="3"
-                            {% if blocked %}disabled{% endif %}>{{ p.finisher or '' }}</textarea>
-
-                  <!-- ✅ SOLO ESTE SE ENVÍA como finisher -->
-                  <textarea class="form-control d-none"
-                            name="finisher"
-                            id="{{ day_id }}_finisher_submit"
-                            rows="1"
-                            {% if blocked %}disabled{% endif %}>{{ p.finisher or '' }}</textarea>
+              {% if blocked %}
+                <div class="text-muted mt-2" style="font-size:.92rem;">
+                  Este día está bloqueado por el atleta. Si querés replanificar, pedile que lo desbloquee desde su perfil.
                 </div>
+              {% endif %}
 
-                <div class="col-12">
-                  <label class="text-muted" style="font-weight:900;letter-spacing:.10em;">SCORE (opcional)</label>
-                  <input class="form-control" name="propuesto_score" value="{{ p.propuesto_score or 0 }}" {% if blocked %}disabled{% endif %}>
-                </div>
-
-                <div class="col-12 d-grid">
-                  <button class="btn btn-primary" type="submit" {% if blocked %}disabled{% endif %}>
-                    💾 Guardar día
-                  </button>
-                </div>
-
-              </div>
-            </form>
-
-            {% if blocked %}
-              <div class="text-muted mt-2" style="font-size:.92rem;">
-                Este día está bloqueado por el atleta. Si querés replanificar, pedile que lo desbloquee desde su perfil.
-              </div>
-            {% endif %}
+            </div><!-- /vr-day-editor -->
 
           </div>
         {% endfor %}
@@ -516,6 +530,58 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
 <script>
+/* ============================================================
+   ✅ EXPAND / COLLAPSE DÍA (sin romper nada)
+============================================================ */
+function expandDay(ev, iso){
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  document.querySelectorAll('.vr-day-card.is-active').forEach(el => {
+    el.classList.remove('is-active');
+    el.classList.add('vr-day-collapsed');
+    const closeBtn = el.querySelector('[data-close-btn]');
+    if(closeBtn) closeBtn.classList.add('d-none');
+  });
+
+  const card = document.querySelector(`.vr-day-card[data-day="${CSS.escape(iso)}"]`);
+  if(!card) return;
+
+  card.classList.add('is-active');
+  card.classList.remove('vr-day-collapsed');
+
+  const closeBtn = card.querySelector('[data-close-btn]');
+  if(closeBtn) closeBtn.classList.remove('d-none');
+
+  const editor = card.querySelector('.vr-day-editor');
+  if(editor){
+    setTimeout(() => editor.scrollIntoView({behavior:'smooth', block:'start'}), 80);
+  }
+}
+
+function collapseDay(ev){
+  ev.preventDefault();
+  ev.stopPropagation();
+  const card = ev.target.closest('.vr-day-card');
+  if(!card) return;
+  card.classList.remove('is-active');
+  card.classList.add('vr-day-collapsed');
+  const closeBtn = card.querySelector('[data-close-btn]');
+  if(closeBtn) closeBtn.classList.add('d-none');
+}
+
+/* click en header abre */
+document.addEventListener('click', (e) => {
+  const header = e.target.closest('.vr-day-clickable');
+  if(!header) return;
+  const card = header.closest('.vr-day-card');
+  if(!card) return;
+  if(e.target.closest('button, a, input, select, textarea')) return;
+  if(card.classList.contains('is-active')) return;
+  const iso = card.getAttribute('data-day');
+  expandDay(e, iso);
+});
+
 /**
  * OBJETIVO: drag & drop SIN tocar backend.
  * Guardamos warmup/finisher como textarea con líneas tipo:
@@ -865,7 +931,7 @@ function syncZoneToTextarea(dayId, zone){
     if(kind === "ej"){
       return {kind:"ej", id: el.getAttribute("data-id")};
     }
-    return {kind:"note", text: el.getAttribute("data-text") || ""}; // ✅ limpio
+    return {kind:"note", text: el.getAttribute("data-text") || ""};
   });
 
   const lines = items.map(zoneLineFromItem).filter(Boolean);
@@ -969,7 +1035,6 @@ function dropIntoBlock(e, dayId, blockN){
 /* =========================
    Init all
 ========================= */
-
 (function initAll(){
   const selects = document.querySelectorAll("select[id$='_type']");
   selects.forEach(sel => {
@@ -1031,15 +1096,16 @@ function dropIntoBlock(e, dayId, blockN){
 </script>
 
 <style>
+/* =========================
+   Dropzone (tu estilo original)
+========================= */
 .vr-dropzone{
   border:1px dashed rgba(255,255,255,.18);
   border-radius:14px;
   padding:10px;
   background: rgba(0,0,0,.14);
 }
-.vr-dropzone:hover{
-  border-color: rgba(13,202,240,.55);
-}
+.vr-dropzone:hover{ border-color: rgba(13,202,240,.55); }
 .vr-dropzone-hint{
   color: rgba(255,255,255,.55);
   font-size: .92rem;
@@ -1047,26 +1113,59 @@ function dropIntoBlock(e, dayId, blockN){
   letter-spacing: .06em;
   margin-bottom: 8px;
 }
-.vr-zone-list{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
+.vr-zone-list{ display:flex; flex-direction:column; gap:8px; }
 .vr-zone-item{
   border:1px solid rgba(255,255,255,.10);
   border-radius:14px;
   padding:10px;
   background: rgba(0,0,0,.18);
 }
-.vr-drop-badge{
-  font-weight: 900;
-  letter-spacing: .08em;
+.vr-drop-badge{ font-weight: 900; letter-spacing: .08em; }
+.vr-drag-item{ cursor: grab; }
+.vr-drag-item:active{ cursor: grabbing; }
+
+/* =========================
+   ✅ 7 días + expand premium
+========================= */
+.vr-days-grid-7{
+  display:grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 14px;
 }
-.vr-drag-item{
-  cursor: grab;
+@media (max-width: 1400px){ .vr-days-grid-7{ grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 1100px){ .vr-days-grid-7{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 780px){  .vr-days-grid-7{ grid-template-columns: 1fr; } }
+
+.vr-day-card{
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  padding: 14px;
+  overflow: hidden;
 }
-.vr-drag-item:active{
-  cursor: grabbing;
+
+.vr-day-lines{
+  max-width:260px;
+  text-align:right;
+  opacity:.9;
 }
+
+.vr-day-editor{
+  display:none;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+
+.vr-day-card.is-active{
+  grid-column: 1 / -1;
+  border-color: rgba(34,211,238,.35);
+  box-shadow: 0 0 0 2px rgba(34,211,238,.14), 0 20px 60px rgba(0,0,0,.55);
+  background: rgba(255,255,255,.07);
+}
+.vr-day-card.is-active .vr-day-editor{ display:block; }
+
+.vr-day-clickable{ cursor: pointer; }
+.vr-day-clickable:active{ transform: scale(.998); }
 </style>
 {% endblock %}

@@ -71,10 +71,7 @@
         </a>
       {% endif %}
 
-      {# ✅ FIX 1: “Volver” no tiene sentido en la home móvil.
-         - Si estás en view=today: oculto en móvil (d-none d-md-inline-flex)
-         - Si NO estás en view=today: se muestra siempre (como antes)
-      #}
+      {# Volver: en view=today lo oculto en móvil, en otras vistas siempre #}
       {% if view == 'today' %}
         <a class="btn btn-outline-light d-none d-md-inline-flex" href="{{ url_for('main.perfil_redirect') }}">
           <i class="bi bi-arrow-left"></i> Volver
@@ -115,6 +112,7 @@
        href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">Progreso</a>
   </div>
 
+  {# ---------------- TODAY ---------------- #}
   {% if view == 'today' %}
     <div class="card glass p-3 p-md-4">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
@@ -141,6 +139,7 @@
     </div>
   {% endif %}
 
+  {# ---------------- WEEK ---------------- #}
   {% if view == 'week' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
@@ -190,6 +189,7 @@
     </div>
   {% endif %}
 
+  {# ---------------- MONTH ---------------- #}
   {% if view == 'month' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
@@ -255,6 +255,7 @@
     </div>
   {% endif %}
 
+  {# ---------------- PROGRESS ---------------- #}
   {% if view == 'progress' %}
     <div class="card glass p-3 p-md-4">
       <div class="mb-2">
@@ -342,7 +343,7 @@
           <!-- IZQUIERDA (Activación → Principal → Enfriamiento) -->
           <div class="col-lg-4">
 
-            <!-- ✅ ACTIVACIÓN (BLOQUES) -->
+            <!-- ACTIVACIÓN -->
             <div class="day-section" id="warmupSection">
               <div class="day-section-title">1 · Activación</div>
               <div id="warmupBlocks" class="blocks-wrap">
@@ -350,7 +351,7 @@
               </div>
             </div>
 
-            <!-- ✅ PRINCIPAL (BLOQUES) -->
+            <!-- PRINCIPAL -->
             <div class="day-section mt-3" id="mainSection">
               <div class="day-section-title">2 · Bloque principal</div>
               <div class="text-muted" id="blocksMeta">—</div>
@@ -359,7 +360,7 @@
               </div>
             </div>
 
-            <!-- ✅ ENFRIAMIENTO (BLOQUES) -->
+            <!-- ENFRIAMIENTO -->
             <div class="day-section mt-3" id="finisherSection">
               <div class="day-section-title">3 · Enfriamiento</div>
               <div id="finisherBlocks" class="blocks-wrap">
@@ -367,7 +368,7 @@
               </div>
             </div>
 
-            <!-- ✅ DISPONIBILIDAD -->
+            <!-- DISPONIBILIDAD -->
             <div class="day-section mt-3 d-none" id="availabilityPanel">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="day-section-title" style="margin:0;">Disponibilidad</div>
@@ -397,7 +398,7 @@
           <!-- DERECHA -->
           <div class="col-lg-8">
 
-            <!-- EJERCICIOS (solo fuerza/strecth al abrir bloque) -->
+            <!-- EJERCICIOS -->
             <div class="day-section d-none" id="strengthSection">
               <div class="day-section-title">Ejercicios</div>
               <div id="strengthItems" class="row g-3"></div>
@@ -425,6 +426,7 @@
 
 {% block extra_css %}
 <style>
+/* complementario al styles_v2.css que ya tenés */
 .day-modal{
   background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
   color: rgba(255,255,255,.92);
@@ -615,7 +617,7 @@ function typeLabel(type){
 }
 
 /* =========================
-   DISPONIBILIDAD (UI)
+   DISPONIBILIDAD
 ========================= */
 function setAvailUI(puede, comentario){
   const toggle = document.getElementById("noPuedoToggle");
@@ -657,7 +659,7 @@ async function saveAvailability(){
   const payload = { user_id: CURRENT_USER, fecha: CURRENT_DAY, no_puedo: noPuedo, comentario };
 
   try{
-    const res = await fetch("/athlete/save_availability", {
+   const res = await fetch("/athlete/save_availability", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify(payload)
@@ -681,7 +683,7 @@ async function saveAvailability(){
 }
 
 /* =========================
-   BLOQUES (RENDER UNIVERSAL)
+   BLOQUES (RENDER)
 ========================= */
 function renderBlocksInto(elId, blocks){
   const wrap = document.getElementById(elId);

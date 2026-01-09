@@ -1,22 +1,87 @@
 {% extends "layout.html" %}
 {% block title %}Perfil — VR Training{% endblock %}
 
+{# ============================================================
+   ✅ Macro: icono + texto para plan_type (sin templates extra)
+============================================================ #}
+{% macro activity_badge(plan_type, size='') %}
+  {% set raw = (plan_type or 'Descanso') %}
+  {% set t = raw|string %}
+  {% set norm = t|lower %}
+
+  {% if norm in ['swim','natacion','natación'] %}
+    {% set icon = 'icons/natacion.png' %}
+    {% set label = 'Natación' %}
+  {% elif norm in ['pista','run_pista','track'] %}
+    {% set icon = 'icons/pista.png' %}
+    {% set label = 'Pista' %}
+  {% elif norm in ['run','running'] %}
+    {% set icon = 'icons/run.png' %}
+    {% set label = 'Run' %}
+  {% elif norm in ['bike','bici','cycling'] %}
+    {% set icon = 'icons/bike.png' %}
+    {% set label = 'Bike' %}
+  {% elif norm in ['fuerza','strength','gym'] %}
+    {% set icon = 'icons/fuerza.png' %}
+    {% set label = 'Fuerza' %}
+  {% elif norm in ['descanso','rest','recovery','off'] %}
+    {% set icon = 'icons/descanso.png' %}
+    {% set label = 'Descanso' %}
+  {% else %}
+    {% set icon = 'icons/descanso.png' %}
+    {% set label = t %}
+  {% endif %}
+
+  <span class="vr-activity-badge {% if size=='sm' %}sm{% endif %}">
+    <img class="vr-activity-icon" src="{{ url_for('static', filename=icon) }}" alt="{{ label }}">
+    <span class="vr-activity-text">{{ label }}</span>
+  </span>
+{% endmacro %}
+
 {% block content %}
 <div class="container mt-4">
 
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div class="d-flex align-items-center gap-3">
-      <div style="width:46px;height:46px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;">
+      <div class="vr-avatar">
         <i class="bi bi-person-fill text-info"></i>
       </div>
+
       <div>
         <h2 class="text-light mb-0">{{ user.nombre }}</h2>
         <div class="text-muted">{{ user.email }}</div>
+
+        <div class="mt-2">
+          {% if strava_account %}
+            <span class="badge bg-success">🟠 Strava conectado</span>
+          {% else %}
+            <a href="{{ url_for('main.strava_connect') }}" class="btn btn-sm btn-outline-warning">
+              🔗 Conectar con Strava
+            </a>
+          {% endif %}
+        </div>
       </div>
     </div>
 
     <div class="d-flex gap-2 align-items-center flex-wrap">
+      {% if admin_ok %}
+        <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador', user_id=user.id) }}">
+          <i class="bi bi-calendar3"></i> Planificar
+        </a>
+      {% endif %}
+
+      {# Volver: en view=today lo oculto en móvil, en otras vistas siempre #}
+      {% if view == 'today' %}
+        <a class="btn btn-outline-light d-none d-md-inline-flex" href="{{ url_for('main.perfil_redirect') }}">
+          <i class="bi bi-arrow-left"></i> Volver
+        </a>
+      {% else %}
+        <a class="btn btn-outline-light" href="{{ url_for('main.perfil_redirect') }}">
+          <i class="bi bi-arrow-left"></i> Volver
+        </a>
+      {% endif %}
+
       <div class="mini-stat">
         <div class="mini-title">RACHA</div>
         <div class="mini-value">🔥 {{ streak }}</div>
@@ -35,27 +100,27 @@
   <!-- Tabs -->
   <div class="d-flex gap-2 flex-wrap mb-3">
     <a class="btn btn-sm {% if view=='today' %}btn-info{% else %}btn-outline-light{% endif %}"
-       href="{{ url_for('main.perfil_atleta', user_id=user.id, view='today') }}">Hoy</a>
+       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='today') }}">Hoy</a>
 
     <a class="btn btn-sm {% if view=='week' %}btn-info{% else %}btn-outline-light{% endif %}"
-       href="{{ url_for('main.perfil_atleta', user_id=user.id, view='week', center=center.isoformat()) }}">Semana</a>
+       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=center.isoformat()) }}">Semana</a>
 
     <a class="btn btn-sm {% if view=='month' %}btn-info{% else %}btn-outline-light{% endif %}"
-       href="{{ url_for('main.perfil_atleta', user_id=user.id, view='month', center=center.isoformat()) }}">Mes</a>
+       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='month', center=center.isoformat()) }}">Mes</a>
 
     <a class="btn btn-sm {% if view=='progress' %}btn-info{% else %}btn-outline-light{% endif %}"
-       href="{{ url_for('main.perfil_atleta', user_id=user.id, view='progress', center=center.isoformat()) }}">Progreso</a>
+       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">Progreso</a>
   </div>
 
-  <!-- TODAY -->
+  {# ---------------- TODAY ---------------- #}
   {% if view == 'today' %}
     <div class="card glass p-3 p-md-4">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
         <div>
-          <div class="text-muted" style="letter-spacing:.18em;text-transform:uppercase;">HOY</div>
-          <div class="d-flex align-items-center gap-2">
+          <div class="text-muted vr-kicker" style="letter-spacing:.18em;text-transform:uppercase;">HOY</div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
             <div class="fs-4 fw-bold">{{ hoy.strftime('%A %d/%m')|upper }}</div>
-            <span class="badge bg-secondary">{{ plan_hoy.plan_type }}</span>
+            {{ activity_badge(plan_hoy.plan_type, 'sm') }}
           </div>
           <div class="text-muted mt-1">Entrá y marcá lo que hiciste.</div>
         </div>
@@ -66,7 +131,7 @@
           </button>
 
           <a class="btn btn-outline-light"
-             href="{{ url_for('main.perfil_atleta', user_id=user.id, view='week', center=hoy.isoformat()) }}">
+             href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=hoy.isoformat()) }}">
             Ver semana
           </a>
         </div>
@@ -74,7 +139,7 @@
     </div>
   {% endif %}
 
-  <!-- WEEK -->
+  {# ---------------- WEEK ---------------- #}
   {% if view == 'week' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
@@ -96,12 +161,13 @@
         <div class="col-md-6 col-lg-4">
           <div class="card glass p-3 lift">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <!-- ✅ esto es lo que querías en blanco: -->
-              <div class="fw-bold text-strong">{{ f.strftime('%a %d/%m')|upper }}</div>
+              <div class="fw-bold" style="letter-spacing:.08em;">{{ f.strftime('%a %d/%m')|upper }}</div>
 
-              <span class="badge {% if done %}bg-success{% else %}bg-secondary{% endif %}">
-                {% if done %}HECHO{% else %}{{ p.plan_type }}{% endif %}
-              </span>
+              {% if done %}
+                <span class="badge bg-success">HECHO</span>
+              {% else %}
+                {{ activity_badge(p.plan_type, 'sm') }}
+              {% endif %}
             </div>
 
             <div class="text-muted" style="font-size:.95rem;">
@@ -123,7 +189,7 @@
     </div>
   {% endif %}
 
-  <!-- MONTH -->
+  {# ---------------- MONTH ---------------- #}
   {% if view == 'month' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
@@ -147,10 +213,38 @@
           {% for d in w %}
             {% if d %}
               {% set pm = planes_mes[d] %}
-              {% set done = (d in done_month) %}
-              <div class="month-cell {% if done %}done{% endif %}" onclick="openDay('{{ d.isoformat() }}')">
+              {% set blocked = ((pm.puede_entrenar or 'si') == 'no') %}
+              <div class="month-cell {% if blocked %}blocked{% endif %}"
+                   data-date="{{ d.isoformat() }}"
+                   onclick="openDay('{{ d.isoformat() }}')">
                 <div class="daynum">{{ d.day }}</div>
-                <div class="ptype">{{ pm.plan_type }}</div>
+
+                {% set raw = (pm.plan_type or 'Descanso') %}
+                {% set norm = raw|lower %}
+                {% if norm in ['swim','natacion','natación'] %}
+                  {% set icon = 'icons/natacion.png' %}
+                  {% set label = 'Natación' %}
+                {% elif norm in ['pista','run_pista','track'] %}
+                  {% set icon = 'icons/pista.png' %}
+                  {% set label = 'Pista' %}
+                {% elif norm in ['run','running'] %}
+                  {% set icon = 'icons/run.png' %}
+                  {% set label = 'Run' %}
+                {% elif norm in ['bike','bici','cycling'] %}
+                  {% set icon = 'icons/bike.png' %}
+                  {% set label = 'Bike' %}
+                {% elif norm in ['fuerza','strength','gym'] %}
+                  {% set icon = 'icons/fuerza.png' %}
+                  {% set label = 'Fuerza' %}
+                {% else %}
+                  {% set icon = 'icons/descanso.png' %}
+                  {% set label = 'Descanso' %}
+                {% endif %}
+
+                <div class="ptype-icon">
+                  <img src="{{ url_for('static', filename=icon) }}" alt="{{ label }}">
+                  <span>{{ label }}</span>
+                </div>
               </div>
             {% else %}
               <div class="month-cell empty"></div>
@@ -161,103 +255,167 @@
     </div>
   {% endif %}
 
-  <!-- PROGRESS -->
+  {# ---------------- PROGRESS ---------------- #}
   {% if view == 'progress' %}
     <div class="card glass p-3 p-md-4">
-      <h4 class="text-light mb-2">Progreso</h4>
-      <div class="text-muted mb-3">Esto lo dejamos listo para enganchar: rachas, consistencia, % semanal y en breve gráficos.</div>
+      <div class="mb-2">
+        <h4 class="text-light mb-0">Tus progresos</h4>
+        <div class="text-muted">Semana actual · Objetivo vs completado</div>
+      </div>
 
-      <div class="row g-3">
-        <div class="col-md-6">
-          <div class="glass p-3" style="border-radius:16px;">
-            <div class="mini-title">RACHA ACTUAL</div>
-            <div class="fs-2 fw-bold">🔥 {{ streak }}</div>
-            <div class="text-muted">Días consecutivos entrenando.</div>
+      <div class="glass p-3 mt-2" style="border-radius:18px;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="mini-title">CONSISTENCIA</div>
+          <div class="text-muted" style="font-weight:900;">
+            {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
+            {{ pct }}%
           </div>
         </div>
-        <div class="col-md-6">
-          <div class="glass p-3" style="border-radius:16px;">
-            <div class="mini-title">SEMANA</div>
-            <div class="fs-2 fw-bold">✅ {{ week_done }} / {{ week_goal }}</div>
-            <div class="progress mt-2">
-              {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
-              <div class="progress-bar" style="width: {{ pct }}%"></div>
+
+        <div class="vr-bars">
+          {% for i in range(7) %}
+            <div class="vr-bar">
+              <div class="vr-bar-fill" style="height: {{ 100 if i < week_done else 0 }}%;"></div>
             </div>
-            <div class="text-muted mt-2">Objetivo vs completado.</div>
-          </div>
+          {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-between mt-2 vr-days">
+          <span>L</span><span>M</span><span>X</span>
+          <span>J</span><span>V</span><span>S</span><span>D</span>
         </div>
       </div>
     </div>
   {% endif %}
-
 </div>
 
-<!-- Modal Día -->
+<!-- =========================
+     MODAL DÍA (PREMIUM CLEAN)
+========================= -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen-sm-down modal-xl">
     <div class="modal-content day-modal">
+
       <div class="modal-header">
-        <div>
-          <div class="text-muted" id="dayModalDate" style="letter-spacing:.18em;text-transform:uppercase;"></div>
-          <div class="d-flex align-items-center gap-2">
-            <h5 class="modal-title mb-0" id="dayModalTitle">Detalle</h5>
-            <span class="badge bg-secondary" id="dayModalType">—</span>
+        <div class="w-100">
+          <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+            <div>
+              <div class="text-muted" id="dayModalDate" style="letter-spacing:.18em;text-transform:uppercase;"></div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h5 class="modal-title mb-0" id="dayModalTitle">Detalle</h5>
+                <span class="day-chip" id="dayModalType">—</span>
+                <span class="chip chip-danger d-none" id="blockedChip"><i class="bi bi-slash-circle me-1"></i>Bloqueado</span>
+              </div>
+              <div class="text-muted mt-1" style="font-size:.95rem;" id="daySubtitle">Lo que toca hoy.</div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <button class="btn btn-sm btn-outline-danger" type="button" id="cantTrainBtn" onclick="toggleAvailabilityPanel(true)">
+                <i class="bi bi-slash-circle me-1"></i> No puedo entrenar
+              </button>
+
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" id="didTrain">
+                <label class="form-check-label text-muted" for="didTrain">Hoy entrené</label>
+              </div>
+
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
           </div>
+
+          <!-- Progreso -->
+          <div class="glass p-2 mt-3" style="border-radius:16px;">
+            <div class="d-flex justify-content-between align-items-center px-2">
+              <div class="day-section-title" style="margin:0;">Progreso</div>
+              <div class="text-muted" style="font-weight:900;" id="progressLabel">—</div>
+            </div>
+            <div class="progress mt-2" style="height:10px;border-radius:999px; overflow:hidden;">
+              <div class="progress-bar" id="progressBar" style="width:0%"></div>
+            </div>
+          </div>
+
         </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
       <div class="modal-body">
         <div class="row g-3">
-          <!-- PLAN -->
-          <div class="col-lg-5">
-            <div class="card glass p-3 h-100">
-              <div class="fw-bold mb-2">Plan</div>
 
-              <div class="plan-row">
-                <div class="plan-k">Activación</div>
-                <div class="plan-v" id="planWarmup">—</div>
+          <!-- IZQUIERDA (Activación → Principal → Enfriamiento) -->
+          <div class="col-lg-4">
+
+            <!-- ACTIVACIÓN -->
+            <div class="day-section" id="warmupSection">
+              <div class="day-section-title">1 · Activación</div>
+              <div id="warmupBlocks" class="blocks-wrap">
+                <div class="text-muted">—</div>
+              </div>
+            </div>
+
+            <!-- PRINCIPAL -->
+            <div class="day-section mt-3" id="mainSection">
+              <div class="day-section-title">2 · Bloque principal</div>
+              <div class="text-muted" id="blocksMeta">—</div>
+              <div id="dayBlocks" class="blocks-wrap mt-2">
+                <div class="text-muted">Cargando...</div>
+              </div>
+            </div>
+
+            <!-- ENFRIAMIENTO -->
+            <div class="day-section mt-3" id="finisherSection">
+              <div class="day-section-title">3 · Enfriamiento</div>
+              <div id="finisherBlocks" class="blocks-wrap">
+                <div class="text-muted">—</div>
+              </div>
+            </div>
+
+            <!-- DISPONIBILIDAD -->
+            <div class="day-section mt-3 d-none" id="availabilityPanel">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="day-section-title" style="margin:0;">Disponibilidad</div>
+                <span class="badge bg-secondary" id="availBadge">—</span>
               </div>
 
-              <div class="plan-row">
-                <div class="plan-k plan-k-small">Bloque principal</div>
-                <div class="plan-v" id="planMain">—</div>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="noPuedoToggle">
+                <label class="form-check-label text-muted" for="noPuedoToggle">No puedo entrenar este día</label>
               </div>
 
-              <div class="plan-row">
-                <div class="plan-k">Enfriamiento</div>
-                <div class="plan-v" id="planFinisher">—</div>
+              <textarea class="form-control mt-2" id="noPuedoText"
+                        placeholder="Ej: viaje / lesión / trabajo / etc (corto)"></textarea>
+
+              <div class="d-grid mt-2">
+                <button class="btn btn-outline-danger" type="button" onclick="saveAvailability()">
+                  Guardar bloqueo
+                </button>
+              </div>
+
+              <div class="text-muted mt-2" style="font-size:.9rem;">
+                Si bloqueás el día, el coach lo verá en rojo y no planifica.
               </div>
             </div>
           </div>
 
-          <!-- FUERZA -->
-          <div class="col-lg-7">
-            <div class="card glass p-3">
-              <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                <div class="fw-bold" id="rightTitle">Lo realizado</div>
+          <!-- DERECHA -->
+          <div class="col-lg-8">
 
-                <div class="form-check form-switch m-0">
-                  <input class="form-check-input" type="checkbox" id="didTrain">
-                  <label class="form-check-label text-muted" for="didTrain">Hoy entrené</label>
-                </div>
-              </div>
-
+            <!-- EJERCICIOS -->
+            <div class="day-section d-none" id="strengthSection">
+              <div class="day-section-title">Ejercicios</div>
               <div id="strengthItems" class="row g-3"></div>
-
-              <div class="mt-3">
-                <div class="text-muted mb-2" style="letter-spacing:.14em;text-transform:uppercase;">Qué hiciste</div>
-
-                <textarea class="form-control mb-2" id="doneWarmup" placeholder="Activación realizada..."></textarea>
-                <textarea class="form-control mb-2" id="doneMain" placeholder="Bloque principal realizado..."></textarea>
-                <textarea class="form-control mb-2" id="doneFinisher" placeholder="Enfriamiento realizado..."></textarea>
-
-                <button class="btn btn-primary w-100 mt-2" onclick="saveLog()">💾 Guardar</button>
-              </div>
-
             </div>
-          </div>
 
+            <div class="day-section mt-3">
+              <div class="day-section-title">Qué hiciste</div>
+              <textarea class="form-control mb-2" id="doneNote" placeholder="Escribí breve: cómo te sentiste, cargas, tiempos, etc..."></textarea>
+
+              <div class="d-grid">
+                <button class="btn btn-primary" onclick="saveLog()">
+                  💾 Guardar
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
 
@@ -268,33 +426,84 @@
 
 {% block extra_css %}
 <style>
+/* complementario al styles_v2.css que ya tenés */
 .day-modal{
   background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
   color: rgba(255,255,255,.92);
 }
 .day-modal .modal-body{ background: transparent; }
 
-.plan-row{
-  padding: 12px 10px;
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 16px;
-  background: rgba(255,255,255,.03);
-  margin-bottom: 10px;
-}
-.plan-k{
+.day-chip{
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  border-radius: 999px;
+  padding: 6px 10px;
   font-weight: 900;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.75);
   font-size: .82rem;
+  letter-spacing:.06em;
 }
-.plan-k-small{ font-size:.72rem; opacity:.75; }
-.plan-v{
-  margin-top: 6px;
-  font-size: 1.05rem;
-  font-weight: 700;
+
+.chip{
+  border-radius:999px;
+  padding:6px 10px;
+  font-weight:900;
+  font-size:.82rem;
+  letter-spacing:.06em;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+}
+.chip-danger{
+  border-color: rgba(255,59,48,.55);
+  background: rgba(255,59,48,.14);
   color: rgba(255,255,255,.92);
 }
+
+.day-section{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  padding: 12px;
+}
+.day-section-title{
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: .78rem;
+  color: rgba(255,255,255,.72);
+  margin-bottom: 10px;
+}
+
+.blocks-wrap{ display:grid; gap:12px; }
+
+.block-card{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  padding: 12px;
+}
+.block-head{
+  display:flex;
+  justify-content: space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.block-left{ display:flex; gap:10px; align-items:flex-start; }
+.block-icon{
+  width:40px;height:40px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  display:flex;align-items:center;justify-content:center;
+  flex: 0 0 auto;
+}
+.block-title{ font-weight: 950; color: rgba(255,255,255,.96); line-height: 1.1; }
+.block-sub{
+  color: rgba(255,255,255,.72);
+  font-weight: 800;
+  font-size: .92rem;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+.block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
 
 .exercise-card{
   border: 1px solid rgba(255,255,255,.10);
@@ -302,7 +511,27 @@
   border-radius: 18px;
   overflow:hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
+.exercise-card.done{
+  border-color: rgba(34,197,94,.55) !important;
+  background: rgba(34,197,94,.10) !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,.12), 0 10px 30px rgba(0,0,0,.35);
+}
+.exercise-done-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  font-size: .78rem;
+  border: 1px solid rgba(34,197,94,.50);
+  background: rgba(34,197,94,.14);
+  color: rgba(255,255,255,.95);
+}
+
 .exercise-head{
   padding: 10px 12px;
   display:flex;
@@ -310,22 +539,13 @@
   align-items:flex-start;
   gap:10px;
 }
-.exercise-name{
-  font-weight: 900;
-  font-size: 1.02rem;
-  color: rgba(255,255,255,.95);
-}
-.exercise-meta{
-  font-size:.9rem;
-  color: rgba(255,255,255,.72);
-}
-.exercise-video{
-  padding: 10px 12px 12px;
-}
+.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
+.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); font-weight:800; letter-spacing:.02em; }
+.exercise-video{ padding: 10px 12px 12px; }
 .exercise-video video{
   width:100%;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.18);
   background: rgba(0,0,0,.35);
   min-height: 220px;
   object-fit: cover;
@@ -337,7 +557,303 @@
 <script>
 let DAY_MODAL = null;
 let CURRENT_DAY = null;
-let CURRENT_USER = {{ user.id }};
+let CURRENT_USER = {{ user.id|int }};
+
+let CURRENT_PAYLOAD = null;
+let CURRENT_CHECKS = new Set();
+
+function escapeHtml(s){
+  return String(s||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function decodeHtmlEntities(s){
+  const txt = document.createElement("textarea");
+  txt.innerHTML = String(s||"");
+  return txt.value;
+}
+function cleanText(s){
+  let out = decodeHtmlEntities(s);
+  if(out.includes("&") || out.includes("&#")){
+    out = decodeHtmlEntities(out);
+  }
+  return out;
+}
+
+function badgeHtml(type){
+  const t = (type||"").toUpperCase();
+  const map = {
+    "TABATA": "bg-danger",
+    "FUERZA": "bg-info",
+    "STRETCH": "bg-info",
+    "RUN": "bg-success",
+    "BIKE": "bg-warning text-dark",
+    "SWIM": "bg-primary",
+    "EJERCICIO": "bg-dark",
+    "FREE": "bg-secondary",
+    "NOTE": "bg-light text-dark",
+    "VIDEO": "bg-dark"
+  };
+  const cls = map[t] || "bg-secondary";
+  return `<span class="badge ${cls}" style="font-weight:900; letter-spacing:.06em;">${escapeHtml(t||"BLOQUE")}</span>`;
+}
+function typeLabel(type){
+  const t = (type||"").toLowerCase();
+  if(t === "tabata") return "TABATA";
+  if(t === "fuerza") return "FUERZA";
+  if(t === "stretch") return "STRETCH";
+  if(t === "ejercicio") return "EJERCICIO";
+  if(t === "run") return "RUN";
+  if(t === "bike") return "BIKE";
+  if(t === "swim") return "SWIM";
+  if(t === "free") return "FREE";
+  if(t === "note") return "NOTE";
+  if(t === "video") return "VIDEO";
+  return (type||"BLOQUE").toUpperCase();
+}
+
+/* =========================
+   DISPONIBILIDAD
+========================= */
+function setAvailUI(puede, comentario){
+  const toggle = document.getElementById("noPuedoToggle");
+  const text = document.getElementById("noPuedoText");
+  const badge = document.getElementById("availBadge");
+
+  const blocked = (String(puede || "si") === "no");
+  toggle.checked = blocked;
+  text.value = comentario || "";
+
+  if(blocked){
+    badge.className = "badge bg-danger";
+    badge.textContent = "NO PUEDE";
+    document.getElementById("blockedChip").classList.remove("d-none");
+    document.getElementById("cantTrainBtn").classList.add("active");
+  }else{
+    badge.className = "badge bg-success";
+    badge.textContent = "OK";
+    document.getElementById("blockedChip").classList.add("d-none");
+    document.getElementById("cantTrainBtn").classList.remove("active");
+  }
+}
+
+function toggleAvailabilityPanel(forceOpen){
+  const panel = document.getElementById("availabilityPanel");
+  const open = !panel.classList.contains("d-none");
+  if(forceOpen || !open){
+    panel.classList.remove("d-none");
+    panel.scrollIntoView({behavior:"smooth", block:"start"});
+  }else{
+    panel.classList.add("d-none");
+  }
+}
+
+async function saveAvailability(){
+  const noPuedo = document.getElementById("noPuedoToggle").checked;
+  const comentario = document.getElementById("noPuedoText").value || "";
+
+  const payload = { user_id: CURRENT_USER, fecha: CURRENT_DAY, no_puedo: noPuedo, comentario };
+
+  try{
+   const res = await fetch("/athlete/save_availability", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error || "Error");
+
+    setAvailUI(noPuedo ? "no" : "si", comentario);
+
+    const cell = document.querySelector(`.month-cell[data-date="${CSS.escape(CURRENT_DAY)}"]`);
+    if(cell){
+      if(noPuedo) cell.classList.add("blocked");
+      else cell.classList.remove("blocked");
+    }
+
+    alert("✅ Guardado");
+  }catch(err){
+    console.error(err);
+    alert("Error guardando disponibilidad: " + err.message);
+  }
+}
+
+/* =========================
+   BLOQUES (RENDER)
+========================= */
+function renderBlocksInto(elId, blocks){
+  const wrap = document.getElementById(elId);
+  wrap.innerHTML = "";
+
+  const arr = Array.isArray(blocks) ? blocks : [];
+  if(!arr.length){
+    wrap.innerHTML = `<div class="text-muted">—</div>`;
+    return;
+  }
+
+  arr.forEach((b, idx) => {
+    const type = (b.type || "").toLowerCase();
+    const ok = b.ok !== false;
+
+    let icon = "bi-grid";
+    if(type === "tabata"){ icon = "bi-lightning-charge-fill"; }
+    if(type === "run"){ icon = "bi-person-running"; }
+    if(type === "bike"){ icon = "bi-bicycle"; }
+    if(type === "swim"){ icon = "bi-water"; }
+    if(type === "free"){ icon = "bi-wind"; }
+    if(type === "note"){ icon = "bi-chat-left-text"; }
+    if(type === "fuerza"){ icon = "bi-barbell"; }
+    if(type === "stretch"){ icon = "bi-universal-access-circle"; }
+    if(type === "ejercicio"){ icon = "bi-play-btn-fill"; }
+
+    const div = document.createElement("div");
+    div.className = "block-card";
+
+    if(!ok){
+      div.innerHTML = `
+        <div class="block-head">
+          <div class="block-left">
+            <div class="block-icon"><i class="bi ${icon} text-warning"></i></div>
+            <div>
+              <div class="block-title">${typeLabel(b.type)}</div>
+              <div class="block-sub text-warning">${escapeHtml(b.error || "Bloque inválido")}</div>
+            </div>
+          </div>
+          ${badgeHtml(typeLabel(b.type))}
+        </div>
+      `;
+      wrap.appendChild(div);
+      return;
+    }
+
+    if(type === "fuerza" || type === "stretch"){
+      const rname = cleanText(b.rutina?.nombre || (type === "stretch" ? "Estiramientos" : "Fuerza"));
+      const itemsCount = Array.isArray(b.items) ? b.items.length : 0;
+      div.innerHTML = `
+        <div class="block-head">
+          <div class="block-left">
+            <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
+            <div>
+              <div class="block-title">${escapeHtml(rname)}</div>
+              <div class="block-sub">${itemsCount} ejercicio(s) · kilos + video + check</div>
+            </div>
+          </div>
+          ${badgeHtml(typeLabel(b.type))}
+        </div>
+
+        <div class="block-actions">
+          <button class="btn btn-outline-light" type="button" onclick="toggleStrength(${idx}, '${elId}')">
+            Ver ejercicios
+          </button>
+        </div>
+      `;
+      wrap.appendChild(div);
+      return;
+    }
+
+    if(type === "tabata"){
+      const rname = cleanText(b.rutina?.nombre || "Tabata");
+      const work = b.cfg?.work ?? 40;
+      const rest = b.cfg?.rest ?? 20;
+      const rounds = b.cfg?.rounds ?? (Array.isArray(b.items) ? b.items.length : 0);
+      const sets = b.cfg?.sets ?? 1;
+      const startUrl = b.start_url || "#";
+
+      div.innerHTML = `
+        <div class="block-head">
+          <div class="block-left">
+            <div class="block-icon"><i class="bi ${icon} text-danger"></i></div>
+            <div>
+              <div class="block-title">${escapeHtml(rname)}</div>
+              <div class="block-sub">${work}s trabajo · ${rest}s descanso · ${rounds} ejercicios · ${sets} set(s)</div>
+            </div>
+          </div>
+          ${badgeHtml("TABATA")}
+        </div>
+        <div class="block-actions">
+          <a class="btn btn-danger" href="${startUrl}" target="_blank" rel="noopener">▶ Reproducir</a>
+        </div>
+      `;
+      wrap.appendChild(div);
+      return;
+    }
+
+    if(type === "ejercicio"){
+      const ej = b.ejercicio || {};
+      const title = cleanText(ej.nombre || "Ejercicio");
+      const src = (ej.video_url || "").trim();
+      div.innerHTML = `
+        <div class="block-head">
+          <div class="block-left">
+            <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
+            <div>
+              <div class="block-title">${escapeHtml(title)}</div>
+              <div class="block-sub">${src ? "Reproducí y seguí." : "Sin video"}</div>
+            </div>
+          </div>
+          ${badgeHtml("EJERCICIO")}
+        </div>
+        ${src ? `
+          <div class="mt-2">
+            <video class="w-100" controls playsinline preload="metadata"
+                   style="border-radius:16px;border:1px solid rgba(255,255,255,.14);background:#000;max-height:320px;">
+              <source src="${src}" type="video/mp4">
+            </video>
+          </div>
+        ` : ``}
+      `;
+      wrap.appendChild(div);
+      return;
+    }
+
+    if(type === "run" || type === "bike" || type === "swim" || type === "free" || type === "note"){
+      const text = cleanText(b.text || "—");
+      div.innerHTML = `
+        <div class="block-head">
+          <div class="block-left">
+            <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
+            <div>
+              <div class="block-title">${typeLabel(b.type)}</div>
+              <div class="block-sub">${escapeHtml(text)}</div>
+            </div>
+          </div>
+          ${badgeHtml(typeLabel(b.type))}
+        </div>
+      `;
+      wrap.appendChild(div);
+      return;
+    }
+
+    div.innerHTML = `
+      <div class="block-head">
+        <div class="block-left">
+          <div class="block-icon"><i class="bi ${icon} text-info"></i></div>
+          <div>
+            <div class="block-title">${typeLabel(b.type)}</div>
+            <div class="block-sub">${escapeHtml(cleanText(b.text || ""))}</div>
+          </div>
+        </div>
+        ${badgeHtml(typeLabel(b.type))}
+      </div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function updateProgress(){
+  const blocks = Array.isArray(CURRENT_PAYLOAD?.blocks) ? CURRENT_PAYLOAD.blocks : [];
+  const force = blocks.find(b => ["fuerza","stretch"].includes((b.type||"").toLowerCase()) && b.ok && Array.isArray(b.items));
+  const total = force?.items?.length || 0;
+  const done = total ? force.items.filter(it => CURRENT_CHECKS.has(String(it.id))).length : 0;
+
+  const pct = total ? Math.round((done * 100) / total) : 0;
+  document.getElementById("progressBar").style.width = pct + "%";
+  document.getElementById("progressLabel").textContent = total ? `Hechos ${done} / ${total}` : "—";
+}
 
 function posterDataUrl(title){
   const safe = (title || "VR TRAINING").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -359,72 +875,64 @@ function posterDataUrl(title){
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
-function openDay(isoDate){
-  CURRENT_DAY = isoDate;
-  if(!DAY_MODAL){
-    DAY_MODAL = new bootstrap.Modal(document.getElementById("dayModal"));
-  }
-  document.getElementById("dayModalDate").textContent = isoDate;
-  document.getElementById("dayModalTitle").textContent = "Cargando...";
-  document.getElementById("dayModalType").textContent = "—";
-  document.getElementById("strengthItems").innerHTML = "";
-
-  fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
-    .then(r => r.json())
-    .then(data => {
-      if(!data.ok) throw new Error(data.error || "Error");
-      const p = data.plan;
-
-      document.getElementById("dayModalTitle").textContent = (data.rutina?.nombre ? data.rutina.nombre : "Detalle del día");
-      document.getElementById("dayModalType").textContent = p.plan_type || "—";
-
-      document.getElementById("planWarmup").textContent = p.warmup || "—";
-      document.getElementById("planMain").textContent = p.main || "—";
-      document.getElementById("planFinisher").textContent = p.finisher || "—";
-
-      document.getElementById("didTrain").checked = !!data.log?.did_train;
-      document.getElementById("doneWarmup").value = data.log?.warmup_done || "";
-      document.getElementById("doneMain").value = data.log?.main_done || "";
-      document.getElementById("doneFinisher").value = data.log?.finisher_done || "";
-
-      const items = Array.isArray(data.items) ? data.items : [];
-      const doneIds = new Set(Array.isArray(data.checks) ? data.checks : []);
-      renderStrength(items, doneIds);
-
-      DAY_MODAL.show();
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Error cargando el día: " + err.message);
-    });
+function pickWeight(it){
+  const w = (it.peso ?? it.kg ?? it.kilos ?? it.weight ?? it.carga ?? it.load ?? null);
+  if(w === null || w === undefined) return "";
+  const n = String(w).trim();
+  if(!n || n === "0" || n.toLowerCase() === "none") return "";
+  return n;
 }
 
-function renderStrength(items, doneIds){
+function renderStrength(items){
   const wrap = document.getElementById("strengthItems");
   wrap.innerHTML = "";
-  if(!items.length) return;
+  if(!items || !items.length){
+    wrap.innerHTML = `<div class="text-muted">No hay ejercicios para mostrar.</div>`;
+    return;
+  }
 
   items.forEach(it => {
     const col = document.createElement("div");
     col.className = "col-12";
-    const checked = doneIds.has(it.id) ? "checked" : "";
-    const vidSrc = it.video_url ? (`/static/${it.video_url}`) : "";
+
+    const isDone = CURRENT_CHECKS.has(String(it.id));
+    const checked = isDone ? "checked" : "";
+    const vidSrc = it.video_src || "";
     const poster = posterDataUrl(it.nombre);
 
+    const series = String(it.series || "").trim();
+    const reps   = String(it.reps || "").trim();
+    const desc   = String(it.descanso || "").trim();
+    const nota   = String(it.nota || "").trim();
+
+    const kgVal = pickWeight(it);
+    const kgTxt = kgVal ? `${kgVal} kg` : "";
+
+    const parts = [];
+    if(series) parts.push(`${series} series`);
+    if(reps) parts.push(`${reps} reps`);
+    if(kgTxt) parts.push(kgTxt);
+    if(desc) parts.push(`Desc ${desc}`);
+    if(nota) parts.push(cleanText(nota));
+
     col.innerHTML = `
-      <div class="exercise-card">
+      <div class="exercise-card ${isDone ? "done" : ""}" id="exCard-${it.id}">
         <div class="exercise-head">
           <div>
-            <div class="exercise-name">${escapeHtml(it.nombre || "Ejercicio")}</div>
-            <div class="exercise-meta">
-              ${escapeHtml(it.series || "")}${it.series ? " · " : ""}${escapeHtml(it.reps || "")}
-              ${it.descanso ? (" · Desc " + escapeHtml(it.descanso)) : ""}
-            </div>
+            <div class="exercise-name">${escapeHtml(cleanText(it.nombre || "Ejercicio"))}</div>
+            <div class="exercise-meta">${escapeHtml(parts.join(" · ") || "—")}</div>
           </div>
 
-          <div class="form-check form-switch m-0">
-            <input class="form-check-input" type="checkbox" ${checked}
-                   onchange="toggleItem(${it.id}, this.checked)">
+          <div class="d-flex align-items-center gap-2">
+            <span class="exercise-done-pill ${isDone ? "" : "d-none"}" id="exPill-${it.id}">
+              <i class="bi bi-check2-circle"></i> HECHO
+            </span>
+
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" ${checked}
+                     onchange="toggleItem(${it.id}, this.checked)">
+            </div>
+            <div class="text-muted" style="font-weight:900;letter-spacing:.08em;">HECHO</div>
           </div>
         </div>
 
@@ -441,6 +949,100 @@ function renderStrength(items, doneIds){
   });
 }
 
+function toggleStrength(blockIndex, sourceElId){
+  const sec = document.getElementById("strengthSection");
+  const isHidden = sec.classList.contains("d-none");
+
+  if(isHidden){
+    let sourceBlocks = [];
+    if(sourceElId === "warmupBlocks") sourceBlocks = CURRENT_PAYLOAD?.warmup_blocks || [];
+    else if(sourceElId === "finisherBlocks") sourceBlocks = CURRENT_PAYLOAD?.finisher_blocks || [];
+    else sourceBlocks = CURRENT_PAYLOAD?.blocks || [];
+
+    const b = Array.isArray(sourceBlocks) ? sourceBlocks[blockIndex] : null;
+    const items = (b && b.ok && Array.isArray(b.items)) ? b.items : [];
+
+    sec.classList.remove("d-none");
+    renderStrength(items);
+    updateProgress();
+    sec.scrollIntoView({behavior:"smooth", block:"start"});
+  }else{
+    sec.classList.add("d-none");
+  }
+}
+
+function openDay(isoDate){
+  CURRENT_DAY = isoDate;
+
+  if(typeof bootstrap === "undefined"){
+    alert("Bootstrap JS no cargó. Revisá layout.html (bootstrap.bundle.min.js).");
+    return;
+  }
+  if(!DAY_MODAL){
+    DAY_MODAL = new bootstrap.Modal(document.getElementById("dayModal"));
+  }
+
+  CURRENT_PAYLOAD = null;
+  CURRENT_CHECKS = new Set();
+
+  document.getElementById("dayModalDate").textContent = isoDate;
+  document.getElementById("dayModalTitle").textContent = "Cargando...";
+  document.getElementById("dayModalType").textContent = "—";
+  document.getElementById("daySubtitle").textContent = "Lo que toca hoy.";
+
+  document.getElementById("warmupBlocks").innerHTML = `<div class="text-muted">—</div>`;
+  document.getElementById("dayBlocks").innerHTML = `<div class="text-muted">Cargando...</div>`;
+  document.getElementById("finisherBlocks").innerHTML = `<div class="text-muted">—</div>`;
+  document.getElementById("blocksMeta").textContent = "—";
+
+  document.getElementById("strengthSection").classList.add("d-none");
+  document.getElementById("strengthItems").innerHTML = "";
+
+  document.getElementById("progressBar").style.width = "0%";
+  document.getElementById("progressLabel").textContent = "—";
+
+  document.getElementById("blockedChip").classList.add("d-none");
+
+  document.getElementById("availabilityPanel").classList.add("d-none");
+  setAvailUI("si","");
+
+  fetch(`/api/day_detail?user_id=${CURRENT_USER}&fecha=${encodeURIComponent(isoDate)}`)
+    .then(r => r.json())
+    .then(data => {
+      if(!data.ok) throw new Error(data.error || "Error");
+      CURRENT_PAYLOAD = data;
+
+      const p = data.plan || {};
+      document.getElementById("dayModalTitle").textContent = cleanText(p.plan_type || "Detalle del día");
+      document.getElementById("dayModalType").textContent = cleanText(p.plan_type || "—");
+
+      setAvailUI(p.puede_entrenar || "si", cleanText(p.comentario_atleta || ""));
+
+      document.getElementById("didTrain").checked = !!data.log?.did_train;
+      document.getElementById("doneNote").value = cleanText(data.log?.main_done || "");
+
+      CURRENT_CHECKS = new Set((Array.isArray(data.checks) ? data.checks : []).map(x => String(x)));
+
+      const wBlocks = Array.isArray(data.warmup_blocks) ? data.warmup_blocks : [];
+      const mBlocks = Array.isArray(data.blocks) ? data.blocks : [];
+      const fBlocks = Array.isArray(data.finisher_blocks) ? data.finisher_blocks : [];
+
+      renderBlocksInto("warmupBlocks", wBlocks);
+      renderBlocksInto("dayBlocks", mBlocks);
+      renderBlocksInto("finisherBlocks", fBlocks);
+
+      const blocksCount = mBlocks.length;
+      document.getElementById("blocksMeta").textContent = blocksCount ? `${blocksCount} bloque(s)` : "—";
+
+      updateProgress();
+      DAY_MODAL.show();
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error cargando el día: " + err.message);
+    });
+}
+
 function toggleItem(itemId, done){
   const form = new FormData();
   form.append("user_id", String(CURRENT_USER));
@@ -450,7 +1052,20 @@ function toggleItem(itemId, done){
 
   fetch("/athlete/check_item", { method:"POST", body: form })
     .then(r => r.json())
-    .then(j => { if(!j.ok) throw new Error(j.error || "Error"); })
+    .then(j => {
+      if(!j.ok) throw new Error(j.error || "Error");
+
+      if(done) CURRENT_CHECKS.add(String(itemId));
+      else CURRENT_CHECKS.delete(String(itemId));
+
+      const card = document.getElementById(`exCard-${itemId}`);
+      if(card) card.classList.toggle("done", !!done);
+
+      const pill = document.getElementById(`exPill-${itemId}`);
+      if(pill) pill.classList.toggle("d-none", !done);
+
+      updateProgress();
+    })
     .catch(err => { console.error(err); alert("Error guardando check: " + err.message); });
 }
 
@@ -459,9 +1074,9 @@ function saveLog(){
     user_id: CURRENT_USER,
     fecha: CURRENT_DAY,
     did_train: document.getElementById("didTrain").checked,
-    warmup_done: document.getElementById("doneWarmup").value || "",
-    main_done: document.getElementById("doneMain").value || "",
-    finisher_done: document.getElementById("doneFinisher").value || ""
+    warmup_done: "",
+    main_done: document.getElementById("doneNote").value || "",
+    finisher_done: ""
   };
 
   fetch("/athlete/save_log", {
@@ -472,15 +1087,6 @@ function saveLog(){
   .then(r => r.json())
   .then(j => { if(!j.ok) throw new Error(j.error || "Error"); alert("✅ Guardado"); })
   .catch(err => { console.error(err); alert("Error guardando: " + err.message); });
-}
-
-function escapeHtml(s){
-  return String(s||"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
 }
 </script>
 {% endblock %}

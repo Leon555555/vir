@@ -2,7 +2,7 @@
 {% block title %}Perfil — VR Training{% endblock %}
 
 {# ============================================================
-   ✅ Macro: icono + texto para plan_type (sin templates extra)
+   ✅ Macro: icono + texto para plan_type
 ============================================================ #}
 {% macro activity_badge(plan_type, size='') %}
   {% set raw = (plan_type or 'Descanso') %}
@@ -41,64 +41,71 @@
 {% block content %}
 <div class="container mt-4">
 
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div class="d-flex align-items-center gap-3">
-      <div class="vr-avatar">
-        <i class="bi bi-person-fill text-info"></i>
-      </div>
+  {# ============================================================
+     HERO PERFIL
+  ============================================================ #}
+  <div class="card glass profile-hero mb-3">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-7 d-flex align-items-center gap-3">
+        <div class="vr-avatar profile-avatar">
+          <i class="bi bi-person-fill text-info"></i>
+        </div>
 
-      <div>
-        <h2 class="text-light mb-0">{{ user.nombre }}</h2>
-        <div class="text-muted">{{ user.email }}</div>
+        <div>
+          <div class="profile-hero-label">ATLETA</div>
+          <h2 class="profile-hero-name mb-1">{{ user.nombre }}</h2>
+          <div class="profile-hero-email">{{ user.email }}</div>
 
-        <div class="mt-2">
-          {% if strava_account %}
-            <span class="badge bg-success">🟠 Strava conectado</span>
-          {% else %}
-            <a href="{{ url_for('main.strava_connect') }}" class="btn btn-sm btn-outline-warning">
-              🔗 Conectar con Strava
-            </a>
-          {% endif %}
+          <div class="mt-3 d-flex flex-wrap gap-2">
+            {% if strava_account %}
+              <span class="badge bg-success profile-pill">
+                🟠 Strava conectado
+              </span>
+            {% else %}
+              <a href="{{ url_for('main.strava_connect') }}"
+                 class="btn btn-sm btn-strava">
+                <i class="bi bi-link-45deg me-1"></i> Conectar con Strava
+              </a>
+            {% endif %}
+
+            {% if admin_ok %}
+              <a class="btn btn-sm btn-outline-light profile-pill-btn"
+                 href="{{ url_for('main.coach_planificador', user_id=user.id) }}">
+                <i class="bi bi-calendar3 me-1"></i> Planificar semana
+              </a>
+            {% endif %}
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      {% if admin_ok %}
-        <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador', user_id=user.id) }}">
-          <i class="bi bi-calendar3"></i> Planificar
-        </a>
-      {% endif %}
+      <div class="col-md-5">
+        <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+          <div class="mini-stat hero-stat">
+            <div class="mini-title">RACHA</div>
+            <div class="mini-value">🔥 {{ streak }}</div>
+            <div class="mini-foot">Días seguidos entrenando</div>
+          </div>
 
-      {# Volver: en view=today lo oculto en móvil, en otras vistas siempre #}
-      {% if view == 'today' %}
-        <a class="btn btn-outline-light d-none d-md-inline-flex" href="{{ url_for('main.perfil_redirect') }}">
-          <i class="bi bi-arrow-left"></i> Volver
-        </a>
-      {% else %}
-        <a class="btn btn-outline-light" href="{{ url_for('main.perfil_redirect') }}">
-          <i class="bi bi-arrow-left"></i> Volver
-        </a>
-      {% endif %}
-
-      <div class="mini-stat">
-        <div class="mini-title">RACHA</div>
-        <div class="mini-value">🔥 {{ streak }}</div>
-      </div>
-      <div class="mini-stat">
-        <div class="mini-title">SEMANA</div>
-        <div class="mini-value">✅ {{ week_done }} / {{ week_goal }}</div>
-        <div class="progress mt-2">
-          {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
-          <div class="progress-bar" style="width: {{ pct }}%"></div>
+          <div class="mini-stat hero-stat">
+            <div class="mini-title">SEMANA</div>
+            <div class="mini-value">
+              ✅ {{ week_done }} / {{ week_goal }}
+            </div>
+            <div class="progress mt-2">
+              {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
+              <div class="progress-bar" style="width: {{ pct }}%"></div>
+            </div>
+            <div class="mini-foot">Objetivo semanal</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Tabs -->
-  <div class="d-flex gap-2 flex-wrap mb-3">
+  {# ============================================================
+     TABS
+  ============================================================ #}
+  <div class="d-flex gap-2 flex-wrap mb-3 profile-tabs">
     <a class="btn btn-sm {% if view=='today' %}btn-info{% else %}btn-outline-light{% endif %}"
        href="{{ url_for('main.perfil_usuario', user_id=user.id, view='today') }}">Hoy</a>
 
@@ -110,27 +117,48 @@
 
     <a class="btn btn-sm {% if view=='progress' %}btn-info{% else %}btn-outline-light{% endif %}"
        href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">Progreso</a>
+
+    <div class="ms-auto d-none d-md-flex">
+      {% if view == 'today' %}
+        <a class="btn btn-sm btn-outline-light"
+           href="{{ url_for('main.perfil_redirect') }}">
+          <i class="bi bi-arrow-left"></i> Volver
+        </a>
+      {% else %}
+        <a class="btn btn-sm btn-outline-light"
+           href="{{ url_for('main.perfil_redirect') }}">
+          <i class="bi bi-arrow-left"></i> Volver
+        </a>
+      {% endif %}
+    </div>
   </div>
 
-  {# ---------------- TODAY ---------------- #}
+  {# ============================================================
+     HOY
+  ============================================================ #}
   {% if view == 'today' %}
-    <div class="card glass p-3 p-md-4">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <div class="card glass today-card p-3 p-md-4 mb-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-          <div class="text-muted vr-kicker" style="letter-spacing:.18em;text-transform:uppercase;">HOY</div>
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <div class="fs-4 fw-bold">{{ hoy.strftime('%A %d/%m')|upper }}</div>
+          <div class="vr-kicker mb-1">HOY</div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="today-date">
+              {{ hoy.strftime('%A %d/%m')|upper }}
+            </div>
             {{ activity_badge(plan_hoy.plan_type, 'sm') }}
           </div>
-          <div class="text-muted mt-1">Entrá y marcá lo que hiciste.</div>
+          <div class="text-muted mt-2">
+            Entrá y marcá lo que hiciste para seguir sumando racha.
+          </div>
         </div>
 
-        <div class="d-flex gap-2">
-          <button class="btn btn-info" type="button" onclick="openDay('{{ hoy.isoformat() }}')">
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-info btn-lg px-4" type="button"
+                  onclick="openDay('{{ hoy.isoformat() }}')">
             ▶ Empezar
           </button>
 
-          <a class="btn btn-outline-light"
+          <a class="btn btn-outline-light btn-lg px-4"
              href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=hoy.isoformat()) }}">
             Ver semana
           </a>
@@ -139,7 +167,9 @@
     </div>
   {% endif %}
 
-  {# ---------------- WEEK ---------------- #}
+  {# ============================================================
+     SEMANA
+  ============================================================ #}
   {% if view == 'week' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
@@ -159,9 +189,11 @@
         {% set p = planes[f] %}
         {% set done = (f in done_week) %}
         <div class="col-md-6 col-lg-4">
-          <div class="card glass p-3 lift">
+          <div class="card glass p-3 lift week-day-card">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="fw-bold" style="letter-spacing:.08em;">{{ f.strftime('%a %d/%m')|upper }}</div>
+              <div class="fw-bold week-day-title">
+                {{ f.strftime('%a %d/%m')|upper }}
+              </div>
 
               {% if done %}
                 <span class="badge bg-success">HECHO</span>
@@ -170,7 +202,7 @@
               {% endif %}
             </div>
 
-            <div class="text-muted" style="font-size:.95rem;">
+            <div class="text-muted week-day-text">
               {% if (p.plan_type or '').lower() == 'descanso' %}
                 Descanso / recuperación.
               {% else %}
@@ -179,7 +211,8 @@
             </div>
 
             <div class="d-grid mt-3">
-              <button class="btn btn-outline-info" type="button" onclick="openDay('{{ f.isoformat() }}')">
+              <button class="btn btn-outline-info" type="button"
+                      onclick="openDay('{{ f.isoformat() }}')">
                 Ver detalle
               </button>
             </div>
@@ -189,7 +222,9 @@
     </div>
   {% endif %}
 
-  {# ---------------- MONTH ---------------- #}
+  {# ============================================================
+     MES
+  ============================================================ #}
   {% if view == 'month' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
@@ -255,43 +290,67 @@
     </div>
   {% endif %}
 
-  {# ---------------- PROGRESS ---------------- #}
+  {# ============================================================
+     PROGRESO
+  ============================================================ #}
   {% if view == 'progress' %}
-    <div class="card glass p-3 p-md-4">
-      <div class="mb-2">
-        <h4 class="text-light mb-0">Tus progresos</h4>
-        <div class="text-muted">Semana actual · Objetivo vs completado</div>
-      </div>
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="card glass p-3 p-md-4 h-100">
+          <h4 class="text-light mb-1">Consistencia semanal</h4>
+          <div class="text-muted mb-3">Objetivo vs completado esta semana.</div>
 
-      <div class="glass p-3 mt-2" style="border-radius:18px;">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="mini-title">CONSISTENCIA</div>
-          <div class="text-muted" style="font-weight:900;">
-            {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
-            {{ pct }}%
+          {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
+          <div class="glass p-3 mb-3" style="border-radius:18px;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="mini-title">PORCENTAJE</div>
+              <div class="fs-4 fw-bold">{{ pct }}%</div>
+            </div>
+            <div class="progress" style="height:12px;border-radius:999px;overflow:hidden;">
+              <div class="progress-bar" style="width: {{ pct }}%"></div>
+            </div>
+          </div>
+
+          <div class="vr-bars">
+            {% for i in range(7) %}
+              <div class="vr-bar">
+                <div class="vr-bar-fill" style="height: {{ 100 if i < week_done else 0 }}%;"></div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex justify-content-between mt-2 vr-days">
+            <span>L</span><span>M</span><span>X</span>
+            <span>J</span><span>V</span><span>S</span><span>D</span>
           </div>
         </div>
+      </div>
 
-        <div class="vr-bars">
-          {% for i in range(7) %}
-            <div class="vr-bar">
-              <div class="vr-bar-fill" style="height: {{ 100 if i < week_done else 0 }}%;"></div>
-            </div>
-          {% endfor %}
-        </div>
+      <div class="col-lg-6">
+        <div class="card glass p-3 p-md-4 h-100">
+          <h4 class="text-light mb-1">Racha</h4>
+          <div class="text-muted mb-3">Días seguidos marcando entreno.</div>
 
-        <div class="d-flex justify-content-between mt-2 vr-days">
-          <span>L</span><span>M</span><span>X</span>
-          <span>J</span><span>V</span><span>S</span><span>D</span>
+          <div class="display-5 fw-bold mb-2">🔥 {{ streak }}</div>
+          <p class="text-muted mb-3">
+            Cada día que marcás tu sesión, la racha sube.  
+            Si dejás un día sin marcar, la racha vuelve a cero.
+          </p>
+
+          <ul class="text-muted mb-0">
+            <li>Mantené al menos 3 días seguidos para estar en verde.</li>
+            <li>5/7 días: zona atleta serio.</li>
+            <li>7/7 días: 🔒 modo leyenda.</li>
+          </ul>
         </div>
       </div>
     </div>
   {% endif %}
 </div>
 
-<!-- =========================
-     MODAL DÍA (PREMIUM CLEAN)
-========================= -->
+{# ============================================================
+   MODAL DÍA (misma lógica, solo JS/CSS)
+============================================================ #}
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen-sm-down modal-xl">
     <div class="modal-content day-modal">
@@ -300,17 +359,23 @@
         <div class="w-100">
           <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
             <div>
-              <div class="text-muted" id="dayModalDate" style="letter-spacing:.18em;text-transform:uppercase;"></div>
+              <div class="text-muted" id="dayModalDate"
+                   style="letter-spacing:.18em;text-transform:uppercase;"></div>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <h5 class="modal-title mb-0" id="dayModalTitle">Detalle</h5>
                 <span class="day-chip" id="dayModalType">—</span>
-                <span class="chip chip-danger d-none" id="blockedChip"><i class="bi bi-slash-circle me-1"></i>Bloqueado</span>
+                <span class="chip chip-danger d-none" id="blockedChip">
+                  <i class="bi bi-slash-circle me-1"></i>Bloqueado
+                </span>
               </div>
-              <div class="text-muted mt-1" style="font-size:.95rem;" id="daySubtitle">Lo que toca hoy.</div>
+              <div class="text-muted mt-1" style="font-size:.95rem;" id="daySubtitle">
+                Lo que toca hoy.
+              </div>
             </div>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <button class="btn btn-sm btn-outline-danger" type="button" id="cantTrainBtn" onclick="toggleAvailabilityPanel(true)">
+              <button class="btn btn-sm btn-outline-danger" type="button"
+                      id="cantTrainBtn" onclick="toggleAvailabilityPanel(true)">
                 <i class="bi bi-slash-circle me-1"></i> No puedo entrenar
               </button>
 
@@ -319,17 +384,18 @@
                 <label class="form-check-label text-muted" for="didTrain">Hoy entrené</label>
               </div>
 
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              <button type="button" class="btn-close btn-close-white"
+                      data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
           </div>
 
-          <!-- Progreso -->
           <div class="glass p-2 mt-3" style="border-radius:16px;">
             <div class="d-flex justify-content-between align-items-center px-2">
               <div class="day-section-title" style="margin:0;">Progreso</div>
               <div class="text-muted" style="font-weight:900;" id="progressLabel">—</div>
             </div>
-            <div class="progress mt-2" style="height:10px;border-radius:999px; overflow:hidden;">
+            <div class="progress mt-2"
+                 style="height:10px;border-radius:999px; overflow:hidden;">
               <div class="progress-bar" id="progressBar" style="width:0%"></div>
             </div>
           </div>
@@ -339,11 +405,7 @@
 
       <div class="modal-body">
         <div class="row g-3">
-
-          <!-- IZQUIERDA (Activación → Principal → Enfriamiento) -->
           <div class="col-lg-4">
-
-            <!-- ACTIVACIÓN -->
             <div class="day-section" id="warmupSection">
               <div class="day-section-title">1 · Activación</div>
               <div id="warmupBlocks" class="blocks-wrap">
@@ -351,7 +413,6 @@
               </div>
             </div>
 
-            <!-- PRINCIPAL -->
             <div class="day-section mt-3" id="mainSection">
               <div class="day-section-title">2 · Bloque principal</div>
               <div class="text-muted" id="blocksMeta">—</div>
@@ -360,7 +421,6 @@
               </div>
             </div>
 
-            <!-- ENFRIAMIENTO -->
             <div class="day-section mt-3" id="finisherSection">
               <div class="day-section-title">3 · Enfriamiento</div>
               <div id="finisherBlocks" class="blocks-wrap">
@@ -368,7 +428,6 @@
               </div>
             </div>
 
-            <!-- DISPONIBILIDAD -->
             <div class="day-section mt-3 d-none" id="availabilityPanel">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="day-section-title" style="margin:0;">Disponibilidad</div>
@@ -377,14 +436,17 @@
 
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="noPuedoToggle">
-                <label class="form-check-label text-muted" for="noPuedoToggle">No puedo entrenar este día</label>
+                <label class="form-check-label text-muted" for="noPuedoToggle">
+                  No puedo entrenar este día
+                </label>
               </div>
 
               <textarea class="form-control mt-2" id="noPuedoText"
                         placeholder="Ej: viaje / lesión / trabajo / etc (corto)"></textarea>
 
               <div class="d-grid mt-2">
-                <button class="btn btn-outline-danger" type="button" onclick="saveAvailability()">
+                <button class="btn btn-outline-danger" type="button"
+                        onclick="saveAvailability()">
                   Guardar bloqueo
                 </button>
               </div>
@@ -395,10 +457,7 @@
             </div>
           </div>
 
-          <!-- DERECHA -->
           <div class="col-lg-8">
-
-            <!-- EJERCICIOS -->
             <div class="day-section d-none" id="strengthSection">
               <div class="day-section-title">Ejercicios</div>
               <div id="strengthItems" class="row g-3"></div>
@@ -406,7 +465,8 @@
 
             <div class="day-section mt-3">
               <div class="day-section-title">Qué hiciste</div>
-              <textarea class="form-control mb-2" id="doneNote" placeholder="Escribí breve: cómo te sentiste, cargas, tiempos, etc..."></textarea>
+              <textarea class="form-control mb-2" id="doneNote"
+                        placeholder="Escribí breve: cómo te sentiste, cargas, tiempos, etc..."></textarea>
 
               <div class="d-grid">
                 <button class="btn btn-primary" onclick="saveLog()">
@@ -426,129 +486,77 @@
 
 {% block extra_css %}
 <style>
-/* complementario al styles_v2.css que ya tenés */
-.day-modal{
-  background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
-  color: rgba(255,255,255,.92);
+.profile-hero{
+  border-radius: 22px;
+  padding: 18px 18px 16px;
+  background: radial-gradient(circle at 0 0, rgba(34,211,238,.18), transparent 60%);
 }
-.day-modal .modal-body{ background: transparent; }
-
-.day-chip{
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-weight: 900;
-  font-size: .82rem;
-  letter-spacing:.06em;
+.profile-avatar{
+  width:56px;
+  height:56px;
+  border-radius:18px;
 }
-
-.chip{
-  border-radius:999px;
-  padding:6px 10px;
+.profile-hero-label{
+  font-size:.78rem;
   font-weight:900;
-  font-size:.82rem;
-  letter-spacing:.06em;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
+  letter-spacing:.24em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.55);
 }
-.chip-danger{
-  border-color: rgba(255,59,48,.55);
-  background: rgba(255,59,48,.14);
-  color: rgba(255,255,255,.92);
+.profile-hero-name{
+  font-weight:900;
+  letter-spacing:.04em;
 }
-
-.day-section{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
-  padding: 12px;
+.profile-hero-email{
+  color:rgba(255,255,255,.65);
+  font-size:.95rem;
 }
-.day-section-title{
-  font-weight: 950;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  font-size: .78rem;
-  color: rgba(255,255,255,.72);
-  margin-bottom: 10px;
+.hero-stat{
+  min-width:160px;
 }
-
-.blocks-wrap{ display:grid; gap:12px; }
-
-.block-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
-  padding: 12px;
+.hero-stat .mini-foot{
+  margin-top:4px;
+  font-size:.8rem;
+  color:rgba(255,255,255,.6);
 }
-.block-head{
-  display:flex;
-  justify-content: space-between;
-  align-items:flex-start;
-  gap:10px;
+.btn-strava{
+  border-radius:999px;
+  border:1px solid rgba(255,184,0,.7);
+  color:#ffb800;
+  padding-inline:14px;
+  font-weight:800;
 }
-.block-left{ display:flex; gap:10px; align-items:flex-start; }
-.block-icon{
-  width:40px;height:40px;border-radius:14px;
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.04);
-  display:flex;align-items:center;justify-content:center;
-  flex: 0 0 auto;
+.btn-strava:hover{
+  background:rgba(255,184,0,.12);
+  color:#ffe29a;
 }
-.block-title{ font-weight: 950; color: rgba(255,255,255,.96); line-height: 1.1; }
-.block-sub{
-  color: rgba(255,255,255,.72);
-  font-weight: 800;
-  font-size: .92rem;
-  margin-top: 4px;
-  line-height: 1.2;
+.profile-pill{
+  border-radius:999px;
+  font-weight:800;
 }
-.block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
-
-.exercise-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
-  overflow:hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+.profile-pill-btn{
+  border-radius:999px;
 }
-.exercise-card.done{
-  border-color: rgba(34,197,94,.55) !important;
-  background: rgba(34,197,94,.10) !important;
-  box-shadow: 0 0 0 2px rgba(34,197,94,.12), 0 10px 30px rgba(0,0,0,.35);
+.profile-tabs .btn{
+  border-radius:999px;
+  font-weight:800;
 }
-.exercise-done-pill{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-weight: 950;
-  letter-spacing: .08em;
-  font-size: .78rem;
-  border: 1px solid rgba(34,197,94,.50);
-  background: rgba(34,197,94,.14);
-  color: rgba(255,255,255,.95);
+.today-card{
+  border-radius:22px;
 }
-
-.exercise-head{
-  padding: 10px 12px;
-  display:flex;
-  justify-content: space-between;
-  align-items:flex-start;
-  gap:10px;
+.today-date{
+  font-size:1.4rem;
+  font-weight:900;
+  letter-spacing:.12em;
 }
-.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
-.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); font-weight:800; letter-spacing:.02em; }
-.exercise-video{ padding: 10px 12px 12px; }
-.exercise-video video{
-  width:100%;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(0,0,0,.35);
-  min-height: 220px;
-  object-fit: cover;
+.week-day-card{
+  border-radius:18px;
+}
+.week-day-title{
+  letter-spacing:.10em;
+}
+.week-day-text{
+  font-size:.95rem;
 }
 </style>
 {% endblock %}
@@ -746,7 +754,8 @@ function renderBlocksInto(elId, blocks){
         </div>
 
         <div class="block-actions">
-          <button class="btn btn-outline-light" type="button" onclick="toggleStrength(${idx}, '${elId}')">
+          <button class="btn btn-outline-light" type="button"
+                  onclick="toggleStrength(${idx}, '${elId}')">
             Ver ejercicios
           </button>
         </div>

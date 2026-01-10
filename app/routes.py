@@ -524,6 +524,7 @@ def build_ejercicios_por_grupo(ejercicios: List[Ejercicio]) -> Dict[str, List[Di
             "categoria": e.categoria,
             "descripcion": e.descripcion,
             "video_url": video_url,
+            "video_filename": getattr(e, "video_filename", "") or "",
         })
 
     for g in list(grouped.keys()):
@@ -766,12 +767,17 @@ def dashboard_entrenador():
     atletas = User.query.filter(User.is_admin.is_(False)).order_by(User.id.desc()).all()
     available_videos = list_repo_videos()
 
+    # ✅ NUEVO: agrupados por grupo muscular (para organizar mejor en el template)
+    ejercicios_por_grupo = build_ejercicios_por_grupo(ejercicios)
+
     return render_template(
         "panel_entrenador.html",
         rutinas=rutinas,
         ejercicios=ejercicios,
         atletas=atletas,
         available_videos=available_videos,
+        ejercicios_por_grupo=ejercicios_por_grupo,
+        muscle_groups_order=MUSCLE_GROUPS_ORDER,
     )
 
 
@@ -811,6 +817,75 @@ def admin_delete_video():
         db.session.rollback()
         flash(f"Error eliminando video: {e}", "danger")
 
+    return redirect(url_for("main.dashboard_entrenador"))
+
+
+# =============================================================
+# ✅ ELIMINAR EJERCICIO (ADMIN) + limpiar refs (CHECKS + ITEMS)
+# =============================================================
+@main_bp.route("/admin/ejercicios/<int:ejercicio_id>/delete", methods=["POST"])
+@login_required
+def admin_delete_ejercicio(ejercicio_id: int):
+    if not admin_ok():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    ej = Ejercicio.query.get_or_404(ejercicio_id)
+    video_filename = (getattr(ej, "video_filename", "") or "").strip()
+
+    try:
+        # 1) RutinaItems que referencian el ejercicio
+        items = RutinaItem.query.filter_by(ejercicio_id=ej.id).all()
+        item_ids = [it.id for it in items]
+
+        # 2) Checks asociados (si existen)
+        if item_ids:
+            AthleteCheck.query.filter(
+                AthleteCheck.rutina_item_id.in_(item_ids)
+            ).delete(synchronize_session=False)
+
+        # 3) Borrar los RutinaItems
+        if items:
+            RutinaItem.query.filter_by(ejercicio_id=ej.id).delete(synchronize_session=False)
+
+        # 4) Borrar el ejercicio
+        db.session.delete(ej)
+        db.session.commit()
+
+        # 5) Si el video ya no lo usa nadie, intentar borrarlo del /static/videos
+        if video_filename:
+            still_used = Ejercicio.query.filter(Ejercicio.video_filename == video_filename).count()
+            if still_used == 0:
+                try:
+                    delete_video_from_static(video_filename)
+                except Exception:
+                    # En Render puede no persistir o puede faltar: no rompemos flujo
+                    pass
+
+        flash("🗑️ Ejercicio eliminado correctamente", "success")
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error eliminando ejercicio: {e}", "danger")
+
+    return redirect(url_for("main.dashboard_entrenador"))
+
+
+# =============================================================
+# ✅ (OPCIONAL) DESVINCULAR VIDEO DE UN EJERCICIO (sin borrar archivo)
+# =============================================================
+@main_bp.route("/admin/ejercicios/<int:ejercicio_id>/unlink_video", methods=["POST"])
+@login_required
+def admin_unlink_video_ejercicio(ejercicio_id: int):
+    if not admin_ok():
+        flash("Acceso denegado", "danger")
+        return redirect(url_for("main.dashboard_entrenador"))
+
+    ej = Ejercicio.query.get_or_404(ejercicio_id)
+    ej.video_filename = ""
+    db.session.commit()
+
+    flash("✅ Video desvinculado del ejercicio", "success")
     return redirect(url_for("main.dashboard_entrenador"))
 
 

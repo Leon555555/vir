@@ -2,7 +2,7 @@
 {% block title %}Perfil — VR Training{% endblock %}
 
 {# ============================================================
-   ✅ Macro: icono + texto para plan_type (sin templates extra)
+   ✅ Macro: icono + texto para plan_type
 ============================================================ #}
 {% macro activity_badge(plan_type, size='') %}
   {% set raw = (plan_type or 'Descanso') %}
@@ -43,6 +43,7 @@
 
   <!-- =========================
         HERO / HEADER PREMIUM
+        ✅ SIN BOTÓN VOLVER
   ========================== -->
   <div class="vr-hero glass p-3 p-md-4 mb-3 lift">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
@@ -50,12 +51,12 @@
       <div class="d-flex align-items-center gap-3">
         <div class="vr-avatar-xl">
           <i class="bi bi-person-fill"></i>
-          <span class="d-none d-md-inline">Volver</span>
         </div>
 
         <div>
           <div class="vr-kicker">DASHBOARD</div>
           <div class="vr-hero-title">{{ user.nombre }}</div>
+
           <div class="vr-hero-sub">
             <span class="text-muted">{{ user.email }}</span>
             <span class="mx-2 text-muted">·</span>
@@ -76,17 +77,6 @@
         {% if admin_ok %}
           <a class="btn btn-vr btn-outline" href="{{ url_for('main.coach_planificador', user_id=user.id) }}">
             <i class="bi bi-calendar3"></i> Planificar
-          </a>
-        {% endif %}
-
-        {# Volver: en view=today lo oculto en móvil, en otras vistas siempre #}
-        {% if view == 'today' %}
-          <a class="btn btn-vr btn-ghost d-none d-md-inline-flex" href="{{ url_for('main.perfil_redirect') }}">
-            <i class="bi bi-arrow-left"></i> Volver
-          </a>
-        {% else %}
-          <a class="btn btn-vr btn-ghost" href="{{ url_for('main.perfil_redirect') }}">
-            <i class="bi bi-arrow-left"></i> Volver
           </a>
         {% endif %}
 
@@ -299,7 +289,7 @@
   {% if view == 'progress' %}
     <div class="card glass p-3 p-md-4 lift">
       <div class="mb-2">
-        <div class="vr-h3">Tus progresos</div>
+        <div class="vr-h3">Tus stats</div>
         <div class="text-muted">Semana actual · Objetivo vs completado</div>
       </div>
 
@@ -327,11 +317,10 @@
       </div>
     </div>
   {% endif %}
-
 </div>
 
 <!-- =========================
-     MODAL DÍA (PREMIUM CLEAN)
+     MODAL DÍA (PREMIUM)
 ========================= -->
 <div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen-sm-down modal-xl">
@@ -381,10 +370,9 @@
       <div class="modal-body">
         <div class="row g-3">
 
-          <!-- IZQUIERDA (Activación → Principal → Enfriamiento) -->
+          <!-- IZQUIERDA -->
           <div class="col-lg-4">
 
-            <!-- ACTIVACIÓN -->
             <div class="day-section" id="warmupSection">
               <div class="day-section-title">1 · Activación</div>
               <div id="warmupBlocks" class="blocks-wrap">
@@ -392,7 +380,6 @@
               </div>
             </div>
 
-            <!-- PRINCIPAL -->
             <div class="day-section mt-3" id="mainSection">
               <div class="day-section-title">2 · Bloque principal</div>
               <div class="text-muted" id="blocksMeta">—</div>
@@ -401,7 +388,6 @@
               </div>
             </div>
 
-            <!-- ENFRIAMIENTO -->
             <div class="day-section mt-3" id="finisherSection">
               <div class="day-section-title">3 · Enfriamiento</div>
               <div id="finisherBlocks" class="blocks-wrap">
@@ -409,7 +395,6 @@
               </div>
             </div>
 
-            <!-- DISPONIBILIDAD -->
             <div class="day-section mt-3 d-none" id="availabilityPanel">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="day-section-title" style="margin:0;">Disponibilidad</div>
@@ -439,7 +424,6 @@
           <!-- DERECHA -->
           <div class="col-lg-8">
 
-            <!-- EJERCICIOS -->
             <div class="day-section d-none" id="strengthSection">
               <div class="day-section-title">Ejercicios</div>
               <div id="strengthItems" class="row g-3"></div>
@@ -447,7 +431,8 @@
 
             <div class="day-section mt-3">
               <div class="day-section-title">Qué hiciste</div>
-              <textarea class="form-control mb-2 vr-input" id="doneNote" placeholder="Escribí breve: cómo te sentiste, cargas, tiempos, etc..."></textarea>
+              <textarea class="form-control mb-2 vr-input" id="doneNote"
+                        placeholder="Escribí breve: cómo te sentiste, cargas, tiempos, etc..."></textarea>
 
               <div class="d-grid">
                 <button class="btn btn-primary" onclick="saveLog()">

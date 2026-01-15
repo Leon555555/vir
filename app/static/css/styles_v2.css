@@ -1,5 +1,5 @@
 /* ============================================================
-   VR TRAINING – styles_v2.css (DARK PRO) ✅ FULL CLEAN VERSION
+   VR TRAINING – styles_v2.css (DARK PRO) ✅ FULL CLEAN + PRO
    - Base dark theme
    - Bootstrap darkify (solo dentro de body.vr-body)
    - Components: glass/lift/chips/buttons
@@ -25,13 +25,26 @@
 
   --r: 14px;
   --r2: 10px;
+
+  /* ✅ PRO TOKENS */
+  --accent: #22d3ee;
+  --accent2:#3b82f6;
+  --glass: rgba(255,255,255,.055);
+  --glass2: rgba(255,255,255,.075);
+  --stroke: rgba(255,255,255,.10);
+  --stroke2: rgba(255,255,255,.14);
+  --shadow: 0 18px 60px rgba(0,0,0,.55);
+  --shadow2: 0 26px 90px rgba(0,0,0,.65);
 }
 
 /* ------------------------------------------------------------
    BASE
 ------------------------------------------------------------ */
 body.vr-body{
-  background: var(--bg);
+  background:
+    radial-gradient(900px 450px at 20% 10%, rgba(34,211,238,.10), transparent 60%),
+    radial-gradient(900px 450px at 80% 15%, rgba(59,130,246,.10), transparent 60%),
+    radial-gradient(circle at 50% 15%, #111 0%, #000 70%);
   color: var(--text);
   font-family: "Rajdhani","Segoe UI",system-ui,sans-serif;
   min-height: 100vh;
@@ -43,7 +56,7 @@ body.vr-body{
   padding-bottom: 36px;
 }
 
-/* Si algún día la haces fixed-top, subís este padding desde HTML */
+/* Si algún día la haces fixed-top */
 body.vr-body nav.navbar.fixed-top + main.vr-main{
   padding-top: 86px;
 }
@@ -52,15 +65,21 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
    NAVBAR
 ------------------------------------------------------------ */
 .vr-navbar{
-  background: rgba(0,0,0,.75) !important;
+  background: rgba(0,0,0,.65) !important;
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255,255,255,.08);
 }
-
 .vr-brand{
   letter-spacing: .8px;
   font-weight: 900;
   color: var(--text);
+}
+.vr-brand span{
+  font-weight: 950 !important;
+  letter-spacing: .14em !important;
+}
+.vr-navbar .btn{
+  border-radius: 999px !important;
 }
 
 .vr-link{
@@ -93,23 +112,21 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 .vr-body .modal-content{
   background: var(--panel);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 22px;
 }
 
 .vr-body .card-header{
   background: transparent;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255,255,255,.10);
   color: var(--text);
   font-weight: 900;
 }
 
-.vr-body .text-muted{
-  color: var(--muted) !important;
-}
+.vr-body .text-muted{ color: var(--muted) !important; }
 
 .vr-body hr{
-  border-color: var(--border);
+  border-color: rgba(255,255,255,.10);
   opacity: 1;
 }
 
@@ -121,21 +138,19 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 .vr-body textarea{
   background: rgba(0,0,0,.35) !important;
   color: var(--text) !important;
-  border: 1px solid var(--border) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
   border-radius: var(--r2) !important;
 }
-
 .vr-body input::placeholder,
 .vr-body textarea::placeholder{
   color: rgba(255,255,255,.45) !important;
 }
-
 .vr-body input:focus,
 .vr-body select:focus,
 .vr-body textarea:focus{
   outline: none !important;
-  border-color: var(--cyan) !important;
-  box-shadow: 0 0 0 2px rgba(34,211,238,.28) !important;
+  border-color: rgba(34,211,238,.55) !important;
+  box-shadow: 0 0 0 2px rgba(34,211,238,.22) !important;
   background: rgba(0,0,0,.45) !important;
 }
 
@@ -161,50 +176,19 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   font-weight: 900;
 }
 
-.vr-body .btn-primary{
-  background: var(--blue) !important;
-  border-color: var(--blue) !important;
-}
-.vr-body .btn-primary:hover{
-  background: #2563eb !important;
-  border-color: #2563eb !important;
-}
-
-.vr-body .btn-info,
-.vr-body .btn-cyan{
-  background: var(--cyan) !important;
-  border-color: var(--cyan) !important;
-  color: #001018 !important;
-}
-
-.vr-body .btn-danger{
-  background: var(--danger) !important;
-  border-color: var(--danger) !important;
-}
-
-.vr-body .btn-success{
-  background: var(--success) !important;
-  border-color: var(--success) !important;
-}
-
 /* ------------------------------------------------------------
    TABLAS
 ------------------------------------------------------------ */
 .vr-body table{ color: var(--text); }
-
-.vr-body thead{
-  background: rgba(255,255,255,.08);
-}
+.vr-body thead{ background: rgba(255,255,255,.08); }
 .vr-body thead th{
   color: var(--text);
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: 1px solid rgba(255,255,255,.10) !important;
 }
 .vr-body tbody td{
   border-bottom: 1px solid rgba(255,255,255,.08) !important;
 }
-.vr-body tbody tr:hover{
-  background: rgba(255,255,255,.04);
-}
+.vr-body tbody tr:hover{ background: rgba(255,255,255,.04); }
 
 /* ------------------------------------------------------------
    BUILDER – ITEMS
@@ -255,17 +239,17 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
    ✅ COMPONENTS PREMIUM (glass / lift / chips / btn-vr)
 ============================================================ */
 .glass{
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.12);
-  box-shadow: 0 18px 60px rgba(0,0,0,.35);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.035));
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
 }
 .lift{
   transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
 }
 .lift:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 24px 80px rgba(0,0,0,.45);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow2);
   border-color: rgba(34,211,238,.22);
 }
 
@@ -275,161 +259,166 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   gap:.45rem;
   padding:.32rem .65rem;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.20);
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
   color: rgba(255,255,255,.92);
   font-weight: 950;
   letter-spacing: .06em;
   font-size: .78rem;
   text-decoration:none;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
-.chip-green{
-  background: rgba(34,197,94,.12);
-  border-color: rgba(34,197,94,.28);
-}
-.chip-cyan{
-  background: rgba(34,211,238,.12);
-  border-color: rgba(34,211,238,.28);
-}
-.chip-danger{
-  background: rgba(239,68,68,.12);
-  border-color: rgba(239,68,68,.28);
-}
+.chip-green{ background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.22); }
+.chip-cyan{ background: rgba(34,211,238,.12); border-color: rgba(34,211,238,.22); }
+.chip-danger{ background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.22); }
 
+/* ✅ BOTONES producto */
 .btn-vr{
-  border-radius: 14px !important;
+  border-radius: 999px !important;
   font-weight: 950;
   letter-spacing: .03em;
-  padding: .55rem .85rem;
+  padding: .62rem 1.0rem;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
 }
 .btn-vr.btn-primary{
-  background: linear-gradient(135deg, rgba(59,130,246,1), rgba(34,211,238,.75)) !important;
-  border: 1px solid rgba(34,211,238,.18) !important;
+  background: linear-gradient(135deg, rgba(34,211,238,.95), rgba(59,130,246,1)) !important;
+  border: 0 !important;
+  box-shadow: 0 18px 55px rgba(59,130,246,.18);
+  color: #001018 !important;
 }
-.btn-vr.btn-primary:hover{ filter: brightness(1.06); }
-
+.btn-vr.btn-primary:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
 .btn-vr.btn-outline{
-  background: rgba(0,0,0,.18) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
   color: rgba(255,255,255,.92) !important;
 }
 .btn-vr.btn-outline:hover{
-  border-color: rgba(34,211,238,.30) !important;
-  box-shadow: 0 12px 30px rgba(34,211,238,.08);
+  transform: translateY(-1px);
+  box-shadow: 0 18px 60px rgba(0,0,0,.35);
 }
-
-.btn-vr.btn-ghost{
-  background: transparent !important;
-  border: 1px solid rgba(255,255,255,.10) !important;
-  color: rgba(255,255,255,.82) !important;
-}
-.btn-vr.btn-ghost:hover{ border-color: rgba(255,255,255,.22) !important; }
 
 /* Progress */
 .vr-progress{
-  height: 10px;
+  height: 11px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
 }
 .vr-progress .progress-bar{
-  background: linear-gradient(90deg, rgba(34,211,238,.80), rgba(59,130,246,.95));
+  background: linear-gradient(90deg, rgba(34,211,238,.90), rgba(59,130,246,1));
 }
 
 /* ============================================================
    ✅ ATHLETE DASHBOARD PREMIUM
 ============================================================ */
 .vr-athlete .link-unstyled{ text-decoration:none; }
+.vr-athlete.container{ max-width: 1180px; }
 
 .vr-hero{
+  padding: 22px !important;
+  border-radius: 22px !important;
   position: relative;
   overflow: hidden;
 }
-.vr-hero:before{
+.vr-hero::after{
   content:"";
   position:absolute;
-  inset:-60px -60px auto auto;
-  width:260px; height:260px;
-  background: radial-gradient(circle at 30% 30%, rgba(0,229,255,.25), transparent 70%);
-  filter: blur(10px);
+  inset:auto -120px -140px auto;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle at 30% 30%, rgba(34,211,238,.18), transparent 62%);
+  filter: blur(18px);
   pointer-events:none;
 }
 
 .vr-avatar-xl{
-  width:54px; height:54px;
-  display:grid; place-items:center;
-  border-radius: 18px;
-  background: rgba(0,229,255,.12);
-  border: 1px solid rgba(0,229,255,.22);
+  width: 64px !important;
+  height: 64px !important;
+  display:grid;
+  place-items:center;
+  border-radius: 22px !important;
+  background: rgba(34,211,238,.10) !important;
+  border: 1px solid rgba(34,211,238,.18) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.45);
   color: rgba(255,255,255,.92);
-  font-size: 1.3rem;
+  font-size: 1.35rem;
 }
 
 .vr-kicker{
-  font-size: .78rem;
-  letter-spacing: .18em;
+  font-size: .72rem !important;
+  letter-spacing: .22em !important;
   text-transform: uppercase;
   font-weight: 950;
   color: rgba(255,255,255,.62);
+  opacity: .85;
 }
 
 .vr-hero-title{
-  font-weight: 950;
-  font-size: 1.35rem;
-  letter-spacing: .01em;
+  font-size: 1.6rem !important;
+  font-weight: 950 !important;
+  letter-spacing: .01em !important;
+  line-height: 1.05;
   color: rgba(255,255,255,.94);
 }
 .vr-hero-sub{
-  margin-top: 4px;
-  color: rgba(255,255,255,.60);
+  margin-top: 6px;
+  color: rgba(255,255,255,.62) !important;
+  font-size: .98rem;
 }
 
 .vr-mini{
-  padding: 10px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.09);
-  background: rgba(255,255,255,.04);
+  border-radius: 18px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)) !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  box-shadow: 0 16px 55px rgba(0,0,0,.35);
+  padding: 12px 14px;
   min-width: 120px;
 }
 .vr-mini-wide{ min-width: 230px; }
+
 .vr-mini-title{
-  font-size: .75rem;
-  letter-spacing: .18em;
+  font-size: .70rem !important;
+  letter-spacing: .22em !important;
   font-weight: 950;
   color: rgba(255,255,255,.55);
+  opacity: .9;
 }
 .vr-mini-value{
-  font-size: 1rem;
+  font-size: 1.05rem !important;
   font-weight: 950;
   color: rgba(255,255,255,.92);
 }
 
 .vr-tabs{
+  margin-top: 14px !important;
   display:flex;
   gap:10px;
   flex-wrap: wrap;
 }
 .vr-tab{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.04);
-  color: rgba(255,255,255,.82);
+  border-radius: 999px !important;
+  padding: 11px 14px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(255,255,255,.04) !important;
+  color: rgba(255,255,255,.82) !important;
   font-weight: 900;
   text-decoration:none;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
 }
 .vr-tab:hover{
-  border-color: rgba(0,229,255,.25);
-  box-shadow: 0 12px 30px rgba(0,229,255,.06);
+  transform: translateY(-1px);
+  border-color: rgba(34,211,238,.25) !important;
+  box-shadow: 0 16px 45px rgba(34,211,238,.06);
 }
 .vr-tab.active{
-  background: rgba(0,229,255,.12);
-  border-color: rgba(0,229,255,.28);
-  color: rgba(255,255,255,.95);
+  background: linear-gradient(135deg, rgba(34,211,238,.16), rgba(59,130,246,.12)) !important;
+  border-color: rgba(34,211,238,.26) !important;
+  box-shadow: 0 18px 55px rgba(34,211,238,.08);
+  color: rgba(255,255,255,.95) !important;
 }
 
 .vr-h2{ font-size: 1.35rem; font-weight: 950; letter-spacing:.02em; }
@@ -438,12 +427,13 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 .divider-soft{
   height:1px;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+  opacity: .9;
 }
 
 .vr-today-preview{
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
+  border-radius: 20px !important;
+  background: rgba(255,255,255,.03) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
   padding: 12px;
 }
 .vr-today-label{
@@ -463,10 +453,14 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   position: relative;
   overflow: hidden;
   min-height: 260px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
+  border-radius: 22px !important;
+  border: 1px solid rgba(255,255,255,.10);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)) !important;
   padding: 14px;
+}
+.vr-day-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 26px 90px rgba(0,0,0,.55);
 }
 .vr-day-card.is-done{
   border-color: rgba(46,229,157,.28) !important;
@@ -485,7 +479,7 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 }
 
 /* ============================================================
-   ✅ ACTIVITY BADGE (plan_type icon + text)
+   ✅ ACTIVITY BADGE
 ============================================================ */
 .vr-activity-badge{
   display:inline-flex;
@@ -514,7 +508,7 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 .vr-activity-badge.sm .vr-activity-text{ font-size:.78rem; }
 
 /* ============================================================
-   ✅ MONTH GRID (perfil -> Mes) – clean + no overlap
+   ✅ MONTH GRID (perfil -> Mes)
 ============================================================ */
 .month-grid{
   display: grid;
@@ -522,7 +516,6 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   gap: 10px;
   align-items: stretch;
 }
-
 .month-head{
   text-align: center;
   font-weight: 900;
@@ -533,7 +526,6 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   border-radius: 12px;
   background: rgba(255,255,255,.04);
 }
-
 .month-cell{
   position: relative;
   border-radius: 14px;
@@ -543,28 +535,24 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   background: rgba(0,0,0,.32);
   cursor: pointer;
   transition: transform .08s ease, border-color .12s ease, background .12s ease;
-  overflow: hidden; /* ✅ clave */
+  overflow: hidden;
 }
-
 .month-cell:hover{
   transform: translateY(-1px);
   border-color: rgba(34,211,238,.35);
   background: rgba(255,255,255,.06);
 }
 .month-cell:active{ transform: translateY(0px) scale(.995); }
-
 .month-cell.empty{
   cursor: default;
   border: 1px dashed rgba(255,255,255,.08);
   background: rgba(255,255,255,.02);
 }
-
 .month-cell .daynum{
   font-weight: 900;
   font-size: .95rem;
   color: rgba(255,255,255,.92);
 }
-
 .month-cell.blocked{
   background: rgba(255, 59, 48, 0.18) !important;
   border: 1px solid rgba(255, 59, 48, 0.55) !important;
@@ -572,7 +560,6 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 }
 .month-cell.blocked .daynum{ color: rgba(255,255,255,.95) !important; }
 
-/* icon+text */
 .month-cell .ptype-icon{
   margin-top: 8px;
   display:flex;
@@ -584,11 +571,7 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   min-width: 0;
   flex-wrap: nowrap;
 }
-.month-cell .ptype-icon img{
-  width:18px;
-  height:18px;
-  object-fit:contain;
-}
+.month-cell .ptype-icon img{ width:18px; height:18px; object-fit:contain; }
 .month-cell .ptype-icon span{
   font-size:.80rem;
   font-weight: 900;
@@ -624,8 +607,6 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   .month-cell .ptype-icon img{ width:16px; height:16px; }
   .month-cell .ptype-icon span{ font-size:.74rem; letter-spacing:.05em; }
 }
-
-/* extra small: solo icono */
 @media (max-width: 420px){
   .month-cell .ptype-icon span{ display:none; }
   .vr-mini-wide{ min-width: 100%; }
@@ -634,7 +615,7 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 }
 
 /* ============================================================
-   ✅ PROGRESS BARS (perfil -> Progreso)
+   ✅ PROGRESS BARS
 ============================================================ */
 .vr-bars{
   display:flex;
@@ -663,14 +644,18 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 }
 
 /* ============================================================
-   ✅ DAY MODAL + SECTIONS + BLOCKS
+   ✅ DAY MODAL + SECTIONS + BLOCKS (APPLE-LIKE)
 ============================================================ */
 .day-modal{
   background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
   color: rgba(255,255,255,.92);
 }
 .day-modal .modal-body{ background: transparent; }
-.day-modal .modal-header{ border-bottom: 1px solid rgba(255,255,255,.10); }
+.day-modal .modal-header{
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  padding: 18px 18px 12px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+}
 
 .day-chip{
   border: 1px solid rgba(255,255,255,.12);
@@ -700,10 +685,16 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 .blocks-wrap{ display:grid; gap:12px; }
 
 .block-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.035);
   border-radius: 18px;
   padding: 12px;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .12s ease;
+}
+.block-card:hover{
+  border-color: rgba(34,211,238,.22);
+  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+  transform: translateY(-1px);
 }
 .block-head{
   display:flex;
@@ -713,24 +704,87 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 }
 .block-left{ display:flex; gap:10px; align-items:flex-start; }
 .block-icon{
-  width:40px;height:40px;border-radius:14px;
+  width:44px;height:44px;border-radius:16px;
   border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.05);
+  background: rgba(255,255,255,.06);
   display:flex;align-items:center;justify-content:center;
   flex: 0 0 auto;
 }
-.block-title{ font-weight: 950; color: rgba(255,255,255,.96); line-height: 1.1; }
+.block-title{
+  font-weight: 950;
+  color: rgba(255,255,255,.96);
+  line-height: 1.1;
+  font-size: 1.02rem;
+}
 .block-sub{
-  color: rgba(255,255,255,.72);
+  color: rgba(255,255,255,.74);
   font-weight: 800;
   font-size: .92rem;
   margin-top: 4px;
   line-height: 1.2;
 }
-.block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
+.block-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top: 10px;
+}
+.block-actions .btn{
+  border-radius: 14px;
+  font-weight: 950;
+}
+
+/* Modal frame */
+#dayModal .modal-dialog{ max-width: 1100px; }
+#dayModal .modal-content.day-modal{
+  border-radius: 26px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 40px 140px rgba(0,0,0,.75);
+  overflow: hidden;
+}
+#dayModal .modal-body{ padding: 16px 18px 18px !important; }
+
+/* Column ratio desktop (más pro) */
+#dayModal .col-lg-4{ width: 38%; }
+#dayModal .col-lg-8{ width: 62%; }
+
+/* Sticky derecha para “Qué hiciste” */
+#dayModal .col-lg-8 .day-section{
+  position: sticky;
+  top: 18px;
+}
+@media (max-width: 992px){
+  #dayModal .col-lg-4, #dayModal .col-lg-8{ width: 100%; }
+  #dayModal .col-lg-8 .day-section{ position: static; }
+}
+
+/* Switch style premium */
+.form-switch .form-check-input{
+  width: 46px;
+  height: 24px;
+  border-radius: 999px;
+  background-color: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.14);
+}
+.form-switch .form-check-input:checked{
+  background-color: rgba(34,211,238,.70);
+  border-color: rgba(34,211,238,.35);
+}
+
+/* "No puedo entrenar" button */
+#cantTrainBtn{
+  border-radius: 999px !important;
+  padding: .45rem .8rem !important;
+  border: 1px solid rgba(239,68,68,.28) !important;
+  background: rgba(239,68,68,.10) !important;
+}
+#cantTrainBtn.active{
+  background: rgba(239,68,68,.18) !important;
+  border-color: rgba(239,68,68,.45) !important;
+}
 
 /* ============================================================
-   ✅ STRENGTH EXERCISES (perfil -> fuerza/stretch)
+   ✅ STRENGTH EXERCISES
 ============================================================ */
 .exercise-card{
   border: 1px solid rgba(255,255,255,.10);
@@ -770,7 +824,7 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
 .exercise-card.done .exercise-meta{ color: rgba(200,255,220,.80) !important; }
 
 /* ============================================================
-   ✅ PLANIFICADOR FIX (grid + sidebar sticky)
+   ✅ PLANIFICADOR FIX
 ============================================================ */
 .vr-page{
   width: 100%;
@@ -807,222 +861,10 @@ body.vr-body nav.navbar.fixed-top + main.vr-main{
   align-self: start;
 }
 .vr-sidebar .card{ overflow: hidden; }
+
 /* ============================================================
-   🔥 PRO UPGRADE PATCH (pegá al FINAL)
-   Objetivo: que se vea app premium (Apple-like + neon subtle)
+   ✅ MOBILE POLISH (global)
 ============================================================ */
-
-/* 1) Tokens pro */
-:root{
-  --accent: #22d3ee;
-  --accent2:#3b82f6;
-  --glass: rgba(255,255,255,.055);
-  --glass2: rgba(255,255,255,.075);
-  --stroke: rgba(255,255,255,.10);
-  --stroke2: rgba(255,255,255,.14);
-  --shadow: 0 18px 60px rgba(0,0,0,.55);
-  --shadow2: 0 26px 90px rgba(0,0,0,.65);
-}
-
-/* 2) Mejor background global (más premium, menos “plano”) */
-body.vr-body{
-  background:
-    radial-gradient(900px 450px at 20% 10%, rgba(34,211,238,.10), transparent 60%),
-    radial-gradient(900px 450px at 80% 15%, rgba(59,130,246,.10), transparent 60%),
-    radial-gradient(circle at 50% 15%, #111 0%, #000 70%);
-}
-
-/* 3) Container “app width” */
-.vr-athlete.container,
-.vr-page{
-  max-width: 1180px;
-}
-
-/* 4) Glass real (más pro) */
-.glass{
-  background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.035));
-  border: 1px solid var(--stroke);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(14px);
-}
-.lift:hover{
-  transform: translateY(-3px);
-  box-shadow: var(--shadow2);
-  border-color: rgba(34,211,238,.22);
-}
-
-/* 5) Navbar más “producto” */
-.vr-navbar{
-  background: rgba(0,0,0,.65) !important;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.vr-brand span{
-  font-weight: 950 !important;
-  letter-spacing: .14em !important;
-}
-.vr-navbar .btn{
-  border-radius: 999px !important;
-}
-
-/* 6) Hero premium: glow + separación */
-.vr-hero{
-  padding: 22px !important;
-  border-radius: 22px !important;
-  position: relative;
-  overflow: hidden;
-}
-.vr-hero::after{
-  content:"";
-  position:absolute;
-  inset:auto -120px -140px auto;
-  width: 520px;
-  height: 520px;
-  background: radial-gradient(circle at 30% 30%, rgba(34,211,238,.18), transparent 62%);
-  filter: blur(18px);
-  pointer-events:none;
-}
-
-/* 7) Avatar */
-.vr-avatar-xl{
-  width: 64px !important;
-  height: 64px !important;
-  border-radius: 22px !important;
-  background: rgba(34,211,238,.10) !important;
-  border: 1px solid rgba(34,211,238,.18) !important;
-  box-shadow: 0 18px 50px rgba(0,0,0,.45);
-}
-
-/* 8) Tipografía jerárquica */
-.vr-kicker{
-  font-size: .72rem !important;
-  letter-spacing: .22em !important;
-  opacity: .85;
-}
-.vr-hero-title{
-  font-size: 1.6rem !important;
-  font-weight: 950 !important;
-  letter-spacing: .01em !important;
-  line-height: 1.05;
-}
-.vr-hero-sub{
-  font-size: .98rem;
-  color: rgba(255,255,255,.62) !important;
-}
-
-/* 9) Chips más pro */
-.chip{
-  background: rgba(255,255,255,.06) !important;
-  border: 1px solid rgba(255,255,255,.10) !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-}
-.chip-cyan{
-  background: rgba(34,211,238,.12) !important;
-  border-color: rgba(34,211,238,.22) !important;
-}
-.chip-green{
-  background: rgba(34,197,94,.12) !important;
-  border-color: rgba(34,197,94,.22) !important;
-}
-
-/* 10) Mini stats: como widgets */
-.vr-mini{
-  border-radius: 18px !important;
-  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)) !important;
-  border: 1px solid rgba(255,255,255,.09) !important;
-  box-shadow: 0 16px 55px rgba(0,0,0,.35);
-}
-.vr-mini-title{
-  font-size: .70rem !important;
-  letter-spacing: .22em !important;
-  opacity: .9;
-}
-.vr-mini-value{
-  font-size: 1.05rem !important;
-}
-
-/* 11) Tabs: pills premium con glow */
-.vr-tabs{
-  margin-top: 14px !important;
-  gap: 10px !important;
-}
-.vr-tab{
-  border-radius: 999px !important;
-  padding: 11px 14px !important;
-  background: rgba(255,255,255,.04) !important;
-  border: 1px solid rgba(255,255,255,.10) !important;
-  color: rgba(255,255,255,.82) !important;
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-}
-.vr-tab:hover{
-  transform: translateY(-1px);
-  border-color: rgba(34,211,238,.25) !important;
-  box-shadow: 0 16px 45px rgba(34,211,238,.06);
-}
-.vr-tab.active{
-  background: linear-gradient(135deg, rgba(34,211,238,.16), rgba(59,130,246,.12)) !important;
-  border-color: rgba(34,211,238,.26) !important;
-  box-shadow: 0 18px 55px rgba(34,211,238,.08);
-}
-
-/* 12) Botones: look “producto” */
-.btn-vr{
-  border-radius: 999px !important;
-  padding: .62rem 1.0rem !important;
-  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
-}
-.btn-vr.btn-primary{
-  background: linear-gradient(135deg, rgba(34,211,238,.95), rgba(59,130,246,1)) !important;
-  border: 0 !important;
-  box-shadow: 0 18px 55px rgba(59,130,246,.18);
-  color: #001018 !important;
-}
-.btn-vr.btn-primary:hover{
-  transform: translateY(-1px);
-  filter: brightness(1.04);
-}
-.btn-vr.btn-outline{
-  background: rgba(255,255,255,.04) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-}
-.btn-vr.btn-outline:hover{
-  transform: translateY(-1px);
-  box-shadow: 0 18px 60px rgba(0,0,0,.35);
-}
-
-/* 13) Cards: borde más fino + radio mayor */
-.vr-body .card{
-  border-radius: 22px !important;
-  border-color: rgba(255,255,255,.08) !important;
-}
-.divider-soft{
-  opacity: .9;
-}
-
-/* 14) Hoy card: más aire y mejor composición */
-.vr-today-preview{
-  border-radius: 20px !important;
-  background: rgba(255,255,255,.03) !important;
-  border: 1px solid rgba(255,255,255,.08) !important;
-}
-
-/* 15) Semana cards: más pro */
-.vr-day-card{
-  border-radius: 22px !important;
-  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)) !important;
-}
-.vr-day-card:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 26px 90px rgba(0,0,0,.55);
-}
-
-/* 16) Progress bar más elegante */
-.vr-progress{
-  height: 11px !important;
-  background: rgba(255,255,255,.05) !important;
-  border: 1px solid rgba(255,255,255,.08) !important;
-}
-
-/* 17) Mobile: que no se rompa */
 @media (max-width: 520px){
   .vr-hero{ padding: 16px !important; }
   .vr-mini-wide{ min-width: 100% !important; }

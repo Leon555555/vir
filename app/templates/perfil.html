@@ -50,6 +50,7 @@
       <div class="d-flex align-items-center gap-3">
         <div class="vr-avatar-xl">
           <i class="bi bi-person-fill"></i>
+          <span class="d-none d-md-inline">Volver</span>
         </div>
 
         <div>
@@ -127,7 +128,7 @@
 
       <a class="vr-tab {% if view=='progress' %}active{% endif %}"
          href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">
-        <i class="bi bi-graph-up"></i> Progreso
+        <i class="bi bi-graph-up"></i> Stats
       </a>
     </div>
   </div>

@@ -39,101 +39,136 @@
 {% endmacro %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-4 vr-athlete">
 
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div class="d-flex align-items-center gap-3">
-      <div class="vr-avatar">
-        <i class="bi bi-person-fill text-info"></i>
+  <!-- =========================
+        HERO / HEADER PREMIUM
+  ========================== -->
+  <div class="vr-hero glass p-3 p-md-4 mb-3 lift">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="vr-avatar-xl">
+          <i class="bi bi-person-fill"></i>
+        </div>
+
+        <div>
+          <div class="vr-kicker">DASHBOARD</div>
+          <div class="vr-hero-title">{{ user.nombre }}</div>
+          <div class="vr-hero-sub">
+            <span class="text-muted">{{ user.email }}</span>
+            <span class="mx-2 text-muted">·</span>
+
+            {% if strava_account %}
+              <span class="chip chip-green">🟠 Strava conectado</span>
+            {% else %}
+              <a href="{{ url_for('main.strava_connect') }}" class="chip chip-cyan link-unstyled">
+                🔗 Conectar Strava
+              </a>
+            {% endif %}
+          </div>
+        </div>
       </div>
 
-      <div>
-        <h2 class="text-light mb-0">{{ user.nombre }}</h2>
-        <div class="text-muted">{{ user.email }}</div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
 
-        <div class="mt-2">
-          {% if strava_account %}
-            <span class="badge bg-success">🟠 Strava conectado</span>
-          {% else %}
-            <a href="{{ url_for('main.strava_connect') }}" class="btn btn-sm btn-outline-warning">
-              🔗 Conectar con Strava
-            </a>
-          {% endif %}
+        {% if admin_ok %}
+          <a class="btn btn-vr btn-outline" href="{{ url_for('main.coach_planificador', user_id=user.id) }}">
+            <i class="bi bi-calendar3"></i> Planificar
+          </a>
+        {% endif %}
+
+        {# Volver: en view=today lo oculto en móvil, en otras vistas siempre #}
+        {% if view == 'today' %}
+          <a class="btn btn-vr btn-ghost d-none d-md-inline-flex" href="{{ url_for('main.perfil_redirect') }}">
+            <i class="bi bi-arrow-left"></i> Volver
+          </a>
+        {% else %}
+          <a class="btn btn-vr btn-ghost" href="{{ url_for('main.perfil_redirect') }}">
+            <i class="bi bi-arrow-left"></i> Volver
+          </a>
+        {% endif %}
+
+        <div class="vr-mini">
+          <div class="vr-mini-title">RACHA</div>
+          <div class="vr-mini-value">🔥 {{ streak }}</div>
         </div>
+
+        <div class="vr-mini vr-mini-wide">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="vr-mini-title">SEMANA</div>
+            <div class="vr-mini-value">✅ {{ week_done }} / {{ week_goal }}</div>
+          </div>
+          <div class="progress vr-progress mt-2">
+            {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
+            <div class="progress-bar" style="width: {{ pct }}%"></div>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      {% if admin_ok %}
-        <a class="btn btn-outline-info" href="{{ url_for('main.coach_planificador', user_id=user.id) }}">
-          <i class="bi bi-calendar3"></i> Planificar
-        </a>
-      {% endif %}
+    <!-- Tabs premium -->
+    <div class="vr-tabs mt-3">
+      <a class="vr-tab {% if view=='today' %}active{% endif %}"
+         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='today') }}">
+        <i class="bi bi-lightning-charge"></i> Hoy
+      </a>
 
-      {# Volver: en view=today lo oculto en móvil, en otras vistas siempre #}
-      {% if view == 'today' %}
-        <a class="btn btn-outline-light d-none d-md-inline-flex" href="{{ url_for('main.perfil_redirect') }}">
-          <i class="bi bi-arrow-left"></i> Volver
-        </a>
-      {% else %}
-        <a class="btn btn-outline-light" href="{{ url_for('main.perfil_redirect') }}">
-          <i class="bi bi-arrow-left"></i> Volver
-        </a>
-      {% endif %}
+      <a class="vr-tab {% if view=='week' %}active{% endif %}"
+         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=center.isoformat()) }}">
+        <i class="bi bi-calendar-week"></i> Semana
+      </a>
 
-      <div class="mini-stat">
-        <div class="mini-title">RACHA</div>
-        <div class="mini-value">🔥 {{ streak }}</div>
-      </div>
-      <div class="mini-stat">
-        <div class="mini-title">SEMANA</div>
-        <div class="mini-value">✅ {{ week_done }} / {{ week_goal }}</div>
-        <div class="progress mt-2">
-          {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
-          <div class="progress-bar" style="width: {{ pct }}%"></div>
-        </div>
-      </div>
+      <a class="vr-tab {% if view=='month' %}active{% endif %}"
+         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='month', center=center.isoformat()) }}">
+        <i class="bi bi-calendar3"></i> Mes
+      </a>
+
+      <a class="vr-tab {% if view=='progress' %}active{% endif %}"
+         href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">
+        <i class="bi bi-graph-up"></i> Progreso
+      </a>
     </div>
-  </div>
-
-  <!-- Tabs -->
-  <div class="d-flex gap-2 flex-wrap mb-3">
-    <a class="btn btn-sm {% if view=='today' %}btn-info{% else %}btn-outline-light{% endif %}"
-       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='today') }}">Hoy</a>
-
-    <a class="btn btn-sm {% if view=='week' %}btn-info{% else %}btn-outline-light{% endif %}"
-       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=center.isoformat()) }}">Semana</a>
-
-    <a class="btn btn-sm {% if view=='month' %}btn-info{% else %}btn-outline-light{% endif %}"
-       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='month', center=center.isoformat()) }}">Mes</a>
-
-    <a class="btn btn-sm {% if view=='progress' %}btn-info{% else %}btn-outline-light{% endif %}"
-       href="{{ url_for('main.perfil_usuario', user_id=user.id, view='progress', center=center.isoformat()) }}">Progreso</a>
   </div>
 
   {# ---------------- TODAY ---------------- #}
   {% if view == 'today' %}
-    <div class="card glass p-3 p-md-4">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <div class="card glass p-3 p-md-4 lift">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
-          <div class="text-muted vr-kicker" style="letter-spacing:.18em;text-transform:uppercase;">HOY</div>
+          <div class="vr-kicker">HOY</div>
+
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <div class="fs-4 fw-bold">{{ hoy.strftime('%A %d/%m')|upper }}</div>
+            <div class="vr-h2">{{ hoy.strftime('%A %d/%m')|upper }}</div>
             {{ activity_badge(plan_hoy.plan_type, 'sm') }}
           </div>
-          <div class="text-muted mt-1">Entrá y marcá lo que hiciste.</div>
+
+          <div class="text-muted mt-1">Entrá, seguí la sesión y marcá lo que hiciste.</div>
         </div>
 
-        <div class="d-flex gap-2">
-          <button class="btn btn-info" type="button" onclick="openDay('{{ hoy.isoformat() }}')">
-            ▶ Empezar
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-vr btn-primary" type="button" onclick="openDay('{{ hoy.isoformat() }}')">
+            <i class="bi bi-play-fill"></i> Empezar
           </button>
 
-          <a class="btn btn-outline-light"
+          <a class="btn btn-vr btn-outline"
              href="{{ url_for('main.perfil_usuario', user_id=user.id, view='week', center=hoy.isoformat()) }}">
             Ver semana
           </a>
+        </div>
+      </div>
+
+      <div class="divider-soft my-3"></div>
+
+      <div class="vr-today-preview">
+        <div class="vr-today-label">Vista rápida</div>
+        <div class="vr-today-text">
+          {% if (plan_hoy.plan_type or '').lower() == 'descanso' %}
+            Descanso / recuperación.
+          {% else %}
+            {{ plan_hoy.warmup or '—' }}
+          {% endif %}
         </div>
       </div>
     </div>
@@ -143,14 +178,14 @@
   {% if view == 'week' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
-        <h4 class="text-light mb-0">Semana</h4>
+        <div class="vr-h3">Semana</div>
         <div class="text-muted">{{ semana_str }}</div>
       </div>
 
       <form method="GET" class="d-flex gap-2">
         <input type="hidden" name="view" value="week">
-        <input type="date" class="form-control" name="center" value="{{ center.isoformat() }}">
-        <button class="btn btn-outline-info" type="submit">Ir</button>
+        <input type="date" class="form-control vr-input" name="center" value="{{ center.isoformat() }}">
+        <button class="btn btn-vr btn-outline" type="submit"><i class="bi bi-arrow-right"></i> Ir</button>
       </form>
     </div>
 
@@ -159,18 +194,18 @@
         {% set p = planes[f] %}
         {% set done = (f in done_week) %}
         <div class="col-md-6 col-lg-4">
-          <div class="card glass p-3 lift">
+          <div class="card glass p-3 lift vr-day-card {% if done %}is-done{% endif %}">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="fw-bold" style="letter-spacing:.08em;">{{ f.strftime('%a %d/%m')|upper }}</div>
+              <div class="vr-day-title">{{ f.strftime('%a %d/%m')|upper }}</div>
 
               {% if done %}
-                <span class="badge bg-success">HECHO</span>
+                <span class="chip chip-green"><i class="bi bi-check2-circle"></i> HECHO</span>
               {% else %}
                 {{ activity_badge(p.plan_type, 'sm') }}
               {% endif %}
             </div>
 
-            <div class="text-muted" style="font-size:.95rem;">
+            <div class="vr-day-snippet">
               {% if (p.plan_type or '').lower() == 'descanso' %}
                 Descanso / recuperación.
               {% else %}
@@ -179,7 +214,7 @@
             </div>
 
             <div class="d-grid mt-3">
-              <button class="btn btn-outline-info" type="button" onclick="openDay('{{ f.isoformat() }}')">
+              <button class="btn btn-vr btn-outline" type="button" onclick="openDay('{{ f.isoformat() }}')">
                 Ver detalle
               </button>
             </div>
@@ -193,19 +228,19 @@
   {% if view == 'month' %}
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <div>
-        <h4 class="text-light mb-0">Mes</h4>
+        <div class="vr-h3">Mes</div>
         <div class="text-muted">{{ month_label }}</div>
       </div>
 
       <form method="GET" class="d-flex gap-2">
         <input type="hidden" name="view" value="month">
-        <input type="month" class="form-control" name="center" value="{{ center.strftime('%Y-%m') }}">
-        <button class="btn btn-outline-info" type="submit">Ir</button>
+        <input type="month" class="form-control vr-input" name="center" value="{{ center.strftime('%Y-%m') }}">
+        <button class="btn btn-vr btn-outline" type="submit"><i class="bi bi-arrow-right"></i> Ir</button>
       </form>
     </div>
 
-    <div class="card glass p-3 p-md-4">
-      <div class="month-grid">
+    <div class="card glass p-3 p-md-4 lift">
+      <div class="month-grid vr-month-grid">
         <div class="month-head">L</div><div class="month-head">M</div><div class="month-head">X</div>
         <div class="month-head">J</div><div class="month-head">V</div><div class="month-head">S</div><div class="month-head">D</div>
 
@@ -245,6 +280,10 @@
                   <img src="{{ url_for('static', filename=icon) }}" alt="{{ label }}">
                   <span>{{ label }}</span>
                 </div>
+
+                {% if blocked %}
+                  <div class="vr-month-flag"><i class="bi bi-slash-circle"></i></div>
+                {% endif %}
               </div>
             {% else %}
               <div class="month-cell empty"></div>
@@ -257,15 +296,15 @@
 
   {# ---------------- PROGRESS ---------------- #}
   {% if view == 'progress' %}
-    <div class="card glass p-3 p-md-4">
+    <div class="card glass p-3 p-md-4 lift">
       <div class="mb-2">
-        <h4 class="text-light mb-0">Tus progresos</h4>
+        <div class="vr-h3">Tus progresos</div>
         <div class="text-muted">Semana actual · Objetivo vs completado</div>
       </div>
 
       <div class="glass p-3 mt-2" style="border-radius:18px;">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="mini-title">CONSISTENCIA</div>
+          <div class="vr-kicker">CONSISTENCIA</div>
           <div class="text-muted" style="font-weight:900;">
             {% set pct = 0 if week_goal==0 else (week_done*100//week_goal) %}
             {{ pct }}%
@@ -287,6 +326,7 @@
       </div>
     </div>
   {% endif %}
+
 </div>
 
 <!-- =========================
@@ -380,7 +420,7 @@
                 <label class="form-check-label text-muted" for="noPuedoToggle">No puedo entrenar este día</label>
               </div>
 
-              <textarea class="form-control mt-2" id="noPuedoText"
+              <textarea class="form-control mt-2 vr-input" id="noPuedoText"
                         placeholder="Ej: viaje / lesión / trabajo / etc (corto)"></textarea>
 
               <div class="d-grid mt-2">
@@ -406,7 +446,7 @@
 
             <div class="day-section mt-3">
               <div class="day-section-title">Qué hiciste</div>
-              <textarea class="form-control mb-2" id="doneNote" placeholder="Escribí breve: cómo te sentiste, cargas, tiempos, etc..."></textarea>
+              <textarea class="form-control mb-2 vr-input" id="doneNote" placeholder="Escribí breve: cómo te sentiste, cargas, tiempos, etc..."></textarea>
 
               <div class="d-grid">
                 <button class="btn btn-primary" onclick="saveLog()">
@@ -426,130 +466,11 @@
 
 {% block extra_css %}
 <style>
-/* complementario al styles_v2.css que ya tenés */
 .day-modal{
   background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
   color: rgba(255,255,255,.92);
 }
 .day-modal .modal-body{ background: transparent; }
-
-.day-chip{
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-weight: 900;
-  font-size: .82rem;
-  letter-spacing:.06em;
-}
-
-.chip{
-  border-radius:999px;
-  padding:6px 10px;
-  font-weight:900;
-  font-size:.82rem;
-  letter-spacing:.06em;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-}
-.chip-danger{
-  border-color: rgba(255,59,48,.55);
-  background: rgba(255,59,48,.14);
-  color: rgba(255,255,255,.92);
-}
-
-.day-section{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
-  padding: 12px;
-}
-.day-section-title{
-  font-weight: 950;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  font-size: .78rem;
-  color: rgba(255,255,255,.72);
-  margin-bottom: 10px;
-}
-
-.blocks-wrap{ display:grid; gap:12px; }
-
-.block-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
-  padding: 12px;
-}
-.block-head{
-  display:flex;
-  justify-content: space-between;
-  align-items:flex-start;
-  gap:10px;
-}
-.block-left{ display:flex; gap:10px; align-items:flex-start; }
-.block-icon{
-  width:40px;height:40px;border-radius:14px;
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.04);
-  display:flex;align-items:center;justify-content:center;
-  flex: 0 0 auto;
-}
-.block-title{ font-weight: 950; color: rgba(255,255,255,.96); line-height: 1.1; }
-.block-sub{
-  color: rgba(255,255,255,.72);
-  font-weight: 800;
-  font-size: .92rem;
-  margin-top: 4px;
-  line-height: 1.2;
-}
-.block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
-
-.exercise-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 18px;
-  overflow:hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-}
-.exercise-card.done{
-  border-color: rgba(34,197,94,.55) !important;
-  background: rgba(34,197,94,.10) !important;
-  box-shadow: 0 0 0 2px rgba(34,197,94,.12), 0 10px 30px rgba(0,0,0,.35);
-}
-.exercise-done-pill{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-weight: 950;
-  letter-spacing: .08em;
-  font-size: .78rem;
-  border: 1px solid rgba(34,197,94,.50);
-  background: rgba(34,197,94,.14);
-  color: rgba(255,255,255,.95);
-}
-
-.exercise-head{
-  padding: 10px 12px;
-  display:flex;
-  justify-content: space-between;
-  align-items:flex-start;
-  gap:10px;
-}
-.exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
-.exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); font-weight:800; letter-spacing:.02em; }
-.exercise-video{ padding: 10px 12px 12px; }
-.exercise-video video{
-  width:100%;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(0,0,0,.35);
-  min-height: 220px;
-  object-fit: cover;
-}
 </style>
 {% endblock %}
 

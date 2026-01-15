@@ -1,11 +1,13 @@
 /* ============================================================
-   VR TRAINING – styles_v2.css (DARK PRO)
-   Basado en tu layout:
-   - body.vr-body
-   - nav.vr-navbar
-   - main.vr-main
-   - links vr-link / brand vr-brand
-   ============================================================ */
+   VR TRAINING – styles_v2.css (DARK PRO) ✅ FULL CLEAN VERSION
+   - Base dark theme
+   - Bootstrap darkify (solo dentro de body.vr-body)
+   - Components: glass/lift/chips/buttons
+   - Athlete dashboard: hero/tabs/week/month/progress
+   - Month grid (no overlap mobile)
+   - Day modal + blocks + strength cards
+   - Planificador grid fixes
+============================================================ */
 
 :root{
   --bg: radial-gradient(circle at 50% 20%, #111 0%, #000 90%);
@@ -35,10 +37,15 @@ body.vr-body{
   min-height: 100vh;
 }
 
-/* separador por navbar fixed-top */
+/* Si tu navbar NO es fixed-top, no necesitamos padding grande */
 .vr-main{
-  padding-top: 86px;
+  padding-top: 18px;
   padding-bottom: 36px;
+}
+
+/* Si algún día la haces fixed-top, subís este padding desde HTML */
+body.vr-body nav.navbar.fixed-top + main.vr-main{
+  padding-top: 86px;
 }
 
 /* ------------------------------------------------------------
@@ -52,7 +59,7 @@ body.vr-body{
 
 .vr-brand{
   letter-spacing: .8px;
-  font-weight: 700;
+  font-weight: 900;
   color: var(--text);
 }
 
@@ -60,9 +67,8 @@ body.vr-body{
   color: var(--text);
   opacity: .92;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
 }
-
 .vr-link:hover{
   color: var(--cyan);
   opacity: 1;
@@ -79,8 +85,7 @@ body.vr-body{
 }
 
 /* ------------------------------------------------------------
-   “DARKIFY” Bootstrap sin romper arquitectura
-   (solo dentro de body.vr-body)
+   DARKIFY Bootstrap sin romper arquitectura
 ------------------------------------------------------------ */
 .vr-body .card,
 .vr-body .list-group-item,
@@ -96,7 +101,7 @@ body.vr-body{
   background: transparent;
   border-bottom: 1px solid var(--border);
   color: var(--text);
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .vr-body .text-muted{
@@ -134,25 +139,32 @@ body.vr-body{
   background: rgba(0,0,0,.45) !important;
 }
 
-/* labels */
 .vr-body label{
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 700;
 }
 
+/* Inputs custom */
+.vr-input{
+  background: rgba(0,0,0,.25) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  color: rgba(255,255,255,.92) !important;
+  border-radius: 14px !important;
+}
+.vr-input::placeholder{ color: rgba(255,255,255,.45) !important; }
+
 /* ------------------------------------------------------------
-   BOTONES
+   BOTONES (Bootstrap base)
 ------------------------------------------------------------ */
 .vr-body .btn{
   border-radius: var(--r2);
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .vr-body .btn-primary{
   background: var(--blue) !important;
   border-color: var(--blue) !important;
 }
-
 .vr-body .btn-primary:hover{
   background: #2563eb !important;
   border-color: #2563eb !important;
@@ -176,31 +188,26 @@ body.vr-body{
 }
 
 /* ------------------------------------------------------------
-   TABLAS (tu tabla de atletas)
+   TABLAS
 ------------------------------------------------------------ */
-.vr-body table{
-  color: var(--text);
-}
+.vr-body table{ color: var(--text); }
 
 .vr-body thead{
   background: rgba(255,255,255,.08);
 }
-
 .vr-body thead th{
   color: var(--text);
   border-bottom: 1px solid var(--border) !important;
 }
-
 .vr-body tbody td{
   border-bottom: 1px solid rgba(255,255,255,.08) !important;
 }
-
 .vr-body tbody tr:hover{
   background: rgba(255,255,255,.04);
 }
 
 /* ------------------------------------------------------------
-   BUILDER – EJERCICIOS EN GRIS (como te gusta)
+   BUILDER – ITEMS
 ------------------------------------------------------------ */
 .vr-body .rutina-item,
 .vr-body .builder-item,
@@ -225,61 +232,290 @@ body.vr-body{
   border-radius: 999px;
 }
 
-.vr-body .rutina-item-header,
-.vr-body .builder-header{
-  color: var(--text);
-}
-
 /* ------------------------------------------------------------
-   “TOTAL / PILLS / CHIPS”
+   LINKS
 ------------------------------------------------------------ */
-.vr-body .pill,
-.vr-body .chip{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.08);
-  color: var(--text);
-  font-weight: 700;
-}
+.vr-body a{ color: var(--cyan); }
+.vr-body a:hover{ color: var(--blue); }
 
-/* ------------------------------------------------------------
-   MODAL (video en builder)
------------------------------------------------------------- */
-.vr-body .modal-content{
-  background: #0b0b0b !important;
-}
-
-/* ------------------------------------------------------------
-   LINKS GENERALES
------------------------------------------------------------- */
-.vr-body a{
-  color: var(--cyan);
-}
-.vr-body a:hover{
-  color: var(--blue);
-}
-
-/* ------------------------------------------------------------
-   UTIL: si algo te queda muy blanco, esto lo apaga
------------------------------------------------------------- */
 .vr-body .bg-white,
 .vr-body .bg-body,
 .vr-body .bg-light{
   background: transparent !important;
 }
 
+/* ============================================================
+   ✅ UTIL DRAG
+============================================================ */
 .rb-handle { cursor: grab; user-select: none; -webkit-user-select: none; }
 .rb-item { touch-action: none; }
 .rb-ghost { opacity: .45; }
 
 /* ============================================================
-   ✅ PERFIL - MES EN CUADRÍCULA (MONTH GRID)
-   ============================================================ */
+   ✅ COMPONENTS PREMIUM (glass / lift / chips / btn-vr)
+============================================================ */
+.glass{
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 18px 60px rgba(0,0,0,.35);
+  backdrop-filter: blur(10px);
+}
+.lift{
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.lift:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 24px 80px rgba(0,0,0,.45);
+  border-color: rgba(34,211,238,.22);
+}
 
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  padding:.32rem .65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.20);
+  color: rgba(255,255,255,.92);
+  font-weight: 950;
+  letter-spacing: .06em;
+  font-size: .78rem;
+  text-decoration:none;
+}
+.chip-green{
+  background: rgba(34,197,94,.12);
+  border-color: rgba(34,197,94,.28);
+}
+.chip-cyan{
+  background: rgba(34,211,238,.12);
+  border-color: rgba(34,211,238,.28);
+}
+.chip-danger{
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.28);
+}
+
+.btn-vr{
+  border-radius: 14px !important;
+  font-weight: 950;
+  letter-spacing: .03em;
+  padding: .55rem .85rem;
+}
+.btn-vr.btn-primary{
+  background: linear-gradient(135deg, rgba(59,130,246,1), rgba(34,211,238,.75)) !important;
+  border: 1px solid rgba(34,211,238,.18) !important;
+}
+.btn-vr.btn-primary:hover{ filter: brightness(1.06); }
+
+.btn-vr.btn-outline{
+  background: rgba(0,0,0,.18) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  color: rgba(255,255,255,.92) !important;
+}
+.btn-vr.btn-outline:hover{
+  border-color: rgba(34,211,238,.30) !important;
+  box-shadow: 0 12px 30px rgba(34,211,238,.08);
+}
+
+.btn-vr.btn-ghost{
+  background: transparent !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.82) !important;
+}
+.btn-vr.btn-ghost:hover{ border-color: rgba(255,255,255,.22) !important; }
+
+/* Progress */
+.vr-progress{
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+.vr-progress .progress-bar{
+  background: linear-gradient(90deg, rgba(34,211,238,.80), rgba(59,130,246,.95));
+}
+
+/* ============================================================
+   ✅ ATHLETE DASHBOARD PREMIUM
+============================================================ */
+.vr-athlete .link-unstyled{ text-decoration:none; }
+
+.vr-hero{
+  position: relative;
+  overflow: hidden;
+}
+.vr-hero:before{
+  content:"";
+  position:absolute;
+  inset:-60px -60px auto auto;
+  width:260px; height:260px;
+  background: radial-gradient(circle at 30% 30%, rgba(0,229,255,.25), transparent 70%);
+  filter: blur(10px);
+  pointer-events:none;
+}
+
+.vr-avatar-xl{
+  width:54px; height:54px;
+  display:grid; place-items:center;
+  border-radius: 18px;
+  background: rgba(0,229,255,.12);
+  border: 1px solid rgba(0,229,255,.22);
+  color: rgba(255,255,255,.92);
+  font-size: 1.3rem;
+}
+
+.vr-kicker{
+  font-size: .78rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  font-weight: 950;
+  color: rgba(255,255,255,.62);
+}
+
+.vr-hero-title{
+  font-weight: 950;
+  font-size: 1.35rem;
+  letter-spacing: .01em;
+  color: rgba(255,255,255,.94);
+}
+.vr-hero-sub{
+  margin-top: 4px;
+  color: rgba(255,255,255,.60);
+}
+
+.vr-mini{
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  min-width: 120px;
+}
+.vr-mini-wide{ min-width: 230px; }
+.vr-mini-title{
+  font-size: .75rem;
+  letter-spacing: .18em;
+  font-weight: 950;
+  color: rgba(255,255,255,.55);
+}
+.vr-mini-value{
+  font-size: 1rem;
+  font-weight: 950;
+  color: rgba(255,255,255,.92);
+}
+
+.vr-tabs{
+  display:flex;
+  gap:10px;
+  flex-wrap: wrap;
+}
+.vr-tab{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.82);
+  font-weight: 900;
+  text-decoration:none;
+}
+.vr-tab:hover{
+  border-color: rgba(0,229,255,.25);
+  box-shadow: 0 12px 30px rgba(0,229,255,.06);
+}
+.vr-tab.active{
+  background: rgba(0,229,255,.12);
+  border-color: rgba(0,229,255,.28);
+  color: rgba(255,255,255,.95);
+}
+
+.vr-h2{ font-size: 1.35rem; font-weight: 950; letter-spacing:.02em; }
+.vr-h3{ font-size: 1.15rem; font-weight: 950; letter-spacing:.02em; }
+
+.divider-soft{
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+}
+
+.vr-today-preview{
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  padding: 12px;
+}
+.vr-today-label{
+  font-size: .75rem;
+  letter-spacing: .18em;
+  font-weight: 950;
+  color: rgba(255,255,255,.55);
+  margin-bottom: 6px;
+}
+.vr-today-text{
+  color: rgba(255,255,255,.80);
+  font-weight: 750;
+}
+
+/* Week cards */
+.vr-day-card{
+  position: relative;
+  overflow: hidden;
+  min-height: 260px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  padding: 14px;
+}
+.vr-day-card.is-done{
+  border-color: rgba(46,229,157,.28) !important;
+  box-shadow: 0 0 0 2px rgba(46,229,157,.08), 0 18px 50px rgba(0,0,0,.35);
+}
+.vr-day-title{
+  font-weight: 950;
+  letter-spacing: .10em;
+  color: rgba(255,255,255,.90);
+}
+.vr-day-snippet{
+  color: rgba(255,255,255,.66);
+  font-weight: 700;
+  font-size: .95rem;
+  min-height: 44px;
+}
+
+/* ============================================================
+   ✅ ACTIVITY BADGE (plan_type icon + text)
+============================================================ */
+.vr-activity-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+  padding:.30rem .65rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.22);
+}
+.vr-activity-badge .vr-activity-icon{
+  width:18px;
+  height:18px;
+  object-fit:contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
+}
+.vr-activity-badge .vr-activity-text{
+  font-weight: 900;
+  letter-spacing:.06em;
+  font-size:.82rem;
+  color: rgba(255,255,255,.90);
+  text-transform: uppercase;
+}
+.vr-activity-badge.sm{ padding:.22rem .55rem; }
+.vr-activity-badge.sm .vr-activity-icon{ width:16px; height:16px; }
+.vr-activity-badge.sm .vr-activity-text{ font-size:.78rem; }
+
+/* ============================================================
+   ✅ MONTH GRID (perfil -> Mes) – clean + no overlap
+============================================================ */
 .month-grid{
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -307,6 +543,7 @@ body.vr-body{
   background: rgba(0,0,0,.32);
   cursor: pointer;
   transition: transform .08s ease, border-color .12s ease, background .12s ease;
+  overflow: hidden; /* ✅ clave */
 }
 
 .month-cell:hover{
@@ -314,10 +551,7 @@ body.vr-body{
   border-color: rgba(34,211,238,.35);
   background: rgba(255,255,255,.06);
 }
-
-.month-cell:active{
-  transform: translateY(0px) scale(.995);
-}
+.month-cell:active{ transform: translateY(0px) scale(.995); }
 
 .month-cell.empty{
   cursor: default;
@@ -325,100 +559,83 @@ body.vr-body{
   background: rgba(255,255,255,.02);
 }
 
-/* número día */
 .month-cell .daynum{
   font-weight: 900;
   font-size: .95rem;
   color: rgba(255,255,255,.92);
 }
 
-/* tipo de plan */
-.month-cell .ptype{
-  margin-top: 6px;
-  font-size: .85rem;
-  font-weight: 800;
-  color: rgba(255,255,255,.82);
-  text-transform: capitalize;
-}
-
-/* marcado done_month */
-.month-cell.done{
-  box-shadow: 0 0 0 2px rgba(34,211,238,.18);
-  border-color: rgba(34,211,238,.35);
-}
-
-/* ✅ NUEVO: día bloqueado (no puede entrenar) */
 .month-cell.blocked{
   background: rgba(255, 59, 48, 0.18) !important;
   border: 1px solid rgba(255, 59, 48, 0.55) !important;
   box-shadow: 0 0 0 1px rgba(255,59,48,0.15) inset;
 }
-.month-cell.blocked .daynum{
-  color: rgba(255,255,255,.95) !important;
+.month-cell.blocked .daynum{ color: rgba(255,255,255,.95) !important; }
+
+/* icon+text */
+.month-cell .ptype-icon{
+  margin-top: 8px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  opacity: .95;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.month-cell .ptype-icon img{
+  width:18px;
+  height:18px;
+  object-fit:contain;
+}
+.month-cell .ptype-icon span{
+  font-size:.80rem;
+  font-weight: 900;
+  color: rgba(255,255,255,.82);
+  text-transform: uppercase;
+  letter-spacing:.06em;
+  display:block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* responsive mobile */
+/* Flag bloqueo */
+.vr-month-flag{
+  position:absolute;
+  top:8px; right:8px;
+  width:26px; height:26px;
+  display:grid; place-items:center;
+  border-radius: 999px;
+  background: rgba(255,59,48,.14);
+  border: 1px solid rgba(255,59,48,.28);
+  color: rgba(255,255,255,.92);
+}
+
+/* mobile */
 @media (max-width: 520px){
   .month-grid{ gap: 8px; }
+  .month-head{ padding: 6px 0; font-size: .9rem; border-radius: 12px; }
+  .month-cell, .month-cell.empty{ min-height: 74px; padding: 8px; border-radius: 12px; }
+  .month-cell .ptype-icon{ margin-top: 6px; gap: 6px; }
+  .month-cell .ptype-icon img{ width:16px; height:16px; }
+  .month-cell .ptype-icon span{ font-size:.74rem; letter-spacing:.05em; }
+}
 
-  .month-head{
-    padding: 6px 0;
-    font-size: .9rem;
-    border-radius: 12px;
-  }
-
-  .month-cell,
-  .month-cell.empty{
-    min-height: 78px;
-    padding: 9px;
-    border-radius: 12px;
-  }
-
-  .month-cell .ptype{
-    font-size: .78rem;
-  }
+/* extra small: solo icono */
+@media (max-width: 420px){
+  .month-cell .ptype-icon span{ display:none; }
+  .vr-mini-wide{ min-width: 100%; }
+  .vr-tabs{ gap: 8px; }
+  .vr-tab{ padding: 9px 11px; font-size: .92rem; }
 }
 
 /* ============================================================
-   ✅ PERFIL PRO
+   ✅ PROGRESS BARS (perfil -> Progreso)
 ============================================================ */
-
-.vr-avatar{
-  width:46px;
-  height:46px;
-  border-radius:16px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.mini-stat{
-  min-width: 132px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-}
-.mini-title{
-  font-weight: 950;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  font-size: .72rem;
-  color: rgba(255,255,255,.65);
-}
-.mini-value{
-  font-weight: 950;
-  font-size: 1.05rem;
-  margin-top: 2px;
-}
-
-.vr-kicker{
-  font-weight: 950;
-  color: rgba(255,255,255,.65);
-}
-
 .vr-bars{
   display:flex;
   align-items:flex-end;
@@ -431,7 +648,6 @@ body.vr-body{
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.22);
   overflow:hidden;
-  position: relative;
 }
 .vr-bar-fill{
   width: 100%;
@@ -446,11 +662,15 @@ body.vr-body{
   letter-spacing: .08em;
 }
 
+/* ============================================================
+   ✅ DAY MODAL + SECTIONS + BLOCKS
+============================================================ */
 .day-modal{
   background: radial-gradient(circle at 50% 20%, #111 0%, #000 90%) !important;
   color: rgba(255,255,255,.92);
 }
 .day-modal .modal-body{ background: transparent; }
+.day-modal .modal-header{ border-bottom: 1px solid rgba(255,255,255,.10); }
 
 .day-chip{
   border: 1px solid rgba(255,255,255,.12);
@@ -477,35 +697,6 @@ body.vr-body{
   margin-bottom: 10px;
 }
 
-.plan-card{
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 16px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-.plan-k{
-  font-weight: 900;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.72);
-  font-size: .78rem;
-}
-.plan-v{
-  margin-top: 6px;
-  font-size: 1.00rem;
-  font-weight: 800;
-  color: rgba(255,255,255,.92);
-  white-space: pre-line;
-}
-
-.avail-box{
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 16px;
-  padding: 12px;
-  background: rgba(0,0,0,.18);
-}
-
 .blocks-wrap{ display:grid; gap:12px; }
 
 .block-card{
@@ -524,7 +715,7 @@ body.vr-body{
 .block-icon{
   width:40px;height:40px;border-radius:14px;
   border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.04);
+  background: rgba(255,255,255,.05);
   display:flex;align-items:center;justify-content:center;
   flex: 0 0 auto;
 }
@@ -538,37 +729,16 @@ body.vr-body{
 }
 .block-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
 
-.block-list{
-  margin-top: 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.20);
-  padding: 10px;
-}
-.block-list-title{
-  font-weight: 950;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  font-size: .74rem;
-  color: rgba(255,255,255,.65);
-  margin-bottom: 8px;
-}
-.block-row{
-  display:flex;
-  justify-content: space-between;
-  align-items:center;
-  gap:10px;
-  padding: 6px 0;
-  border-bottom: 1px dashed rgba(255,255,255,.10);
-}
-.block-row:last-child{ border-bottom: 0; }
-
+/* ============================================================
+   ✅ STRENGTH EXERCISES (perfil -> fuerza/stretch)
+============================================================ */
 .exercise-card{
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
   border-radius: 18px;
   overflow:hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
 .exercise-head{
   padding: 10px 12px;
@@ -579,6 +749,7 @@ body.vr-body{
 }
 .exercise-name{ font-weight: 900; font-size: 1.02rem; color: rgba(255,255,255,.96); }
 .exercise-meta{ font-size:.92rem; color: rgba(255,255,255,.80); }
+
 .exercise-video{ padding: 10px 12px 12px; }
 .exercise-video video{
   width:100%;
@@ -589,67 +760,18 @@ body.vr-body{
   object-fit: cover;
 }
 
-/* ============================================================
-   ✅ NUEVO: ACTIVITY ICONS (plan_type)
-============================================================ */
-
-.vr-activity-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:.5rem;
-  padding:.30rem .65rem;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.22);
+/* Done */
+.exercise-card.done{
+  border-color: rgba(34,197,94,.55) !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,.18), 0 10px 30px rgba(0,0,0,.35);
+  background: rgba(34,197,94,.06) !important;
 }
-
-.vr-activity-badge .vr-activity-icon{
-  width:18px;
-  height:18px;
-  object-fit:contain;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
-}
-
-.vr-activity-badge .vr-activity-text{
-  font-weight: 900;
-  letter-spacing:.06em;
-  font-size:.82rem;
-  color: rgba(255,255,255,.90);
-  text-transform: uppercase;
-}
-
-.vr-activity-badge.sm{
-  padding:.22rem .55rem;
-}
-.vr-activity-badge.sm .vr-activity-icon{ width:16px; height:16px; }
-.vr-activity-badge.sm .vr-activity-text{ font-size:.78rem; }
-
-.month-cell .ptype-icon{
-  margin-top: 8px;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-  gap:8px;
-  opacity: .95;
-}
-.month-cell .ptype-icon img{
-  width:18px;
-  height:18px;
-  object-fit:contain;
-}
-.month-cell .ptype-icon span{
-  font-size:.80rem;
-  font-weight: 900;
-  color: rgba(255,255,255,.82);
-  text-transform: uppercase;
-  letter-spacing:.06em;
-}
+.exercise-card.done .exercise-name{ color: rgba(220,255,235,.95) !important; }
+.exercise-card.done .exercise-meta{ color: rgba(200,255,220,.80) !important; }
 
 /* ============================================================
-   ✅ FIX PLANIFICADOR "SE VUELVE LOCO"
-   (No rompe arquitectura: solo clases nuevas)
+   ✅ PLANIFICADOR FIX (grid + sidebar sticky)
 ============================================================ */
-
 .vr-page{
   width: 100%;
   max-width: 1240px;
@@ -674,140 +796,14 @@ body.vr-body{
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
-
 @media (max-width: 780px){
   .vr-days-grid{ grid-template-columns: 1fr; }
-}
-
-.vr-day-card{
-  position: relative;
-  overflow: hidden;
-  min-height: 260px;
-  border-radius: var(--r);
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.06);
-  padding: 14px;
-}
-
-.vr-day-title{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom: 10px;
-}
-
-/* Capa de “ilustración/ícono gigante” si lo usás como bg */
-.vr-day-hero{
-  position:absolute;
-  inset:auto -30px -40px auto;
-  width: 340px;
-  max-width: 70%;
-  opacity: .90;
-  pointer-events:none;
-  filter: drop-shadow(0 20px 60px rgba(0,0,0,.55));
-}
-
-.vr-day-body{
-  position: relative;
-  z-index: 2;
 }
 
 /* Sidebar sticky sin superposición */
 .vr-sidebar{
   position: sticky;
-  top: 96px; /* debajo navbar */
+  top: 96px;
   align-self: start;
 }
-
-.vr-sidebar .card{
-  overflow: hidden;
-}
-
-/* ============================================================
-   ✅ FUERZA: marcar ejercicio en verde + pill HECHO
-   (usado por perfil.html -> .exercise-card.done)
-============================================================ */
-.exercise-card{
-  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-}
-/* ✅ Fuerza: item DONE en verde */
-.exercise-card.done{
-  border-color: rgba(34,197,94,.55) !important;
-  box-shadow: 0 0 0 2px rgba(34,197,94,.18), 0 10px 30px rgba(0,0,0,.35);
-  background: rgba(34,197,94,.06) !important;
-}
-.exercise-card.done .exercise-name{
-  color: rgba(220,255,235,.95) !important;
-}
-.exercise-card.done .exercise-meta{
-  color: rgba(200,255,220,.80) !important;
-}
-
-/* KG input */
-.kg-input{
-  background: rgba(0,0,0,.35) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-  color: rgba(255,255,255,.92) !important;
-}
-.kg-input:focus{
-  border-color: rgba(34,211,238,.55) !important;
-  box-shadow: 0 0 0 2px rgba(34,211,238,.22) !important;
-}
-
-/* ============================================================
-   ✅ FIX MOBILE CALENDARIO MES (NO SUPERPOSICIÓN)
-   - Evita que el texto se salga del tile
-   - Ellipsis (…)
-   - En pantallas muy chicas: solo icono
-============================================================ */
-
-/* clave: nada puede "dibujarse" fuera de la celda */
-.month-cell{
-  overflow: hidden; /* ✅ evita superposición entre celdas */
-}
-
-/* contenedor icono+texto dentro del día */
-.month-cell .ptype-icon{
-  max-width: 100%;
-  min-width: 0;            /* ✅ necesario para ellipsis en flex */
-  overflow: hidden;
-  flex-wrap: nowrap;       /* no permitir saltos raros */
-}
-
-/* texto del plan: truncado prolijo */
-.month-cell .ptype-icon span{
-  display: block;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis; /* ✅ “DESCA…” */
-  white-space: nowrap;     /* ✅ en una línea */
-}
-
-/* en mobile: más compacto + aseguramos altura */
-@media (max-width: 520px){
-  .month-cell{
-    min-height: 74px;     /* un poco más compacto y consistente */
-    padding: 8px;
-  }
-  .month-cell .ptype-icon{
-    margin-top: 6px;
-    gap: 6px;
-  }
-  .month-cell .ptype-icon img{
-    width: 16px;
-    height: 16px;
-  }
-  .month-cell .ptype-icon span{
-    font-size: .74rem;
-    letter-spacing: .05em;
-  }
-}
-
-/* en pantallas muy chicas: SOLO ICONO (queda premium, cero pisadas) */
-@media (max-width: 420px){
-  .month-cell .ptype-icon span{
-    display: none;
-  }
-}
+.vr-sidebar .card{ overflow: hidden; }
